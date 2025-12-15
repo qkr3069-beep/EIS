@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>OmniCare EIS · Accounts (Sales · All)</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/variable/pretendardvariable.css" />
+
+<style>
+  html,body{ font-family:"Pretendard Variable", system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+  .card{ border:1px solid #e5e7eb; border-radius:16px; background:#fff; box-shadow:0 8px 24px rgba(15,23,42,.06); }
+  .muted{ color:#64748b; }
+  .divider{ height:1px; background:#e5e7eb; }
+  .chip{ border:1px solid #e5e7eb; border-radius:999px; padding:.25rem .6rem; font-size:.8rem; color:#334155; background:#f8fafc; }
+  .btn2{ border:1px solid #e5e7eb; background:#fff; color:#0f172a; border-radius:12px; padding:.55rem .9rem; font-weight:800; }
+  .btnDark{ border:1px solid #0f172a; background:#0f172a; color:#fff; border-radius:12px; padding:.55rem .9rem; font-weight:800; }
+  .small{ font-size:.85rem; }
+  .kpiBox{ border:1px solid #e5e7eb; border-radius:16px; padding:14px; background:#fff; }
+  .kpiLabel{ color:#64748b; font-size:.85rem; font-weight:700; }
+  .kpiValue{ font-size:1.6rem; font-weight:900; color:#0f172a; margin-top:4px; }
+  .kpiSub{ color:#64748b; font-size:.8rem; margin-top:4px; }
+
+  table{ width:100%; border-collapse:collapse; }
+  thead th{ text-align:left; font-size:.85rem; color:#334155; padding:10px 10px; border-bottom:1px solid #e5e7eb; white-space:nowrap; }
+  tbody td{ padding:12px 10px; border-bottom:1px solid #eef2f7; vertical-align:top; font-size:.92rem; color:#0f172a; }
+  tbody tr:hover{ background:#f8fafc; }
+  .num{ text-align:right; font-variant-numeric: tabular-nums; white-space:nowrap; }
+  .link{ color:#0f172a; text-decoration:none; font-weight:900; }
+  .link:hover{ text-decoration:underline; }
+  .pill{
+    display:inline-flex; align-items:center; gap:.35rem;
+    border:1px solid #e5e7eb; border-radius:999px;
+    padding:.2rem .55rem; font-size:.78rem; font-weight:800;
+    background:#fff;
+  }
+  .pill-green{ color:#166534; border-color:#bbf7d0; background:#f0fdf4; }
+  .pill-amber{ color:#92400e; border-color:#fde68a; background:#fffbeb; }
+  .pill-slate{ color:#334155; border-color:#e2e8f0; background:#f8fafc; }
+  .pill-red{ color:#991b1b; border-color:#fecaca; background:#fef2f2; }
+
+  .iconBtn{
+    display:inline-flex; align-items:center; justify-content:center;
+    width:36px; height:36px; border-radius:12px;
+    border:1px solid #e5e7eb; background:#fff;
+    transition: transform .12s ease, background .12s ease;
+  }
+  .iconBtn:hover{ background:#f8fafc; transform: translateY(-1px); }
+
+  .input{
+    border:1px solid #e5e7eb; border-radius:14px;
+    padding:.6rem .8rem; background:#fff; color:#0f172a;
+    outline:none;
+  }
+  .input:focus{ border-color:#94a3b8; box-shadow:0 0 0 3px rgba(148,163,184,.25); }
+
+  .select{
+    border:1px solid #e5e7eb; border-radius:14px;
+    padding:.6rem .8rem; background:#fff; color:#0f172a;
+  }
+
+  .hintBox{
+    border:1px dashed #e5e7eb; border-radius:16px;
+    padding:12px 14px; background:#f8fafc; color:#334155;
+  }
+</style>
+</head>
+
+<body class="bg-slate-50">
+
+<!-- Header -->
+<header class="sticky top-0 z-20 bg-white/90 backdrop-blur border-b border-slate-200">
+  <div class="max-w-[1440px] mx-auto px-2 py-3 flex items-center gap-3">
+    <a href="https://qkr3069-beep.github.io/EIS/" aria-label="메인으로 이동">
+      <img src="omnicare_logo.png" alt="옴니케어 로고" class="h-12 object-contain cursor-pointer" />
+    </a>
+    <div class="flex-1">
+      <div class="font-semibold text-slate-900">OmniCare Intelligence Hub</div>
+      <div class="text-sm muted">거래처 현황 · 전체보기 (영업자)</div>
+    </div>
+    <button onclick="location.href='mypage_sales.html'" class="btn2">마이페이지로 돌아가기</button>
+    <button onclick="location.href='https://qkr3069-beep.github.io/EIS/'" class="btn2">메인</button>
+  </div>
+</header>
+
+<main class="max-w-[1440px] mx-auto px-2 py-6 space-y-6">
+
+  <!-- Title / Filters -->
+  <section class="card p-5">
+    <div class="flex items-start justify-between gap-3 flex-wrap">
+      <div>
+        <div class="text-lg font-extrabold text-slate-900">거래처 현황 전체보기</div>
+        <div class="muted small" id="userLine">-</div>
+      </div>
+      <div class="flex items-center gap-2 flex-wrap">
+        <span class="chip">Accounts</span>
+        <span class="chip" id="countChip">-</span>
+      </div>
+    </div>
+
+    <div class="divider my-4"></div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-3 items-center">
+      <div class="lg:col-span-5">
+        <input id="q" class="input w-full" placeholder="거래처 검색 (이름)" />
+      </div>
+
+      <div class="lg:col-span-3">
+        <select id="statusSel" class="select w-full">
+          <option value="ALL">상태: 전체</option>
+          <option value="진행">진행</option>
+          <option value="휴면">휴면</option>
+          <option value="해지">해지</option>
+        </select>
+      </div>
+
+      <div class="lg:col-span-2">
+        <select id="sortSel" class="select w-full">
+          <option value="AR_DESC">정렬: 매출채권 높은 순</option>
+          <option value="REV_DESC">정렬: 누적 매출 높은 순</option>
+          <option value="PAY_DESC">정렬: 누적 입금액 높은 순</option>
+          <option value="EXAM_DESC">정렬: 누적 수검자 높은 순</option>
+          <option value="NAME_ASC">정렬: 거래처명 A→Z</option>
+          <option value="TAX_DESC">정렬: 계산서 최근일</option>
+          <option value="DEPOSIT_ASC">정렬: 예정입금 빠른 순</option>
+        </select>
+      </div>
+
+      <div class="lg:col-span-2 flex items-center justify-end gap-2">
+        <button id="resetBtn" class="btn2">필터 초기화</button>
+        <button id="exportBtn" class="btnDark">CSV</button>
+      </div>
+    </div>
+
+    <div class="mt-3 hintBox small">
+      ✅ 이 화면은 <b>내 담당 거래처 전체</b>를 보여줍니다. 검색/필터/정렬은 <b>TOP5가 아니라 전체</b>에 적용됩니다.
+    </div>
+  </section>
+
+  <!-- KPI Row -->
+  <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+    <div class="kpiBox">
+      <div class="kpiLabel">내 담당 거래처</div>
+      <div class="kpiValue" id="kpiTotal">-</div>
+      <div class="kpiSub">현재 필터 적용 전 전체</div>
+    </div>
+    <div class="kpiBox">
+      <div class="kpiLabel">현재 목록 건수</div>
+      <div class="kpiValue" id="kpiFiltered">-</div>
+      <div class="kpiSub">검색/필터 적용 후</div>
+    </div>
+    <div class="kpiBox">
+      <div class="kpiLabel">총 매출채권</div>
+      <div class="kpiValue" id="kpiArSum">-</div>
+      <div class="kpiSub">현재 목록 합계(만원)</div>
+    </div>
+    <div class="kpiBox">
+      <div class="kpiLabel">총 누적 매출</div>
+      <div class="kpiValue" id="kpiRevSum">-</div>
+      <div class="kpiSub">현재 목록 합계(만원)</div>
+    </div>
+  </section>
+
+  <!-- Table -->
+  <section class="card p-5">
+    <div class="flex items-center justify-between gap-3 flex-wrap">
+      <div>
+        <div class="font-extrabold text-slate-900">거래처 목록</div>
+        <div class="muted small" id="scopeHint">-</div>
+      </div>
+      <div class="flex items-center gap-2">
+        <button class="iconBtn" id="scrollTopBtn" title="위로">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="divider my-4"></div>
+
+    <div class="overflow-auto">
+      <table>
+        <thead>
+          <tr>
+            <th style="min-width:240px;">거래처명</th>
+            <th style="min-width:110px;">상태</th>
+            <th class="num" style="min-width:150px;">금년도 누적 매출</th>
+            <th class="num" style="min-width:150px;">금년도 누적 수검자</th>
+            <th style="min-width:160px;">세금계산서 발행일(최근)</th>
+            <th style="min-width:150px;">예정 입금일</th>
+            <th class="num" style="min-width:150px;">누적 입금액</th>
+            <th class="num" style="min-width:150px;">매출채권</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+
+    <div class="mt-4 flex items-center justify-between gap-3 flex-wrap">
+      <div class="muted small" id="pagingHint">-</div>
+      <div class="flex items-center gap-2">
+        <button class="btn2" id="prevBtn">이전</button>
+        <span class="chip" id="pageChip">-</span>
+        <button class="btn2" id="nextBtn">다음</button>
+      </div>
+    </div>
+  </section>
+
+  <footer class="text-center muted small py-6">
+    샘플 화면입니다. 실제 서비스에서는 DB/권한/감사로그/ERP 연동으로 대체됩니다.
+  </footer>
+</main>
+
+<script>
+/** =========================
+ *  로그인 사용자(샘플)
+ *  - 실제 로그인 붙이면 여기만 교체
+ * ========================= */
+const CURRENT_USER = { id:"u1", name:"김영업", team:"A팀", role:"sales" };
+const NOW_YM = "2025-12";
+
+/** =========================
+ *  유틸
+ * ========================= */
+const fmt = (n) => (n ?? 0).toLocaleString("ko-KR");
+const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
+
+function parseDateYMD(ymd){
+  // "YYYY-MM-DD"
+  const d = new Date(ymd + "T00:00:00");
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+function toYMD(d){
+  const y=d.getFullYear();
+  const m=String(d.getMonth()+1).padStart(2,"0");
+  const dd=String(d.getDate()).padStart(2,"0");
+  return `${y}-${m}-${dd}`;
+}
+function addDays(base, days){
+  const d=new Date(base);
+  d.setDate(d.getDate()+days);
+  return d;
+}
+function seededRand(i){
+  const x = Math.sin(i * 999) * 10000;
+  return x - Math.floor(x);
+}
+
+/** =========================
+ *  거래처 100개 샘플 생성 (mypage_sales와 동일 로직)
+ *  - 실제로는 API/DB에서 가져오면 됨
+ * ========================= */
+function makeSampleAccounts(n=100){
+  const owners = ["김영업","박영업","이영업","최영업"];
+  const prefixes = ["메디컬","종합","헬스","케어","바이오","메디","건강","연구","검진","파트너"];
+  const cities = ["대구","수성","달서","동구","서구","중구","수원","부산","광주","제주","여의도","강남","광화문"];
+
+  const baseDate = new Date("2025-12-15T00:00:00");
+  const out = [];
+
+  for(let i=1;i<=n;i++){
+    const r1 = seededRand(i);
+    const r2 = seededRand(i+100);
+    const r3 = seededRand(i+200);
+
+    const owner = owners[Math.floor(r1*owners.length)];
+    const name = `${cities[Math.floor(r2*cities.length)]}${prefixes[Math.floor(r3*prefixes.length)]}센터 ${String(i).padStart(3,"0")}`;
+
+    const ytdRevenue = Math.round( (2000 + r1*48000) / 10 ) * 10;
+    const paidRate = 0.20 + r2*0.70;
+    const paidToDate = Math.round(ytdRevenue * paidRate / 10) * 10;
+
+    const ytdExaminees = Math.round( 20 + r3*980 );
+
+    const taxInvoiceDate = toYMD(addDays(baseDate, -Math.floor(r2*45)));
+    const expectedDepositDate = toYMD(addDays(new Date(taxInvoiceDate), 7 + Math.floor(r3*28)));
+
+    const lastTouchDays = Math.floor(r1*70);
+    const statusPick = r2 < 0.08 ? "해지" : (r2 < 0.18 ? "휴면" : "진행");
+    const createdYM = r3 < 0.15 ? NOW_YM : (r3 < 0.45 ? "2025-11" : "2025-10");
+    const churnYM = statusPick==="해지" ? NOW_YM : null;
+
+    out.push({
+      id:`a${i}`,
+      name,
+      owner,
+      status: statusPick,
+      createdYM,
+      churnYM,
+      lastTouchDays,
+      ytdRevenue,
+      ytdExaminees,
+      taxInvoiceDate,
+      expectedDepositDate,
+      paidToDate
+    });
+  }
+  return out;
+}
+const ACCOUNTS = makeSampleAccounts(100);
+
+/** =========================
+ *  스코프(내 담당)
+ * ========================= */
+function scopedAccounts(){
+  return ACCOUNTS.filter(a => a.owner === CURRENT_USER.name);
+}
+function arOf(a){
+  return Math.max(0, (a.ytdRevenue||0) - (a.paidToDate||0));
+}
+function statusPill(status){
+  if (status === "진행") return `<span class="pill pill-green">● 진행</span>`;
+  if (status === "휴면") return `<span class="pill pill-amber">● 휴면</span>`;
+  if (status === "해지") return `<span class="pill pill-red">● 해지</span>`;
+  return `<span class="pill pill-slate">● -</span>`;
+}
+
+/** =========================
+ *  필터/정렬/페이지
+ * ========================= */
+let page = 1;
+const pageSize = 20;
+
+function getFilteredList(){
+  const all = scopedAccounts();
+  const q = (document.getElementById("q").value || "").trim().toLowerCase();
+  const st = document.getElementById("statusSel").value;
+  const sort = document.getElementById("sortSel").value;
+
+  let list = all.slice();
+
+  if (q){
+    list = list.filter(a => a.name.toLowerCase().includes(q));
+  }
+  if (st !== "ALL"){
+    list = list.filter(a => a.status === st);
+  }
+
+  // sort
+  list.sort((a,b)=>{
+    if (sort === "AR_DESC") return arOf(b) - arOf(a);
+    if (sort === "REV_DESC") return (b.ytdRevenue||0) - (a.ytdRevenue||0);
+    if (sort === "PAY_DESC") return (b.paidToDate||0) - (a.paidToDate||0);
+    if (sort === "EXAM_DESC") return (b.ytdExaminees||0) - (a.ytdExaminees||0);
+    if (sort === "NAME_ASC") return (a.name||"").localeCompare(b.name||"", "ko");
+    if (sort === "TAX_DESC"){
+      const ad = parseDateYMD(a.taxInvoiceDate) || new Date(0);
+      const bd = parseDateYMD(b.taxInvoiceDate) || new Date(0);
+      return bd - ad;
+    }
+    if (sort === "DEPOSIT_ASC"){
+      const ad = parseDateYMD(a.expectedDepositDate) || new Date(8640000000000000);
+      const bd = parseDateYMD(b.expectedDepositDate) || new Date(8640000000000000);
+      return ad - bd;
+    }
+    return 0;
+  });
+
+  return { all, list, q, st, sort };
+}
+
+function renderTable(){
+  const tbody = document.getElementById("tbody");
+  const { all, list, q, st } = getFilteredList();
+
+  const totalPages = Math.max(1, Math.ceil(list.length / pageSize));
+  page = clamp(page, 1, totalPages);
+
+  const start = (page-1)*pageSize;
+  const slice = list.slice(start, start + pageSize);
+
+  tbody.innerHTML = "";
+
+  if (!slice.length){
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td colspan="8" class="muted" style="padding:14px;">표시할 거래처가 없습니다.</td>`;
+    tbody.appendChild(tr);
+  }else{
+    slice.forEach(a=>{
+      const ar = arOf(a);
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td style="font-weight:900;">
+          <a class="link" href="#" onclick="alert('거래처 상세(예정)'); return false;">${a.name}</a>
+          <div class="muted small mt-1">담당: ${a.owner}</div>
+        </td>
+        <td>${statusPill(a.status)}</td>
+        <td class="num">${fmt(a.ytdRevenue)} 만원</td>
+        <td class="num">${fmt(a.ytdExaminees)} 명</td>
+        <td>${a.taxInvoiceDate || "-"}</td>
+        <td>${a.expectedDepositDate || "-"}</td>
+        <td class="num">${fmt(a.paidToDate)} 만원</td>
+        <td class="num" style="font-weight:900; color:${ar>0 ? "#b91c1c" : "#0f172a"}">${fmt(ar)} 만원</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  // KPI (필터 반영)
+  const arSum = list.reduce((s,a)=> s + arOf(a), 0);
+  const revSum = list.reduce((s,a)=> s + (a.ytdRevenue||0), 0);
+
+  document.getElementById("kpiTotal").textContent = `${fmt(all.length)}`;
+  document.getElementById("kpiFiltered").textContent = `${fmt(list.length)}`;
+  document.getElementById("kpiArSum").textContent = `${fmt(arSum)} 만원`;
+  document.getElementById("kpiRevSum").textContent = `${fmt(revSum)} 만원`;
+
+  document.getElementById("userLine").textContent = `${CURRENT_USER.name} · ${CURRENT_USER.team} · ${NOW_YM} 기준`;
+  document.getElementById("countChip").textContent = `내 담당 ${fmt(all.length)}곳`;
+
+  const scopeBits = [];
+  if (q) scopeBits.push(`검색: “${q}”`);
+  if (st !== "ALL") scopeBits.push(`상태: ${st}`);
+  document.getElementById("scopeHint").textContent =
+    scopeBits.length ? `현재 필터 · ${scopeBits.join(" / ")}` : "현재 필터 없음 · 내 담당 전체";
+
+  document.getElementById("pagingHint").textContent =
+    `표시: ${fmt(list.length)}건 중 ${fmt(start+1)}–${fmt(Math.min(start+pageSize, list.length))} (페이지 ${page}/${totalPages})`;
+
+  document.getElementById("pageChip").textContent = `${page} / ${totalPages}`;
+
+  // Prev/Next disabled 느낌
+  document.getElementById("prevBtn").disabled = (page <= 1);
+  document.getElementById("nextBtn").disabled = (page >= totalPages);
+  document.getElementById("prevBtn").style.opacity = (page <= 1) ? .5 : 1;
+  document.getElementById("nextBtn").style.opacity = (page >= totalPages) ? .5 : 1;
+}
+
+/** =========================
+ *  CSV Export (현재 필터 결과 전체)
+ * ========================= */
+function downloadCSV(){
+  const { list } = getFilteredList();
+  const header = [
+    "거래처명","상태","금년도 누적 매출(만원)","금년도 누적 수검자(명)",
+    "세금계산서 발행일(최근)","예정 입금일","누적 입금액(만원)","매출채권(만원)"
+  ];
+
+  const rows = list.map(a => ([
+    a.name,
+    a.status,
+    a.ytdRevenue ?? 0,
+    a.ytdExaminees ?? 0,
+    a.taxInvoiceDate ?? "",
+    a.expectedDepositDate ?? "",
+    a.paidToDate ?? 0,
+    arOf(a)
+  ]));
+
+  const csv = [header, ...rows]
+    .map(r => r.map(v => {
+      const s = String(v ?? "");
+      return /[",\n]/.test(s) ? `"${s.replace(/"/g,'""')}"` : s;
+    }).join(","))
+    .join("\n");
+
+  const blob = new Blob([csv], { type:"text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `accounts_${CURRENT_USER.name}_${NOW_YM}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+/** =========================
+ *  이벤트
+ * ========================= */
+document.getElementById("q").addEventListener("input", ()=>{ page=1; renderTable(); });
+document.getElementById("statusSel").addEventListener("change", ()=>{ page=1; renderTable(); });
+document.getElementById("sortSel").addEventListener("change", ()=>{ page=1; renderTable(); });
+
+document.getElementById("resetBtn").addEventListener("click", ()=>{
+  document.getElementById("q").value = "";
+  document.getElementById("statusSel").value = "ALL";
+  document.getElementById("sortSel").value = "AR_DESC";
+  page = 1;
+  renderTable();
+});
+
+document.getElementById("prevBtn").addEventListener("click", ()=>{ page--; renderTable(); });
+document.getElementById("nextBtn").addEventListener("click", ()=>{ page++; renderTable(); });
+
+document.getElementById("exportBtn").addEventListener("click", downloadCSV);
+
+document.getElementById("scrollTopBtn").addEventListener("click", ()=>{
+  window.scrollTo({ top:0, behavior:"smooth" });
+});
+
+/** =========================
+ *  초기 렌더
+ * ========================= */
+renderTable();
+</script>
+
+</body>
+</html>
