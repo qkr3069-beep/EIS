@@ -23,11 +23,15 @@
 
 <body class="bg-slate-50 text-slate-900 min-h-screen">
 
+  <!-- Header (메인 톤과 동일) -->
   <header class="sticky top-0 z-20 bg-white/90 backdrop-blur border-b border-slate-200">
     <div class="max-w-[1440px] mx-auto px-2 py-3 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
       <div class="flex items-center gap-3">
+        <!-- 로고 클릭 시 메인으로 이동 -->
         <a href="https://qkr3069-beep.github.io/EIS/" aria-label="메인으로 이동" class="shrink-0">
-          <img src="omnicare_logo.png" alt="옴니케어 로고" class="h-12 md:h-14 object-contain cursor-pointer" />
+          <img src="omnicare_logo.png"
+               alt="옴니케어 로고"
+               class="h-12 md:h-14 object-contain cursor-pointer" />
         </a>
 
         <div>
@@ -37,10 +41,13 @@
       </div>
 
       <div class="flex items-center gap-2 flex-wrap justify-end">
-        <a href="https://www.korea.kr/" target="_blank" rel="noopener" class="btn2 text-sm">정책브리핑</a>
+        <a href="https://www.korea.kr/" target="_blank" rel="noopener" class="btn2 text-sm">
+          정책브리핑
+        </a>
+
         <div class="flex items-center gap-2">
           <input type="date" id="datePicker" class="border border-slate-200 rounded-xl px-3 py-2 bg-white" />
-          <button id="btnLoad" class="btn">조회</button>
+          <button onclick="loadAllNews()" class="btn">조회</button>
         </div>
       </div>
     </div>
@@ -65,7 +72,6 @@
   </main>
 
 <script>
-/* ===================== FEEDS ===================== */
 const feeds = {
   "건강검진": "https://news.google.com/rss/search?q=건강검진&hl=ko&gl=KR&ceid=KR:ko",
   "검진센터 소식": "https://news.google.com/rss/search?q=KMI+OR+한국의학연구소+OR+건강관리협회+OR+하나로의료재단+OR+메디플러스+OR+메디피아+OR+SCL+OR+세종365의원+OR+대청병원+OR+천안우리병원&hl=ko&gl=KR&ceid=KR:ko",
@@ -99,143 +105,37 @@ function buildMoreLink(cat){
   return `https://news.google.com/search?q=${q}&hl=ko&gl=KR&ceid=KR%3Ako`;
 }
 
-/* ===================== DATE FILTER ===================== */
-function parseYMD(v){
-  const [a,b,c] = (v||"").split("-").map(Number);
-  if(!a || !b || !c) return null;
-  return new Date(a, b-1, c, 0,0,0,0);
-}
-function parseItemDate(dt){
-  if(!dt) return null;
-  const d = new Date(dt);
-  if(!Number.isNaN(d.getTime())) return d;
-  const fixed = String(dt).replace(" ", "T");
-  const d2 = new Date(fixed);
-  if(!Number.isNaN(d2.getTime())) return d2;
-  return null;
-}
-function isSameDate(pubDate, sel){
-  const selD = parseYMD(sel);
-  const itemD = parseItemDate(pubDate);
+function parseYMD(v){const[a,b,c]=v.split("-").map(Number);return new Date(a,b-1,c);}
+function isSameDate(dt,sel){ return Math.abs((new Date(dt)-parseYMD(sel))/86400000)<=1; }
 
-  if(!selD) return true;
-  if(!itemD) return true;
-
-  const a = new Date(selD.getFullYear(), selD.getMonth(), selD.getDate()).getTime();
-  const b = new Date(itemD.getFullYear(), itemD.getMonth(), itemD.getDate()).getTime();
-  return Math.abs(a - b) <= 86400000; // ±1일
+async function fetchRSS(u){
+  const r = await fetch("https://api.rss2json.com/v1/api.json?rss_url=" + encodeURIComponent(u));
+  return r.json();
 }
 
-/* ===================== NETWORK HELPERS ===================== */
-function withTimeout(ms){
-  const ctrl = new AbortController();
-  const t = setTimeout(()=>ctrl.abort(), ms);
-  return { signal: ctrl.signal, done: ()=>clearTimeout(t) };
-}
+function renderSection(wrap,cat,items,selDate){
+  let num = 0;
 
-function parseRssXml(text){
-  const xml = new DOMParser().parseFromString(text, "text/xml");
-  const err = xml.querySelector("parsererror");
-  if (err) throw new Error("XML parse error");
-
-  const items = Array.from(xml.querySelectorAll("item")).map(it => ({
-    title: it.querySelector("title")?.textContent || "",
-    link: it.querySelector("link")?.textContent || "",
-    pubDate: it.querySelector("pubDate")?.textContent || "",
-    description: it.querySelector("description")?.textContent || ""
-  }));
-  return { items };
-}
-
-/* 1) allorigins RAW (빠름)
-   2) rss2json (폴백) */
-async function fetchRSS(url){
-  const cacheKey = "rsscache:" + url;
-  const ttlMs = 10 * 60 * 1000;
-
-  try{
-    const cached = JSON.parse(localStorage.getItem(cacheKey) || "null");
-    if(cached && (Date.now()-cached.t) < ttlMs && cached.items){
-      return { items: cached.items };
-    }
-  }catch(e){}
-
-  // allorigins raw
-  try{
-    const {signal, done} = withTimeout(8000);
-    const proxy = "https://api.allorigins.win/raw?url=" + encodeURIComponent(url);
-    const res = await fetch(proxy, { signal, cache:"no-store" });
-    done();
-    if(!res.ok) throw new Error("allorigins http " + res.status);
-
-    const text = await res.text();
-    const parsed = parseRssXml(text);
-
-    try{
-      localStorage.setItem(cacheKey, JSON.stringify({ t: Date.now(), items: parsed.items }));
-    }catch(e){}
-    return parsed;
-
-  }catch(e){
-    // rss2json fallback
-    try{
-      const {signal, done} = withTimeout(8000);
-      const api = "https://api.rss2json.com/v1/api.json?rss_url=" + encodeURIComponent(url);
-      const res = await fetch(api, { signal, cache:"no-store" });
-      done();
-      if(!res.ok) throw new Error("rss2json http " + res.status);
-
-      const j = await res.json();
-      const items = (j.items || []).map(it=>({
-        title: it.title || "",
-        link: it.link || "",
-        pubDate: it.pubDate || "",
-        description: it.description || ""
-      }));
-
-      try{
-        localStorage.setItem(cacheKey, JSON.stringify({ t: Date.now(), items }));
-      }catch(e){}
-      return { items };
-
-    }catch(e2){
-      throw e2;
-    }
-  }
-}
-
-/* ===================== UI RENDER ===================== */
-function makeSkeletonSection(cat){
   const sec = document.createElement("section");
   sec.className = "card p-4";
-  sec.dataset.cat = cat;
+
   sec.innerHTML = `
     <div class="flex items-center justify-between gap-3 flex-wrap">
       <div class="flex items-center gap-2">
         <div class="font-semibold text-slate-900">${cat}</div>
         <span class="chip">TOP 5</span>
       </div>
-      <span class="muted small" data-status>불러오는 중…</span>
+      <a href="${buildMoreLink(cat)}" target="_blank" rel="noopener"
+         class="btn2 text-sm">더보기</a>
     </div>
     <div class="divider my-3"></div>
-    <div class="space-y-3" data-items>
-      <div class="p-3 rounded-2xl bg-slate-50 border border-slate-200 muted small">로딩 중…</div>
-    </div>
+    <div class="space-y-3" data-items></div>
     <div class="mt-3 muted small" data-empty style="display:none;">해당 날짜 소식 없음</div>
   `;
-  return sec;
-}
 
-function renderSectionInto(sec, cat, items, selDate){
   const listWrap = sec.querySelector("[data-items]");
   const emptyEl = sec.querySelector("[data-empty]");
-  const statusEl = sec.querySelector("[data-status]");
-  if(statusEl) statusEl.remove();
 
-  listWrap.innerHTML = "";
-  emptyEl.style.display = "none";
-
-  let num = 0;
   for(const it of (items || [])){
     if(num >= 5) break;
     if(!isSameDate(it.pubDate, selDate)) continue;
@@ -248,69 +148,41 @@ function renderSectionInto(sec, cat, items, selDate){
 
     const row = document.createElement("div");
     row.className = "p-3 rounded-2xl bg-slate-50 border border-slate-200";
+
     row.innerHTML = `
       <a class="news-link block" href="${it.link}" target="_blank" rel="noopener">${it.title}</a>
       <div class="muted small mt-1">${clean ? clean + "…" : ""}</div>
     `;
+
     listWrap.appendChild(row);
     num++;
   }
 
-  // 더보기 버튼(렌더 끝나고 붙임)
-  sec.querySelectorAll("a[data-more]").forEach(a=>a.remove());
-  const head = sec.querySelector(".flex.items-center.justify-between");
-  const more = document.createElement("a");
-  more.href = buildMoreLink(cat);
-  more.target = "_blank";
-  more.rel = "noopener";
-  more.className = "btn2 text-sm";
-  more.textContent = "더보기";
-  more.setAttribute("data-more","1");
-  head.appendChild(more);
-
   if(num === 0){
     emptyEl.style.display = "";
   }
+
+  wrap.appendChild(sec);
 }
 
-/* ===================== LOAD (PROGRESSIVE) ===================== */
-let loadToken = 0;
-
 async function loadAllNews(){
-  const token = ++loadToken;
   const selDate = document.getElementById("datePicker").value;
   const c = document.getElementById("news-container");
   c.innerHTML = "";
 
-  const entries = Object.entries(feeds);
-
-  // 섹션 뼈대 먼저 붙이기
-  const secMap = new Map();
-  for(const [cat] of entries){
-    const sec = makeSkeletonSection(cat);
-    secMap.set(cat, sec);
-    c.appendChild(sec);
-  }
-
-  // ✅ 각 카테고리 "도착하는 즉시" 렌더(체감속도 ↑)
-  entries.forEach(async ([cat, url]) => {
+  for(const [cat, url] of Object.entries(feeds)){
     try{
       const d = await fetchRSS(url);
-      if(token !== loadToken) return; // 새 조회가 시작됐으면 무시
-      renderSectionInto(secMap.get(cat), cat, d.items, selDate);
+      renderSection(c, cat, d.items, selDate);
     }catch(e){
-      if(token !== loadToken) return;
-      // 실패해도 섹션은 남기고 "없음" 처리
-      renderSectionInto(secMap.get(cat), cat, [], selDate);
-      console.warn("[NEWS] fetch failed:", cat, e);
+      // 실패해도 섹션은 만들어 두기
+      renderSection(c, cat, [], selDate);
     }
-  });
+  }
 }
 
-/* ===================== INIT ===================== */
 window.onload = () => {
   document.getElementById("datePicker").value = new Date().toISOString().slice(0,10);
-  document.getElementById("btnLoad").addEventListener("click", loadAllNews);
   loadAllNews();
 };
 </script>
