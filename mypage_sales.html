@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>OmniCare EIS · MyPage (Sales)</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/variable/pretendardvariable.css" />
+
+<style>
+  html,body{ font-family:"Pretendard Variable", system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+  .card{
+    border:1px solid #e5e7eb; border-radius:16px; background:#fff;
+    box-shadow:0 8px 24px rgba(15,23,42,.06);
+  }
+  .muted{ color:#64748b; }
+  .divider{ height:1px; background:#e5e7eb; }
+  .chip{ border:1px solid #e5e7eb; border-radius:999px; padding:.25rem .6rem; font-size:.8rem; color:#334155; background:#f8fafc; }
+  .btn2{ border:1px solid #e5e7eb; background:#fff; color:#0f172a; border-radius:12px; padding:.55rem .9rem; font-weight:800; }
+  .btnDark{ border:1px solid #0f172a; background:#0f172a; color:#fff; border-radius:12px; padding:.55rem .9rem; font-weight:800; }
+  .small{ font-size:.85rem; }
+
+  .kpiBox{
+    border:1px solid #e5e7eb; border-radius:16px; padding:14px; background:#fff;
+  }
+  .kpiLabel{ color:#64748b; font-size:.85rem; font-weight:700; }
+  .kpiValue{ font-size:1.6rem; font-weight:900; color:#0f172a; margin-top:4px; }
+  .kpiSub{ color:#64748b; font-size:.8rem; margin-top:4px; }
+</style>
+</head>
+
+<body class="bg-slate-50">
+
+<!-- Header (메인 톤 동일) -->
+<header class="sticky top-0 z-20 bg-white/90 backdrop-blur border-b border-slate-200">
+  <div class="max-w-[1440px] mx-auto px-2 py-3 flex items-center gap-3">
+    <a href="https://qkr3069-beep.github.io/EIS/" aria-label="메인으로 이동">
+      <img src="omnicare_logo.png" alt="옴니케어 로고" class="h-12 object-contain cursor-pointer" />
+    </a>
+    <div class="flex-1">
+      <div class="font-semibold text-slate-900">OmniCare Intelligence Hub</div>
+      <div class="text-sm muted">마이페이지 · 영업자 개요</div>
+    </div>
+    <button onclick="location.href='https://qkr3069-beep.github.io/EIS/'" class="btn2"> 메인으로 돌아가기
+</button>
+
+</header>
+
+<main class="max-w-[1440px] mx-auto px-2 py-6 space-y-6">
+
+  <!-- 타이틀 -->
+  <section class="card p-5">
+    <div class="flex items-start justify-between gap-3 flex-wrap">
+      <div>
+        <div class="text-lg font-extrabold text-slate-900">마이페이지 (영업자)</div>
+        <div class="muted small" id="userLine">-</div>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="chip">Sales Overview</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 1행: 5개 KPI -->
+  <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+    <div class="kpiBox">
+      <div class="kpiLabel">담당 거래처 수</div>
+      <div class="kpiValue" id="kpiTotalAccounts">-</div>
+      <div class="kpiSub">내 명의(담당자 기준)</div>
+    </div>
+
+    <div class="kpiBox">
+      <div class="kpiLabel">활성 거래처 수</div>
+      <div class="kpiValue" id="kpiActiveAccounts">-</div>
+      <div class="kpiSub">최근 접촉 + 진행 상태 기준</div>
+    </div>
+
+    <div class="kpiBox">
+      <div class="kpiLabel">수검률</div>
+      <div class="kpiValue" id="kpiExamRate">-</div>
+      <div class="kpiSub">완료/예약(샘플 로직)</div>
+    </div>
+
+    <div class="kpiBox">
+      <div class="kpiLabel">신규 거래처 수</div>
+      <div class="kpiValue" id="kpiNewAccounts">-</div>
+      <div class="kpiSub">이번달 신규 등록</div>
+    </div>
+
+    <div class="kpiBox">
+      <div class="kpiLabel">해지 거래처 수</div>
+      <div class="kpiValue" id="kpiChurnAccounts">-</div>
+      <div class="kpiSub">이번달 해지/중단</div>
+    </div>
+  </section>
+
+  <!-- 2행: 매출 2개 -->
+  <section class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+    <div class="card p-5">
+      <div class="flex items-start justify-between gap-3">
+        <div>
+          <div class="font-extrabold text-slate-900 text-lg">KMI 검진 매출액</div>
+          <div class="muted small">내 담당 거래처 기준 (샘플 합산)</div>
+        </div>
+        <span class="chip">단위: 만원</span>
+      </div>
+      <div class="divider my-4"></div>
+      <div class="text-3xl font-black text-slate-900" id="kpiKmiRevenue">-</div>
+      <div class="muted small mt-2" id="kpiKmiRevenueSub">-</div>
+    </div>
+
+    <div class="card p-5">
+      <div class="flex items-start justify-between gap-3">
+        <div>
+          <div class="font-extrabold text-slate-900 text-lg">옴니케어 매출액</div>
+          <div class="muted small">내 담당 거래처 기준 (샘플 합산)</div>
+        </div>
+        <span class="chip">단위: 만원</span>
+      </div>
+      <div class="divider my-4"></div>
+      <div class="text-3xl font-black text-slate-900" id="kpiOmniRevenue">-</div>
+      <div class="muted small mt-2" id="kpiOmniRevenueSub">-</div>
+    </div>
+  </section>
+
+  <footer class="text-center muted small py-6">
+    샘플 화면입니다. 실제 서비스에서는 로그인/권한/DB 기준으로 자동 산출됩니다.
+  </footer>
+</main>
+
+<script>
+/** =========================
+ *  로그인 사용자(샘플)
+ *  - 나중에 로그인 붙이면 여기만 교체하면 됨
+ * ========================= */
+const CURRENT_USER = { id:"u1", name:"김영업", team:"A팀", role:"sales" };
+
+/** =========================
+ *  샘플 데이터 (영업자 담당 거래처)
+ *  - createdYM: "YYYY-MM" (신규 판단)
+ *  - churnYM:   "YYYY-MM" (해지 판단, 없으면 null)
+ *  - status: "진행" | "휴면" | "해지"
+ *  - lastTouchDays: 최근접촉(일)
+ *  - examBooked / examDone: 수검률(샘플)
+ *  - kmiRevenue / omniRevenue: 매출액(만원)
+ * ========================= */
+const NOW_YM = "2025-12"; // 샘플 기준(현재 월)
+
+const ACCOUNTS = [
+  { id:"a1", name:"대구메디컬센터", owner:"김영업", createdYM:"2025-10", churnYM:null, status:"진행", lastTouchDays:5,  examBooked:120, examDone:92,  kmiRevenue:8200, omniRevenue:2100 },
+  { id:"a2", name:"수성종합검진원", owner:"김영업", createdYM:"2025-12", churnYM:null, status:"진행", lastTouchDays:12, examBooked:80,  examDone:55,  kmiRevenue:12400, omniRevenue:3400 },
+  { id:"a3", name:"달서건강센터", owner:"김영업", createdYM:"2025-11", churnYM:"2025-12", status:"해지", lastTouchDays:60, examBooked:20,  examDone:6,   kmiRevenue:600,  omniRevenue:150  },
+  { id:"a4", name:"동구헬스파트너", owner:"박영업", createdYM:"2025-09", churnYM:null, status:"진행", lastTouchDays:21, examBooked:60,  examDone:33,  kmiRevenue:3400, omniRevenue:900  },
+];
+
+const fmt = (n) => (n ?? 0).toLocaleString("ko-KR");
+
+/** =========================
+ *  KPI 산출 로직(샘플)
+ * ========================= */
+function scopedAccounts(){
+  return ACCOUNTS.filter(a => a.owner === CURRENT_USER.name);
+}
+
+// 활성 거래처(샘플 정의):
+// - status !== "해지"
+// - lastTouchDays <= 30 (최근 접촉)
+// - (원하면 계약상태 등 추가 가능)
+function isActive(a){
+  return a.status !== "해지" && (a.lastTouchDays ?? 9999) <= 30;
+}
+
+function calcKPIs(){
+  const list = scopedAccounts();
+
+  const total = list.length;
+  const active = list.filter(isActive).length;
+
+  const booked = list.reduce((s,a)=> s + (a.examBooked || 0), 0);
+  const done   = list.reduce((s,a)=> s + (a.examDone || 0), 0);
+  const examRate = booked > 0 ? Math.round((done / booked) * 100) : 0;
+
+  const 신규 = list.filter(a => a.createdYM === NOW_YM).length;
+  const 해지 = list.filter(a => a.churnYM === NOW_YM || a.status === "해지" && a.churnYM === NOW_YM).length;
+
+  const kmiRev = list.reduce((s,a)=> s + (a.kmiRevenue || 0), 0);
+  const omniRev = list.reduce((s,a)=> s + (a.omniRevenue || 0), 0);
+
+  return { total, active, examRate, 신규, 해지, booked, done, kmiRev, omniRev };
+}
+
+function render(){
+  document.getElementById("userLine").textContent =
+    `${CURRENT_USER.name} · ${CURRENT_USER.team} · ${NOW_YM} 기준`;
+
+  const k = calcKPIs();
+
+  document.getElementById("kpiTotalAccounts").textContent  = `${fmt(k.total)}`;
+  document.getElementById("kpiActiveAccounts").textContent = `${fmt(k.active)}`;
+  document.getElementById("kpiExamRate").textContent       = `${fmt(k.examRate)}%`;
+  document.getElementById("kpiNewAccounts").textContent    = `${fmt(k.신규)}`;
+  document.getElementById("kpiChurnAccounts").textContent  = `${fmt(k.해지)}`;
+
+  document.getElementById("kpiKmiRevenue").textContent     = `${fmt(k.kmiRev)} 만원`;
+  document.getElementById("kpiOmniRevenue").textContent    = `${fmt(k.omniRev)} 만원`;
+
+  document.getElementById("kpiKmiRevenueSub").textContent  =
+    `수검 완료 ${fmt(k.done)} / 예약 ${fmt(k.booked)} 건(샘플)`;
+  document.getElementById("kpiOmniRevenueSub").textContent =
+    `내 담당 거래처 ${fmt(k.total)}곳 합산(샘플)`;
+}
+
+render();
+</script>
+</body>
+</html>
