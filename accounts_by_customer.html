@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>OmniCare EIS · 거래처별 정보</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/variable/pretendardvariable.css" />
+
+<style>
+  html,body{ font-family:"Pretendard Variable", system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+  .card{
+    border:1px solid #e5e7eb; border-radius:16px; background:#fff;
+    box-shadow:0 8px 24px rgba(15,23,42,.06);
+  }
+  .muted{ color:#64748b; }
+  .divider{ height:1px; background:#e5e7eb; }
+  .chip{ border:1px solid #e5e7eb; border-radius:999px; padding:.25rem .6rem; font-size:.8rem; color:#334155; background:#f8fafc; }
+  .btn2{ border:1px solid #e5e7eb; background:#fff; color:#0f172a; border-radius:12px; padding:.55rem .9rem; font-weight:800; }
+  .btnDark{ border:1px solid #0f172a; background:#0f172a; color:#fff; border-radius:12px; padding:.55rem .9rem; font-weight:900; }
+  .small{ font-size:.85rem; }
+
+  /* ===== 현황 KPI ===== */
+  .kpiGrid{
+    display:grid;
+    grid-template-columns: repeat(2, minmax(0,1fr));
+    gap:10px;
+  }
+  @media (min-width: 768px){
+    .kpiGrid{ grid-template-columns: repeat(6, minmax(0,1fr)); }
+  }
+  .kpiBox{
+    border:1px solid #e5e7eb; border-radius:16px; padding:12px; background:#fff;
+  }
+  .kpiLabel{ color:#64748b; font-size:.82rem; font-weight:800; }
+  .kpiValue{ font-size:1.25rem; font-weight:900; color:#0f172a; margin-top:6px; }
+  .kpiSub{ color:#64748b; font-size:.78rem; margin-top:6px; }
+
+  /* ===== 재무현황 2x2 + 세로막대 ===== */
+  .finGrid{
+    display:grid;
+    grid-template-columns: 1fr;
+    gap:12px;
+  }
+  @media (min-width: 1024px){
+    .finGrid{ grid-template-columns: repeat(2, 1fr); }
+  }
+  .finCard{
+    border:1px solid #e5e7eb;
+    border-radius:16px;
+    background:#f8fafc;
+    padding:14px;
+  }
+  .finHead{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+  }
+  .finTitle{
+    font-weight:900;
+    color:#0f172a;
+  }
+  .finUnit{
+    font-size:.78rem;
+    font-weight:900;
+    color:#334155;
+  }
+  .barsArea{
+    margin-top:12px;
+    height:170px;
+    display:flex;
+    align-items:flex-end;
+    justify-content:center;
+    gap:14px;
+  }
+  .vbarCol{
+    width:74px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:8px;
+  }
+  .vbarWrap{
+    width:100%;
+    height:130px;
+    border:1px solid #e5e7eb;
+    background:#ffffff;
+    border-radius:14px;
+    display:flex;
+    align-items:flex-end;
+    justify-content:center;
+    overflow:hidden;
+  }
+  .vbar{
+    width:60%;
+    border-radius:12px 12px 0 0;
+  }
+  .y1{ background:#93c5fd; }
+  .y2{ background:#1e3a8a; }
+  .yearTag{
+    font-size:.78rem;
+    font-weight:900;
+    color:#334155;
+  }
+  .valTag{
+    font-size:.8rem;
+    font-weight:900;
+    color:#0f172a;
+  }
+  .finFoot{
+    margin-top:10px;
+    color:#64748b;
+    font-size:.78rem;
+    font-weight:800;
+  }
+
+  /* ===== 뉴스/공시 ===== */
+  .item{
+    border:1px solid #e5e7eb;
+    background:#f8fafc;
+    border-radius:14px;
+    padding:12px 12px;
+  }
+  .itemTitle{ font-weight:900; color:#0f172a; }
+  .itemMeta{ color:#64748b; font-size:.8rem; margin-top:4px; }
+  .link{ color:#0f172a; text-decoration:none; }
+  .link:hover{ text-decoration:underline; }
+
+  .hintBox{
+    border:1px dashed #e5e7eb;
+    background:#fff;
+    border-radius:16px;
+    padding:16px;
+  }
+</style>
+</head>
+
+<body class="bg-slate-50">
+
+<header class="sticky top-0 z-20 bg-white/90 backdrop-blur border-b border-slate-200">
+  <div class="max-w-[1440px] mx-auto px-2 py-3 flex items-center gap-3">
+    <a href="index.html" aria-label="메인으로 이동">
+      <img src="omnicare_logo.png" alt="옴니케어 로고" class="h-12 object-contain cursor-pointer" />
+    </a>
+    <div class="flex-1">
+      <div class="font-semibold text-slate-900">OmniCare Intelligence Hub</div>
+      <div class="text-sm muted">거래처별 정보 · 현황 · 재무 · 뉴스/공시</div>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <button onclick="location.href='mypage_sales.html'" class="btn2">마이페이지</button>
+      <button onclick="location.href='index.html'" class="btn2">메인</button>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-[1440px] mx-auto px-2 py-6 space-y-6">
+
+  <!-- 1행: 검색 -->
+  <section class="card p-5">
+    <div class="flex items-start justify-between gap-3 flex-wrap">
+      <div>
+        <div class="text-lg font-extrabold text-slate-900">거래처별 정보</div>
+        <div class="muted small">거래처명을 검색하면 “거래 현황 + 재무(2개년도) + 뉴스 + 공시”가 노출됩니다.</div>
+      </div>
+      <span class="chip">accounts_by_customer</span>
+    </div>
+
+    <div class="divider my-4"></div>
+
+    <div class="flex items-center gap-2 flex-wrap">
+      <input id="q"
+             class="border border-slate-200 rounded-xl px-3 py-2 bg-white w-[320px]"
+             placeholder="거래처 검색 (예: 삼성전자)" />
+      <button class="btnDark" onclick="applySearch()">조회</button>
+
+      <div class="ml-auto muted small">
+        선택: <span id="selectedName" class="font-extrabold text-slate-900">-</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 검색 전 안내 -->
+  <section id="emptyState" class="hintBox">
+    <div class="font-extrabold text-slate-900">거래처를 검색해주세요.</div>
+    <div class="muted small mt-1">
+      예: <span class="font-extrabold text-slate-900">삼성전자</span>
+    </div>
+  </section>
+
+  <!-- 검색 후 영역 -->
+  <div id="resultArea" class="space-y-6 hidden">
+
+    <!-- 2행: 거래 현황 -->
+    <section class="card p-5">
+      <div class="flex items-start justify-between gap-3">
+        <div>
+          <div class="text-lg font-extrabold text-slate-900">거래 현황 (우리 ↔ 거래처)</div>
+          <div class="muted small" id="statusSub">-</div>
+        </div>
+        <span class="chip">STATUS</span>
+      </div>
+
+      <div class="divider my-4"></div>
+
+      <div class="kpiGrid">
+        <div class="kpiBox">
+          <div class="kpiLabel">금년도 누적 매출</div>
+          <div class="kpiValue" id="kpiRevenue">-</div>
+          <div class="kpiSub">단위: 만원</div>
+        </div>
+
+        <div class="kpiBox">
+          <div class="kpiLabel">금년도 누적 수검자</div>
+          <div class="kpiValue" id="kpiExaminees">-</div>
+          <div class="kpiSub">단위: 명</div>
+        </div>
+
+        <div class="kpiBox">
+          <div class="kpiLabel">세금계산서 발행일(최근)</div>
+          <div class="kpiValue" id="kpiTaxDate">-</div>
+          <div class="kpiSub">최근 발행 기준</div>
+        </div>
+
+        <div class="kpiBox">
+          <div class="kpiLabel">예정 입금일</div>
+          <div class="kpiValue" id="kpiDepositDate">-</div>
+          <div class="kpiSub">예정(샘플)</div>
+        </div>
+
+        <div class="kpiBox">
+          <div class="kpiLabel">누적 입금액</div>
+          <div class="kpiValue" id="kpiPaid">-</div>
+          <div class="kpiSub">단위: 만원</div>
+        </div>
+
+        <div class="kpiBox">
+          <div class="kpiLabel">매출채권</div>
+          <div class="kpiValue" id="kpiAR">-</div>
+          <div class="kpiSub">미수금(샘플)</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3행: 재무현황(2x2 + 세로막대) -->
+    <section class="card p-5">
+      <div class="flex items-start justify-between gap-3 flex-wrap">
+        <div>
+          <div class="text-lg font-extrabold text-slate-900">재무현황 (거래처)</div>
+          <div class="muted small">전년 공시 기반(샘플) · <span id="financeYears">-</span> 비교</div>
+        </div>
+        <span class="chip">FINANCE</span>
+      </div>
+
+      <div class="divider my-4"></div>
+
+      <div id="finGrid" class="finGrid"></div>
+
+      <div class="mt-3 muted small">
+        * 실제 서비스에서는 DART/공시 DB 연동 후 자동 업데이트
+      </div>
+    </section>
+
+    <!-- 4행: 뉴스 + 공시 -->
+    <section class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div class="card p-5">
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <div class="text-lg font-extrabold text-slate-900">거래처 뉴스</div>
+            <div class="muted small" id="newsSub">조회일: -</div>
+          </div>
+          <a href="#" id="newsMore" class="chip hover:bg-slate-100">더보기</a>
+        </div>
+
+        <div class="divider my-4"></div>
+        <div id="newsList" class="space-y-2"></div>
+      </div>
+
+      <div class="card p-5">
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <div class="text-lg font-extrabold text-slate-900">거래처 공시자료 (DART)</div>
+            <div class="muted small" id="filingsSub">-</div>
+          </div>
+          <a href="#" id="filingsMore" class="chip hover:bg-slate-100">더보기</a>
+        </div>
+
+        <div class="divider my-4"></div>
+        <div id="filingsList" class="space-y-2"></div>
+      </div>
+    </section>
+
+  </div>
+
+  <footer class="text-center muted small py-6">
+    샘플 화면입니다. 실제 서비스에서는 로그인/권한/거래/공시/뉴스 수집 로직이 연결됩니다.
+  </footer>
+</main>
+
+<script>
+/* =======================
+   ✅ DART API KEY (사용자 제공)
+======================= */
+const DART_API_KEY = "0a6ff600d96e942a5aa483fd66ddc538e943dccd";
+
+/* ===== 샘플 DB(삼성전자) =====
+   ✅ corpCode: DART corp_code (8자리) 추가
+*/
+const CUSTOMER_DB = [
+  {
+    name: "삼성전자",
+    corpCode: "00126380", // ✅ DART corp_code (삼성전자)
+    status: {
+      ytdRevenue: 38000,         // 만원(샘플)
+      ytdExaminees: 420,         // 명
+      taxInvoiceDate: "2025-12-08",
+      expectedDepositDate: "2026-01-05",
+      paidToDate: 25000,         // 만원
+    },
+    finance: {
+      years: [2023, 2024],
+      unit: "억원(샘플)",
+      revenue: [2580, 2800],
+      op:      [ 120,  180],
+      net:     [  95,  150],
+      capital: [  90,   90]
+    },
+    more: {
+      news: "customer_news_all.html?c=삼성전자",
+      filings: "customer_filings_all.html?c=삼성전자"
+    }
+  }
+];
+
+const fmt = (n) => (n ?? 0).toLocaleString("ko-KR");
+
+/* ===== 2x2 재무 렌더 ===== */
+function renderFinance2x2(fin){
+  const wrap = document.getElementById("finGrid");
+  wrap.innerHTML = "";
+
+  const years = fin.years;
+  const unit = fin.unit;
+
+  const metrics = [
+    { key:"revenue", title:"매출액", vals: fin.revenue },
+    { key:"op",      title:"영업이익", vals: fin.op },
+    { key:"net",     title:"당기순이익", vals: fin.net },
+    { key:"capital", title:"자본금", vals: fin.capital },
+  ];
+
+  metrics.forEach(m=>{
+    const maxV = Math.max(m.vals[0], m.vals[1], 1);
+    const h1 = Math.round((m.vals[0]/maxV)*100);
+    const h2 = Math.round((m.vals[1]/maxV)*100);
+
+    const card = document.createElement("div");
+    card.className = "finCard";
+    card.innerHTML = `
+      <div class="finHead">
+        <div class="finTitle">${m.title}</div>
+        <div class="finUnit">단위: ${unit}</div>
+      </div>
+
+      <div class="barsArea">
+        <div class="vbarCol">
+          <div class="valTag">${fmt(m.vals[0])}</div>
+          <div class="vbarWrap">
+            <div class="vbar y1" style="height:${h1}%"></div>
+          </div>
+          <div class="yearTag">${years[0]}</div>
+        </div>
+
+        <div class="vbarCol">
+          <div class="valTag">${fmt(m.vals[1])}</div>
+          <div class="vbarWrap">
+            <div class="vbar y2" style="height:${h2}%"></div>
+          </div>
+          <div class="yearTag">${years[1]}</div>
+        </div>
+      </div>
+
+      <div class="finFoot">
+        ${years[0]} → ${years[1]} 변화:
+        <span style="color:#0f172a; font-weight:900;">
+          ${m.vals[1]-m.vals[0] >= 0 ? "+" : ""}${fmt(m.vals[1]-m.vals[0])}
+        </span>
+      </div>
+    `;
+    wrap.appendChild(card);
+  });
+}
+
+/* ===== 뉴스 RSS ===== */
+async function fetchRSS2JSON(rssUrl){
+  const r = await fetch("https://api.rss2json.com/v1/api.json?rss_url=" + encodeURIComponent(rssUrl));
+  return r.json();
+}
+function stripHtml(s){
+  return (s || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+}
+function toYMD(dateStr){
+  const d = new Date(dateStr);
+  if (Number.isNaN(d.getTime())) return "-";
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,"0");
+  const dd = String(d.getDate()).padStart(2,"0");
+  return `${y}-${m}-${dd}`;
+}
+async function loadKeywordNews(keyword, limit=5){
+  const rss = `https://news.google.com/rss/search?q=${encodeURIComponent(keyword)}&hl=ko&gl=KR&ceid=KR:ko`;
+  const data = await fetchRSS2JSON(rss);
+
+  const items = (data.items || []).slice(0, limit).map(it => ({
+    title: it.title,
+    date: toYMD(it.pubDate),
+    summary: stripHtml(it.description).slice(0, 80) + (stripHtml(it.description).length > 80 ? "..." : ""),
+    link: it.link
+  }));
+
+  const wrap = document.getElementById("newsList");
+  wrap.innerHTML = "";
+
+  if (!items.length){
+    wrap.innerHTML = `<div class="muted small">관련 뉴스가 없습니다.</div>`;
+    return;
+  }
+
+  items.forEach(it=>{
+    const div = document.createElement("div");
+    div.className = "item";
+    div.innerHTML = `
+      <a class="link itemTitle" href="${it.link}" target="_blank" rel="noopener">${it.title}</a>
+      <div class="itemMeta">${it.date} · ${it.summary}</div>
+    `;
+    wrap.appendChild(div);
+  });
+}
+
+/* =======================
+   ✅ DART: 최근 공시 5건 불러오기(list.json)
+======================= */
+async function fetchDartList(corpCode, pageCount=5){
+  const url = new URL("https://opendart.fss.or.kr/api/list.json");
+  url.searchParams.set("crtfc_key", DART_API_KEY);
+  url.searchParams.set("corp_code", corpCode);
+  url.searchParams.set("page_no", "1");
+  url.searchParams.set("page_count", String(pageCount));
+
+  const res = await fetch(url.toString());
+  const data = await res.json();
+
+  if (data.status !== "000") {
+    throw new Error(`${data.status} ${data.message}`);
+  }
+  return data.list || [];
+}
+
+function renderDartFilings(items){
+  const wrap = document.getElementById("filingsList");
+  wrap.innerHTML = "";
+
+  if (!items.length){
+    wrap.innerHTML = `<div class="muted small">최근 공시가 없습니다.</div>`;
+    return;
+  }
+
+  items.forEach(it=>{
+    // 원문 링크: rcpNo 사용
+    const dartUrl = `https://dart.fss.or.kr/dsaf001/main.do?rcpNo=${it.rcept_no}`;
+
+    const div = document.createElement("div");
+    div.className = "item";
+    div.innerHTML = `
+      <a class="link itemTitle" href="${dartUrl}" target="_blank" rel="noopener">
+        ${it.report_nm}
+      </a>
+      <div class="itemMeta">${it.rcept_dt} · ${it.corp_name || ""}</div>
+    `;
+    wrap.appendChild(div);
+  });
+}
+
+async function loadDartFilings(corpCode, corpName){
+  const wrap = document.getElementById("filingsList");
+  wrap.innerHTML = `<div class="muted small">불러오는 중…</div>`;
+
+  // 더보기는 DART 사이트 검색으로 보내도 되고, 별도 페이지로 보내도 됨
+  document.getElementById("filingsSub").textContent = `조회 기업: ${corpName} (corp_code: ${corpCode})`;
+
+  try{
+    const list = await fetchDartList(corpCode, 5);
+    renderDartFilings(list);
+  }catch(err){
+    // CORS/네트워크/호출제한 등
+    wrap.innerHTML = `
+      <div class="item">
+        <div class="itemTitle">공시 불러오기 실패</div>
+        <div class="itemMeta">사유: ${String(err.message || err)}</div>
+      </div>
+      <div class="item">
+        <a class="link itemTitle" href="https://dart.fss.or.kr/" target="_blank" rel="noopener">DART에서 직접 검색하기</a>
+        <div class="itemMeta">키워드: ${corpName}</div>
+      </div>
+      <div class="item">
+        <div class="itemTitle">팁</div>
+        <div class="itemMeta">GitHub Pages 환경에서 CORS로 막히면 “프록시(서버리스)” 방식으로 연결하면 해결됩니다.</div>
+      </div>
+    `;
+  }
+}
+
+/* ===== 검색 ===== */
+function findCustomerByQuery(q){
+  const qq = (q || "").trim().toLowerCase();
+  if (!qq) return null;
+  return CUSTOMER_DB.find(c => c.name.toLowerCase() === qq || c.name.toLowerCase().includes(qq)) || null;
+}
+
+async function loadCustomer(c){
+  document.getElementById("emptyState").classList.add("hidden");
+  document.getElementById("resultArea").classList.remove("hidden");
+
+  document.getElementById("selectedName").textContent = c.name;
+
+  // 거래 현황
+  const s = c.status;
+  const ar = Math.max(0, (s.ytdRevenue||0) - (s.paidToDate||0));
+
+  document.getElementById("statusSub").textContent = `거래처: ${c.name} · (샘플) 올해 누적 기준`;
+  document.getElementById("kpiRevenue").textContent = `${fmt(s.ytdRevenue)} 만원`;
+  document.getElementById("kpiExaminees").textContent = `${fmt(s.ytdExaminees)} 명`;
+  document.getElementById("kpiTaxDate").textContent = s.taxInvoiceDate || "-";
+  document.getElementById("kpiDepositDate").textContent = s.expectedDepositDate || "-";
+  document.getElementById("kpiPaid").textContent = `${fmt(s.paidToDate)} 만원`;
+  document.getElementById("kpiAR").textContent = `${fmt(ar)} 만원`;
+
+  // 재무 2x2
+  const f = c.finance;
+  document.getElementById("financeYears").textContent = `${f.years[0]} vs ${f.years[1]}`;
+  renderFinance2x2(f);
+
+  // 뉴스/공시
+  const today = new Date();
+  const y = today.getFullYear(), m = String(today.getMonth()+1).padStart(2,"0"), d = String(today.getDate()).padStart(2,"0");
+  document.getElementById("newsSub").textContent = `조회일: ${y}-${m}-${d}`;
+
+  document.getElementById("newsMore").setAttribute("href", c.more.news);
+  document.getElementById("filingsMore").setAttribute("href", c.more.filings);
+
+  await loadKeywordNews(c.name, 5);
+
+  // ✅ DART: corp_code로 최근 공시 5건
+  if (c.corpCode){
+    await loadDartFilings(c.corpCode, c.name);
+  }else{
+    document.getElementById("filingsList").innerHTML = `
+      <div class="item">
+        <div class="itemTitle">corp_code가 없어 공시를 불러올 수 없습니다.</div>
+        <div class="itemMeta">해당 거래처에 corpCode(8자리)를 추가해 주세요.</div>
+      </div>
+    `;
+  }
+}
+
+async function applySearch(){
+  const q = document.getElementById("q").value;
+  const c = findCustomerByQuery(q);
+
+  if (!c){
+    document.getElementById("selectedName").textContent = "-";
+    document.getElementById("resultArea").classList.add("hidden");
+    document.getElementById("emptyState").classList.remove("hidden");
+    document.getElementById("emptyState").innerHTML = `
+      <div class="font-extrabold text-slate-900">검색 결과가 없습니다.</div>
+      <div class="muted small mt-1">샘플 거래처: <span class="font-extrabold text-slate-900">삼성전자</span></div>
+    `;
+    return;
+  }
+
+  document.getElementById("emptyState").innerHTML = `
+    <div class="font-extrabold text-slate-900">거래처를 검색해주세요.</div>
+    <div class="muted small mt-1">예: <span class="font-extrabold text-slate-900">삼성전자</span></div>
+  `;
+
+  await loadCustomer(c);
+}
+
+document.getElementById("q").addEventListener("keydown", (e)=>{
+  if (e.key === "Enter") applySearch();
+});
+</script>
+</body>
+</html>
