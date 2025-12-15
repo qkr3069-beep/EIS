@@ -18,6 +18,9 @@
     input[type="date"]{ color:#0f172a; }
     .news-link{ color:#0f172a; font-weight:800; }
     .news-link:hover{ text-decoration:underline; }
+    .badge-ok{ border:1px solid #bbf7d0; background:#ecfdf5; color:#065f46; border-radius:999px; padding:.15rem .55rem; font-size:.75rem; font-weight:800; }
+    .badge-err{ border:1px solid #fecaca; background:#fff1f2; color:#9f1239; border-radius:999px; padding:.15rem .55rem; font-size:.75rem; font-weight:800; }
+    .badge-load{ border:1px solid #e5e7eb; background:#f8fafc; color:#334155; border-radius:999px; padding:.15rem .55rem; font-size:.75rem; font-weight:800; }
   </style>
 </head>
 
@@ -57,6 +60,9 @@
       </div>
       <div class="divider my-3"></div>
       <div id="news-container" class="space-y-5"></div>
+
+      <!-- ✅ 디버그(필요하면 숨겨도 됨) -->
+      <div id="debugBox" class="mt-4 text-xs muted"></div>
     </div>
 
     <footer class="text-center muted small py-6">
@@ -109,7 +115,6 @@ function parseItemDate(dt){
   if(!dt) return null;
   const d = new Date(dt);
   if(!Number.isNaN(d.getTime())) return d;
-  // 혹시 "YYYY-MM-DD HH:mm:ss" 같은게 오면 보정
   const fixed = String(dt).replace(" ", "T");
   const d2 = new Date(fixed);
   if(!Number.isNaN(d2.getTime())) return d2;
@@ -117,30 +122,47 @@ function parseItemDate(dt){
 }
 function passDateFilter(pubDate, sel){
   const selD = parseYMD(sel);
-  if(!selD) return true; // 선택일 없으면 통과
-
+  if(!selD) return true;
   const itemD = parseItemDate(pubDate);
-  if(!itemD) return true; // ✅ 날짜 파싱 실패하면 통과(안 뜨는 문제 방지)
-
+  if(!itemD) return true; // 파싱 실패시 노출(안 뜨는 문제 방지)
   const a = new Date(selD.getFullYear(), selD.getMonth(), selD.getDate()).getTime();
   const b = new Date(itemD.getFullYear(), itemD.getMonth(), itemD.getDate()).getTime();
-  return Math.abs(a - b) <= 86400000; // ±1일
+  return Math.abs(a - b) <= 86400000;
 }
 
-/* ===================== RSS (메인과 동일: rss2json + 캐시) ===================== */
-async function fetchRSS2JSON(rssUrl){
+/* ===================== FETCH HELPERS ===================== */
+function stripHtml(s){
+  return (s || "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+}
+function debug(msg){
+  const box = document.getElementById("debugBox");
+  if(!box) return;
+  box.innerHTML = (box.innerHTML + `<div>• ${msg}</div>`).slice(-4000);
+}
+
+/* ===== 1) rss2json (메인 방식) ===== */
+async function fetchViaRss2Json(rssUrl){
   const cacheKey = "rsscache2json:" + rssUrl;
-  const ttlMs = 10 * 60 * 1000; // 10분
+  const ttlMs = 10 * 60 * 1000;
 
   try{
     const cached = JSON.parse(localStorage.getItem(cacheKey) || "null");
     if(cached && cached.t && (Date.now()-cached.t) < ttlMs && Array.isArray(cached.items)){
-      return { items: cached.items };
+      return { ok:true, source:"rss2json-cache", items: cached.items };
     }
   }catch(e){}
 
-  const r = await fetch("https://api.rss2json.com/v1/api.json?rss_url=" + encodeURIComponent(rssUrl), { cache:"no-store" });
-  const j = await r.json();
+  const endpoint = "https://api.rss2json.com/v1/api.json?rss_url=" + encodeURIComponent(rssUrl);
+  const res = await fetch(endpoint, { cache:"no-store" });
+  const j = await res.json();
+
+  if(!res.ok){
+    throw new Error(`rss2json HTTP ${res.status}`);
+  }
+  if(j.status && j.status !== "ok"){
+    // rss2json 자체 에러(쿼터/차단 등)
+    throw new Error(`rss2json status=${j.status} message=${j.message || "-"}`);
+  }
 
   const items = (j.items || []).map(it => ({
     title: it.title || "",
@@ -153,15 +175,61 @@ async function fetchRSS2JSON(rssUrl){
     localStorage.setItem(cacheKey, JSON.stringify({ t: Date.now(), items }));
   }catch(e){}
 
-  return { items };
+  return { ok:true, source:"rss2json", items };
 }
 
-/* ===================== UI ===================== */
-function stripHtml(s){
-  return (s || "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+/* ===== 2) allorigins 폴백: RSS 원문 XML 파싱 ===== */
+async function fetchViaAllOrigins(rssUrl){
+  const cacheKey = "rsscachexml:" + rssUrl;
+  const ttlMs = 10 * 60 * 1000;
+
+  try{
+    const cached = JSON.parse(localStorage.getItem(cacheKey) || "null");
+    if(cached && cached.t && (Date.now()-cached.t) < ttlMs && typeof cached.text === "string"){
+      return { ok:true, source:"allorigins-cache", items: parseRssXmlToItems(cached.text) };
+    }
+  }catch(e){}
+
+  // raw가 막히는 경우가 있어서 get(JSON) 사용
+  const proxy = "https://api.allorigins.win/get?url=" + encodeURIComponent(rssUrl);
+  const res = await fetch(proxy, { cache:"no-store" });
+  if(!res.ok) throw new Error(`allorigins HTTP ${res.status}`);
+  const j = await res.json();
+  const text = j && j.contents;
+  if(!text) throw new Error("allorigins empty contents");
+
+  try{
+    localStorage.setItem(cacheKey, JSON.stringify({ t: Date.now(), text }));
+  }catch(e){}
+
+  return { ok:true, source:"allorigins", items: parseRssXmlToItems(text) };
 }
 
-function makeSkeletonSection(cat){
+function parseRssXmlToItems(text){
+  const xml = new DOMParser().parseFromString(text, "text/xml");
+  const items = Array.from(xml.querySelectorAll("item")).map(it => ({
+    title: it.querySelector("title")?.textContent || "",
+    link: it.querySelector("link")?.textContent || "",
+    pubDate: it.querySelector("pubDate")?.textContent || "",
+    description: it.querySelector("description")?.textContent || ""
+  }));
+  return items;
+}
+
+/* ===== 최종: rss2json → 실패시 allorigins ===== */
+async function fetchFeedSmart(rssUrl){
+  try{
+    const a = await fetchViaRss2Json(rssUrl);
+    return a;
+  }catch(e1){
+    debug(`rss2json fail: ${String(e1.message || e1)} → fallback`);
+    const b = await fetchViaAllOrigins(rssUrl);
+    return b;
+  }
+}
+
+/* ===================== UI (섹션 렌더) ===================== */
+function makeSection(cat){
   const sec = document.createElement("section");
   sec.className = "card p-4";
   sec.dataset.cat = cat;
@@ -171,34 +239,56 @@ function makeSkeletonSection(cat){
         <div class="font-semibold text-slate-900">${cat}</div>
         <span class="chip">TOP 5</span>
       </div>
-      <span class="muted small" data-status>불러오는 중…</span>
+      <span class="badge-load" data-badge>LOADING</span>
     </div>
     <div class="divider my-3"></div>
+
     <div class="space-y-3" data-items>
-      <div class="p-3 rounded-2xl bg-slate-50 border border-slate-200 muted small">로딩 중…</div>
+      <div class="p-3 rounded-2xl bg-slate-50 border border-slate-200 muted small">불러오는 중…</div>
     </div>
+
     <div class="mt-3 muted small" data-empty style="display:none;">해당 날짜 소식 없음</div>
+    <div class="mt-2 muted small" data-error style="display:none;"></div>
   `;
   return sec;
 }
 
-function renderSectionInto(sec, cat, items, selDate){
+function setBadge(sec, type, text){
+  const b = sec.querySelector("[data-badge]");
+  if(!b) return;
+  b.className = type === "ok" ? "badge-ok" : type === "err" ? "badge-err" : "badge-load";
+  b.textContent = text;
+}
+
+function ensureMoreBtn(sec, cat){
+  const head = sec.querySelector(".flex.items-center.justify-between");
+  if(!head) return;
+  head.querySelectorAll("a[data-more]").forEach(a=>a.remove());
+  const more = document.createElement("a");
+  more.href = buildMoreLink(cat);
+  more.target = "_blank";
+  more.rel = "noopener";
+  more.className = "btn2 text-sm";
+  more.textContent = "더보기";
+  more.setAttribute("data-more","1");
+  head.appendChild(more);
+}
+
+function renderItems(sec, cat, items, selDate, sourceLabel){
   const listWrap = sec.querySelector("[data-items]");
   const emptyEl = sec.querySelector("[data-empty]");
-  const statusEl = sec.querySelector("[data-status]");
-  if(statusEl) statusEl.remove();
-
+  const errEl = sec.querySelector("[data-error]");
   listWrap.innerHTML = "";
   emptyEl.style.display = "none";
+  errEl.style.display = "none";
+  errEl.textContent = "";
 
   let num = 0;
-
   for(const it of (items || [])){
     if(num >= 5) break;
     if(!passDateFilter(it.pubDate, selDate)) continue;
 
     const clean = stripHtml(it.description).slice(0, 90);
-
     const row = document.createElement("div");
     row.className = "p-3 rounded-2xl bg-slate-50 border border-slate-200";
     row.innerHTML = `
@@ -209,52 +299,96 @@ function renderSectionInto(sec, cat, items, selDate){
     num++;
   }
 
-  // 더보기 버튼
-  const head = sec.querySelector(".flex.items-center.justify-between");
-  head.querySelectorAll("a[data-more]").forEach(a=>a.remove());
-  const more = document.createElement("a");
-  more.href = buildMoreLink(cat);
-  more.target = "_blank";
-  more.rel = "noopener";
-  more.className = "btn2 text-sm";
-  more.textContent = "더보기";
-  more.setAttribute("data-more","1");
-  head.appendChild(more);
+  ensureMoreBtn(sec, cat);
 
   if(num === 0){
     emptyEl.style.display = "";
   }
+
+  setBadge(sec, "ok", sourceLabel || "OK");
 }
 
-/* ===================== LOAD (도착 즉시 렌더) ===================== */
+function renderError(sec, cat, message){
+  const listWrap = sec.querySelector("[data-items]");
+  const emptyEl = sec.querySelector("[data-empty]");
+  const errEl = sec.querySelector("[data-error]");
+
+  listWrap.innerHTML = "";
+  emptyEl.style.display = "none";
+
+  errEl.style.display = "";
+  errEl.textContent = `불러오기에 실패했습니다: ${message}`;
+
+  ensureMoreBtn(sec, cat);
+  setBadge(sec, "err", "ERROR");
+}
+
+/* ===================== CONCURRENCY LIMIT (2개씩) ===================== */
+async function runWithLimit(tasks, limit){
+  const results = new Array(tasks.length);
+  let i = 0;
+
+  async function worker(){
+    while(i < tasks.length){
+      const cur = i++;
+      try{
+        results[cur] = { status:"fulfilled", value: await tasks[cur]() };
+      }catch(e){
+        results[cur] = { status:"rejected", reason: e };
+      }
+    }
+  }
+
+  const workers = Array.from({length: Math.min(limit, tasks.length)}, () => worker());
+  await Promise.all(workers);
+  return results;
+}
+
+/* ===================== LOAD ===================== */
 let loadToken = 0;
 
 async function loadAllNews(){
   const token = ++loadToken;
+  document.getElementById("debugBox").innerHTML = "";
+
   const selDate = document.getElementById("datePicker").value;
   const c = document.getElementById("news-container");
   c.innerHTML = "";
 
   const entries = Object.entries(feeds);
-
-  // 스켈레톤 먼저
   const secMap = new Map();
+
+  // 섹션 먼저 깔기
   for(const [cat] of entries){
-    const sec = makeSkeletonSection(cat);
+    const sec = makeSection(cat);
     secMap.set(cat, sec);
     c.appendChild(sec);
   }
 
-  // 카테고리별 도착 즉시 렌더(빠름)
-  entries.forEach(async ([cat, url]) => {
-    try{
-      const d = await fetchRSS2JSON(url);
-      if(token !== loadToken) return;
-      renderSectionInto(secMap.get(cat), cat, d.items, selDate);
-    }catch(e){
-      if(token !== loadToken) return;
-      renderSectionInto(secMap.get(cat), cat, [], selDate);
-      console.warn("[NEWS] fetch failed:", cat, e);
+  // 태스크 준비(각 카테고리 fetch)
+  const tasks = entries.map(([cat, url]) => async () => {
+    const r = await fetchFeedSmart(url);
+    return { cat, url, ...r };
+  });
+
+  // ✅ 동시 2개 제한(깃헙에서 쿼터/차단 회피)
+  const results = await runWithLimit(tasks, 2);
+
+  if(token !== loadToken) return;
+
+  results.forEach((res, idx) => {
+    const cat = entries[idx][0];
+    const sec = secMap.get(cat);
+
+    if(res.status === "fulfilled"){
+      const v = res.value;
+      renderItems(sec, cat, v.items, selDate, v.source.toUpperCase());
+      debug(`${cat}: OK (${v.source}) items=${(v.items||[]).length}`);
+    }else{
+      const msg = String(res.reason?.message || res.reason || "unknown");
+      renderError(sec, cat, msg);
+      debug(`${cat}: FAIL (${msg})`);
+      console.warn("[NEWS] fail:", cat, res.reason);
     }
   });
 }
