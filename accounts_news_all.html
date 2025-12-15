@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>OmniCare EIS · Accounts News (Sales · All)</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/variable/pretendardvariable.css" />
+
+<style>
+  html,body{ font-family:"Pretendard Variable", system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+  .card{ border:1px solid #e5e7eb; border-radius:16px; background:#fff; box-shadow:0 8px 24px rgba(15,23,42,.06); }
+  .muted{ color:#64748b; }
+  .divider{ height:1px; background:#e5e7eb; }
+  .chip{ border:1px solid #e5e7eb; border-radius:999px; padding:.25rem .6rem; font-size:.8rem; color:#334155; background:#f8fafc; }
+  .btn2{ border:1px solid #e5e7eb; background:#fff; color:#0f172a; border-radius:12px; padding:.55rem .9rem; font-weight:800; }
+  .small{ font-size:.85rem; }
+
+  .newsItem{
+    padding:12px 14px;
+    border:1px solid #e5e7eb;
+    border-radius:16px;
+    background:#fff;
+  }
+  .newsTitle{ font-weight:900; color:#0f172a; }
+  .newsMeta{ color:#64748b; font-size:.82rem; margin-top:4px; }
+  .newsLink{ color:#0f172a; text-decoration:none; }
+  .newsLink:hover{ text-decoration:underline; }
+
+  input, select{
+    border:1px solid #e5e7eb;
+    border-radius:14px;
+    padding:.6rem .8rem;
+    background:#fff;
+    color:#0f172a;
+  }
+  input[type="date"]{ color:#0f172a; }
+</style>
+</head>
+
+<body class="bg-slate-50">
+
+<header class="sticky top-0 z-20 bg-white/90 backdrop-blur border-b border-slate-200">
+  <div class="max-w-[1440px] mx-auto px-2 py-3 flex items-center gap-3">
+    <a href="https://qkr3069-beep.github.io/EIS/" aria-label="메인으로 이동">
+      <img src="omnicare_logo.png" alt="옴니케어 로고" class="h-12 object-contain cursor-pointer" />
+    </a>
+    <div class="flex-1">
+      <div class="font-semibold text-slate-900">OmniCare Intelligence Hub</div>
+      <div class="text-sm muted">거래처 소식 · 전체보기 (영업자)</div>
+    </div>
+    <button onclick="location.href='mypage_sales.html'" class="btn2">마이페이지</button>
+    <button onclick="location.href='https://qkr3069-beep.github.io/EIS/'" class="btn2">메인</button>
+  </div>
+</header>
+
+<main class="max-w-[1440px] mx-auto px-2 py-6 space-y-6">
+
+  <section class="card p-5">
+    <div class="flex items-start justify-between gap-3 flex-wrap">
+      <div>
+        <div class="text-lg font-extrabold text-slate-900">거래처 소식 전체보기</div>
+        <div class="muted small" id="userLine">-</div>
+      </div>
+      <span class="chip">Account News</span>
+    </div>
+
+    <div class="divider my-4"></div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-3 items-center">
+      <div class="lg:col-span-3">
+        <label class="muted small block mb-1">조회 날짜</label>
+        <input type="date" id="datePicker" class="w-full"/>
+      </div>
+
+      <div class="lg:col-span-5">
+        <label class="muted small block mb-1">검색(제목/요약)</label>
+        <input id="q" class="w-full" placeholder="예: KMI, 검진, 계약, 미수금, 대구…" />
+      </div>
+
+      <div class="lg:col-span-2">
+        <label class="muted small block mb-1">표시 건수</label>
+        <select id="limitSel" class="w-full">
+          <option value="20">20</option>
+          <option value="40">40</option>
+          <option value="60">60</option>
+        </select>
+      </div>
+
+      <div class="lg:col-span-2 flex items-end gap-2">
+        <button class="btn2 w-full" onclick="loadAccountNewsAll()">조회</button>
+      </div>
+    </div>
+
+    <div class="mt-3 muted small" id="hint">-</div>
+  </section>
+
+  <section class="card p-5">
+    <div id="list" class="space-y-3"></div>
+  </section>
+
+  <footer class="text-center muted small py-6">
+    샘플 화면입니다. 실제 서비스에서는 “관리자 추천/거래처 선택” 기반으로 정교화 가능합니다.
+  </footer>
+</main>
+
+<script>
+/** 샘플 로그인 */
+const CURRENT_USER = { id:"u1", name:"김영업", team:"A팀", role:"sales" };
+const NOW_YM = "2025-12";
+
+/** mypage_sales와 동일한 샘플 거래처 생성(키워드용) */
+function seededRand(i){ const x = Math.sin(i * 999) * 10000; return x - Math.floor(x); }
+function toYMD(d){ const y=d.getFullYear(); const m=String(d.getMonth()+1).padStart(2,"0"); const dd=String(d.getDate()).padStart(2,"0"); return `${y}-${m}-${dd}`; }
+function addDays(base, days){ const d=new Date(base); d.setDate(d.getDate()+days); return d; }
+
+function makeSampleAccounts(n=100){
+  const owners = ["김영업","박영업","이영업","최영업"];
+  const prefixes = ["메디컬","종합","헬스","케어","바이오","메디","건강","연구","검진","파트너"];
+  const cities = ["대구","수성","달서","동구","서구","중구","수원","부산","광주","제주","여의도","강남","광화문"];
+
+  const baseDate = new Date("2025-12-15T00:00:00");
+  const out = [];
+  for(let i=1;i<=n;i++){
+    const r1 = seededRand(i);
+    const r2 = seededRand(i+100);
+    const r3 = seededRand(i+200);
+
+    const owner = owners[Math.floor(r1*owners.length)];
+    const name = `${cities[Math.floor(r2*cities.length)]}${prefixes[Math.floor(r3*prefixes.length)]}센터 ${String(i).padStart(3,"0")}`;
+
+    const ytdRevenue = Math.round( (2000 + r1*48000) / 10 ) * 10;
+    const paidRate = 0.20 + r2*0.70;
+    const paidToDate = Math.round(ytdRevenue * paidRate / 10) * 10;
+
+    out.push({ name, owner, ytdRevenue, paidToDate });
+  }
+  return out;
+}
+const ACCOUNTS = makeSampleAccounts(100);
+function scopedAccounts(){ return ACCOUNTS.filter(a => a.owner === CURRENT_USER.name); }
+function arOf(a){ return Math.max(0, (a.ytdRevenue||0) - (a.paidToDate||0)); }
+
+async function fetchRSS2JSON(rssUrl){
+  const r = await fetch("https://api.rss2json.com/v1/api.json?rss_url=" + encodeURIComponent(rssUrl));
+  return r.json();
+}
+function stripHtml(s){ return (s || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim(); }
+function ymdFromStr(dateStr){
+  const d = new Date(dateStr);
+  if (Number.isNaN(d.getTime())) return "";
+  return toYMD(d);
+}
+
+function buildAccountNewsRSS(){
+  const base = scopedAccounts().slice().sort((a,b)=> arOf(b) - arOf(a));
+  const top = base.slice(0,10).map(a => a.name.replace(/\s*센터\s*\d+\s*$/,"").trim());
+  const terms = top.length ? top : ["검진센터","건강검진"];
+  const q = terms.map(t => `"${t}"`).join(" OR ");
+  return `https://news.google.com/rss/search?q=${encodeURIComponent(q)}&hl=ko&gl=KR&ceid=KR:ko`;
+}
+
+function render(items){
+  const date = document.getElementById("datePicker").value;
+  const q = (document.getElementById("q").value || "").trim().toLowerCase();
+  const limit = parseInt(document.getElementById("limitSel").value,10) || 20;
+
+  let list = items.slice();
+
+  // 날짜 필터(해당 날짜만)
+  const byDate = list.filter(it => ymdFromStr(it.pubDate) === date);
+  list = byDate.length ? byDate : list;
+
+  // 텍스트 검색(제목+요약)
+  if (q){
+    list = list.filter(it => {
+      const t = (it.title||"").toLowerCase();
+      const s = stripHtml(it.description||"").toLowerCase();
+      return t.includes(q) || s.includes(q);
+    });
+  }
+
+  list = list.slice(0, limit);
+
+  const wrap = document.getElementById("list");
+  const hint = document.getElementById("hint");
+  wrap.innerHTML = "";
+
+  if (!list.length){
+    wrap.innerHTML = `<div class="muted">표시할 소식이 없습니다.</div>`;
+    hint.textContent = "조건에 맞는 뉴스가 없습니다.";
+    return;
+  }
+
+  list.forEach(it=>{
+    const clean = stripHtml(it.description).slice(0, 140);
+    const ymd = ymdFromStr(it.pubDate) || "-";
+    const div = document.createElement("div");
+    div.className = "newsItem";
+    div.innerHTML = `
+      <a class="newsLink newsTitle" href="${it.link}" target="_blank" rel="noopener">${it.title}</a>
+      <div class="newsMeta">${ymd} · ${clean}${clean.length>=140?"...":""}</div>
+    `;
+    wrap.appendChild(div);
+  });
+
+  hint.textContent =
+    `조회일 ${date} 기준 · 표시 ${list.length}건 (내 담당 거래처 키워드 기반, 날짜 결과 부족 시 최신 기사로 대체될 수 있음)`;
+}
+
+let CACHE_ITEMS = [];
+
+async function loadAccountNewsAll(){
+  const wrap = document.getElementById("list");
+  const hint = document.getElementById("hint");
+  wrap.innerHTML = `<div class="muted">불러오는 중…</div>`;
+  hint.textContent = "";
+
+  try{
+    const rss = buildAccountNewsRSS();
+    const data = await fetchRSS2JSON(rss);
+    CACHE_ITEMS = (data.items || []);
+    render(CACHE_ITEMS);
+  }catch(e){
+    wrap.innerHTML = `<div class="muted">불러오기에 실패했습니다. (네트워크/쿼터 이슈 가능)</div>`;
+    hint.textContent = "";
+  }
+}
+
+function init(){
+  document.getElementById("userLine").textContent =
+    `${CURRENT_USER.name} · ${CURRENT_USER.team} · ${NOW_YM} 기준`;
+
+  document.getElementById("datePicker").value = toYMD(new Date());
+
+  document.getElementById("q").addEventListener("input", ()=> render(CACHE_ITEMS));
+  document.getElementById("limitSel").addEventListener("change", ()=> render(CACHE_ITEMS));
+  document.getElementById("datePicker").addEventListener("change", ()=> render(CACHE_ITEMS));
+
+  loadAccountNewsAll();
+}
+
+init();
+</script>
+</body>
+</html>
