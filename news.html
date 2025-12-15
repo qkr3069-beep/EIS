@@ -109,8 +109,21 @@ function parseYMD(v){const[a,b,c]=v.split("-").map(Number);return new Date(a,b-1
 function isSameDate(dt,sel){ return Math.abs((new Date(dt)-parseYMD(sel))/86400000)<=1; }
 
 async function fetchRSS(u){
-  const r = await fetch("https://api.rss2json.com/v1/api.json?rss_url=" + encodeURIComponent(u));
-  return r.json();
+  const proxy = "https://api.allorigins.win/raw?url=";
+  const r = await fetch(proxy + encodeURIComponent(u));
+  const text = await r.text();
+
+  // RSS XML → DOM 파싱
+  const xml = new DOMParser().parseFromString(text, "text/xml");
+
+  const items = Array.from(xml.querySelectorAll("item")).map(it => ({
+    title: it.querySelector("title")?.textContent || "",
+    link: it.querySelector("link")?.textContent || "",
+    pubDate: it.querySelector("pubDate")?.textContent || "",
+    description: it.querySelector("description")?.textContent || ""
+  }));
+
+  return { items };
 }
 
 function renderSection(wrap,cat,items,selDate){
