@@ -10,29 +10,39 @@
 
 <style>
   html,body{ font-family:"Pretendard Variable", system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
-  .card{
-    border:1px solid #e5e7eb; border-radius:16px; background:#fff;
-    box-shadow:0 8px 24px rgba(15,23,42,.06);
-  }
+  .card{ border:1px solid #e5e7eb; border-radius:16px; background:#fff; box-shadow:0 8px 24px rgba(15,23,42,.06); }
   .muted{ color:#64748b; }
   .divider{ height:1px; background:#e5e7eb; }
   .chip{ border:1px solid #e5e7eb; border-radius:999px; padding:.25rem .6rem; font-size:.8rem; color:#334155; background:#f8fafc; }
   .btn2{ border:1px solid #e5e7eb; background:#fff; color:#0f172a; border-radius:12px; padding:.55rem .9rem; font-weight:800; }
-  .btnDark{ border:1px solid #0f172a; background:#0f172a; color:#fff; border-radius:12px; padding:.55rem .9rem; font-weight:800; }
   .small{ font-size:.85rem; }
 
-  .kpiBox{
-    border:1px solid #e5e7eb; border-radius:16px; padding:14px; background:#fff;
-  }
+  .kpiBox{ border:1px solid #e5e7eb; border-radius:16px; padding:14px; background:#fff; }
   .kpiLabel{ color:#64748b; font-size:.85rem; font-weight:700; }
   .kpiValue{ font-size:1.6rem; font-weight:900; color:#0f172a; margin-top:4px; }
   .kpiSub{ color:#64748b; font-size:.8rem; margin-top:4px; }
+
+  table{ width:100%; border-collapse:collapse; }
+  thead th{ text-align:left; font-size:.85rem; color:#334155; padding:10px 10px; border-bottom:1px solid #e5e7eb; }
+  tbody td{ padding:12px 10px; border-bottom:1px solid #eef2f7; vertical-align:top; font-size:.92rem; color:#0f172a; }
+  tbody tr:hover{ background:#f8fafc; }
+  .num{ text-align:right; font-variant-numeric: tabular-nums; }
+  .link{ color:#0f172a; text-decoration:none; font-weight:900; }
+  .link:hover{ text-decoration:underline; }
+
+  .iconBtn{
+    display:inline-flex; align-items:center; justify-content:center;
+    width:34px; height:34px; border-radius:12px;
+    border:1px solid #e5e7eb; background:#fff;
+    transition: transform .12s ease, background .12s ease;
+  }
+  .iconBtn:hover{ background:#f8fafc; transform: translateY(-1px); }
 </style>
 </head>
 
 <body class="bg-slate-50">
 
-<!-- Header (메인 톤 동일) -->
+<!-- Header -->
 <header class="sticky top-0 z-20 bg-white/90 backdrop-blur border-b border-slate-200">
   <div class="max-w-[1440px] mx-auto px-2 py-3 flex items-center gap-3">
     <a href="https://qkr3069-beep.github.io/EIS/" aria-label="메인으로 이동">
@@ -42,9 +52,8 @@
       <div class="font-semibold text-slate-900">OmniCare Intelligence Hub</div>
       <div class="text-sm muted">마이페이지 · 영업자 개요</div>
     </div>
-    <button onclick="location.href='https://qkr3069-beep.github.io/EIS/'" class="btn2"> 메인으로 돌아가기
-</button>
-
+    <button onclick="location.href='https://qkr3069-beep.github.io/EIS/'" class="btn2">메인으로 돌아가기</button>
+  </div>
 </header>
 
 <main class="max-w-[1440px] mx-auto px-2 py-6 space-y-6">
@@ -56,9 +65,7 @@
         <div class="text-lg font-extrabold text-slate-900">마이페이지 (영업자)</div>
         <div class="muted small" id="userLine">-</div>
       </div>
-      <div class="flex items-center gap-2">
-        <span class="chip">Sales Overview</span>
-      </div>
+      <span class="chip">Sales Overview</span>
     </div>
   </section>
 
@@ -69,25 +76,21 @@
       <div class="kpiValue" id="kpiTotalAccounts">-</div>
       <div class="kpiSub">내 명의(담당자 기준)</div>
     </div>
-
     <div class="kpiBox">
       <div class="kpiLabel">활성 거래처 수</div>
       <div class="kpiValue" id="kpiActiveAccounts">-</div>
       <div class="kpiSub">최근 접촉 + 진행 상태 기준</div>
     </div>
-
     <div class="kpiBox">
       <div class="kpiLabel">수검률</div>
       <div class="kpiValue" id="kpiExamRate">-</div>
       <div class="kpiSub">완료/예약(샘플 로직)</div>
     </div>
-
     <div class="kpiBox">
       <div class="kpiLabel">신규 거래처 수</div>
       <div class="kpiValue" id="kpiNewAccounts">-</div>
       <div class="kpiSub">이번달 신규 등록</div>
     </div>
-
     <div class="kpiBox">
       <div class="kpiLabel">해지 거래처 수</div>
       <div class="kpiValue" id="kpiChurnAccounts">-</div>
@@ -124,6 +127,49 @@
     </div>
   </section>
 
+  <!-- 3행: 거래처 현황 -->
+  <section class="card p-5">
+    <div class="flex items-start justify-between gap-3 flex-wrap">
+      <div>
+        <div class="text-lg font-extrabold text-slate-900">거래처 현황</div>
+        <div class="muted small" id="accountsDesc">매출채권(미수금) 높은 거래처 TOP 5 · 내 담당 기준</div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <input id="q" class="border border-slate-200 rounded-xl px-3 py-2 bg-white w-64"
+               placeholder="거래처 검색 (내 담당 전체에서 검색)" />
+        <!-- 전체보기 아이콘 -->
+        <a href="accounts_sales_all.html" class="iconBtn" aria-label="거래처 현황 전체보기" title="거래처 현황 전체보기">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>
+          </svg>
+        </a>
+      </div>
+    </div>
+
+    <div class="divider my-4"></div>
+
+    <div class="overflow-auto">
+      <table>
+        <thead>
+          <tr>
+            <th style="min-width:220px;">거래처명</th>
+            <th class="num" style="min-width:140px;">금년도 누적 매출</th>
+            <th class="num" style="min-width:140px;">금년도 누적 수검자</th>
+            <th style="min-width:150px;">세금계산서 발행일(최근)</th>
+            <th style="min-width:140px;">예정 입금일</th>
+            <th class="num" style="min-width:140px;">누적 입금액</th>
+            <th class="num" style="min-width:140px;">매출채권</th>
+          </tr>
+        </thead>
+        <tbody id="accountsTbody"></tbody>
+      </table>
+    </div>
+
+    <div class="mt-3 muted small" id="scopeHint"></div>
+  </section>
+
   <footer class="text-center muted small py-6">
     샘플 화면입니다. 실제 서비스에서는 로그인/권한/DB 기준으로 자동 산출됩니다.
   </footer>
@@ -132,45 +178,102 @@
 <script>
 /** =========================
  *  로그인 사용자(샘플)
- *  - 나중에 로그인 붙이면 여기만 교체하면 됨
  * ========================= */
 const CURRENT_USER = { id:"u1", name:"김영업", team:"A팀", role:"sales" };
+const NOW_YM = "2025-12";
 
 /** =========================
- *  샘플 데이터 (영업자 담당 거래처)
- *  - createdYM: "YYYY-MM" (신규 판단)
- *  - churnYM:   "YYYY-MM" (해지 판단, 없으면 null)
- *  - status: "진행" | "휴면" | "해지"
- *  - lastTouchDays: 최근접촉(일)
- *  - examBooked / examDone: 수검률(샘플)
- *  - kmiRevenue / omniRevenue: 매출액(만원)
+ *  유틸
  * ========================= */
-const NOW_YM = "2025-12"; // 샘플 기준(현재 월)
-
-const ACCOUNTS = [
-  { id:"a1", name:"대구메디컬센터", owner:"김영업", createdYM:"2025-10", churnYM:null, status:"진행", lastTouchDays:5,  examBooked:120, examDone:92,  kmiRevenue:8200, omniRevenue:2100 },
-  { id:"a2", name:"수성종합검진원", owner:"김영업", createdYM:"2025-12", churnYM:null, status:"진행", lastTouchDays:12, examBooked:80,  examDone:55,  kmiRevenue:12400, omniRevenue:3400 },
-  { id:"a3", name:"달서건강센터", owner:"김영업", createdYM:"2025-11", churnYM:"2025-12", status:"해지", lastTouchDays:60, examBooked:20,  examDone:6,   kmiRevenue:600,  omniRevenue:150  },
-  { id:"a4", name:"동구헬스파트너", owner:"박영업", createdYM:"2025-09", churnYM:null, status:"진행", lastTouchDays:21, examBooked:60,  examDone:33,  kmiRevenue:3400, omniRevenue:900  },
-];
-
 const fmt = (n) => (n ?? 0).toLocaleString("ko-KR");
+function toYMD(d){
+  const y=d.getFullYear();
+  const m=String(d.getMonth()+1).padStart(2,"0");
+  const dd=String(d.getDate()).padStart(2,"0");
+  return `${y}-${m}-${dd}`;
+}
+function addDays(base, days){
+  const d=new Date(base);
+  d.setDate(d.getDate()+days);
+  return d;
+}
+function seededRand(i){
+  const x = Math.sin(i * 999) * 10000;
+  return x - Math.floor(x);
+}
 
 /** =========================
- *  KPI 산출 로직(샘플)
+ *  거래처 100개 샘플 생성
+ * ========================= */
+function makeSampleAccounts(n=100){
+  const owners = ["김영업","박영업","이영업","최영업"];
+  const prefixes = ["메디컬","종합","헬스","케어","바이오","메디","건강","연구","검진","파트너"];
+  const cities = ["대구","수성","달서","동구","서구","중구","수원","부산","광주","제주","여의도","강남","광화문"];
+
+  const baseDate = new Date("2025-12-15T00:00:00");
+  const out = [];
+
+  for(let i=1;i<=n;i++){
+    const r1 = seededRand(i);
+    const r2 = seededRand(i+100);
+    const r3 = seededRand(i+200);
+
+    const owner = owners[Math.floor(r1*owners.length)];
+    const name = `${cities[Math.floor(r2*cities.length)]}${prefixes[Math.floor(r3*prefixes.length)]}센터 ${String(i).padStart(3,"0")}`;
+
+    const ytdRevenue = Math.round( (2000 + r1*48000) / 10 ) * 10;
+    const paidRate = 0.20 + r2*0.70;
+    const paidToDate = Math.round(ytdRevenue * paidRate / 10) * 10;
+
+    const ytdExaminees = Math.round( 20 + r3*980 );
+
+    const taxInvoiceDate = toYMD(addDays(baseDate, -Math.floor(r2*45)));
+    const expectedDepositDate = toYMD(addDays(new Date(taxInvoiceDate), 7 + Math.floor(r3*28)));
+
+    const lastTouchDays = Math.floor(r1*70);
+    const statusPick = r2 < 0.08 ? "해지" : (r2 < 0.18 ? "휴면" : "진행");
+    const createdYM = r3 < 0.15 ? NOW_YM : (r3 < 0.45 ? "2025-11" : "2025-10");
+    const churnYM = statusPick==="해지" ? NOW_YM : null;
+
+    const examBooked = Math.round(20 + r2*280);
+    const examDone = Math.min(examBooked, Math.round(examBooked*(0.45 + r3*0.50)));
+
+    const kmiRevenue = Math.round(ytdRevenue * (0.55 + r1*0.25));
+    const omniRevenue = Math.max(0, ytdRevenue - kmiRevenue);
+
+    out.push({
+      id:`a${i}`,
+      name,
+      owner,
+      createdYM,
+      churnYM,
+      status: statusPick,
+      lastTouchDays,
+      examBooked,
+      examDone,
+      kmiRevenue,
+      omniRevenue,
+      ytdRevenue,
+      ytdExaminees,
+      taxInvoiceDate,
+      expectedDepositDate,
+      paidToDate
+    });
+  }
+  return out;
+}
+
+const ACCOUNTS = makeSampleAccounts(100);
+
+/** =========================
+ *  KPI 산출
  * ========================= */
 function scopedAccounts(){
   return ACCOUNTS.filter(a => a.owner === CURRENT_USER.name);
 }
-
-// 활성 거래처(샘플 정의):
-// - status !== "해지"
-// - lastTouchDays <= 30 (최근 접촉)
-// - (원하면 계약상태 등 추가 가능)
 function isActive(a){
   return a.status !== "해지" && (a.lastTouchDays ?? 9999) <= 30;
 }
-
 function calcKPIs(){
   const list = scopedAccounts();
 
@@ -182,7 +285,7 @@ function calcKPIs(){
   const examRate = booked > 0 ? Math.round((done / booked) * 100) : 0;
 
   const 신규 = list.filter(a => a.createdYM === NOW_YM).length;
-  const 해지 = list.filter(a => a.churnYM === NOW_YM || a.status === "해지" && a.churnYM === NOW_YM).length;
+  const 해지 = list.filter(a => (a.churnYM === NOW_YM) || (a.status === "해지" && a.churnYM === NOW_YM)).length;
 
   const kmiRev = list.reduce((s,a)=> s + (a.kmiRevenue || 0), 0);
   const omniRev = list.reduce((s,a)=> s + (a.omniRevenue || 0), 0);
@@ -190,6 +293,76 @@ function calcKPIs(){
   return { total, active, examRate, 신규, 해지, booked, done, kmiRev, omniRev };
 }
 
+/** =========================
+ *  거래처 표: 검색어 없으면 TOP5 / 검색어 있으면 전체검색
+ * ========================= */
+function arOf(a){
+  return Math.max(0, (a.ytdRevenue||0) - (a.paidToDate||0));
+}
+function getTop5ByAR(all){
+  const list = all.slice();
+  list.sort((a,b)=> arOf(b) - arOf(a));
+  return list.slice(0,5);
+}
+
+function renderAccountsTable(){
+  const tbody = document.getElementById("accountsTbody");
+  const q = (document.getElementById("q").value || "").trim().toLowerCase();
+  const all = scopedAccounts();
+  const top5 = getTop5ByAR(all);
+
+  // ✅ 검색어가 있으면 전체에서 검색, 없으면 TOP5
+  let list = q ? all.filter(a => a.name.toLowerCase().includes(q)) : top5;
+
+  // 보기 좋게: AR 높은 순
+  list = list.slice().sort((a,b)=> arOf(b)-arOf(a));
+
+  tbody.innerHTML = "";
+
+  if (!list.length){
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td colspan="7" class="muted" style="padding:14px;">검색 결과가 없습니다.</td>`;
+    tbody.appendChild(tr);
+
+    document.getElementById("accountsDesc").textContent =
+      q ? "검색 결과 · 내 담당 전체 거래처 기준" : "매출채권(미수금) 높은 거래처 TOP 5 · 내 담당 기준";
+
+    document.getElementById("scopeHint").textContent =
+      q ? `현재: 내 담당 ${fmt(all.length)}곳에서 검색 결과 0건`
+        : `현재: 내 담당 ${fmt(all.length)}곳 중 매출채권 TOP5만 노출됩니다. (전체는 우측 아이콘)`;
+    return;
+  }
+
+  list.forEach(a=>{
+    const ar = arOf(a);
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td style="font-weight:900;">
+        <a class="link" href="#" onclick="alert('거래처 상세(예정)'); return false;">${a.name}</a>
+        <div class="muted small mt-1">담당: ${a.owner} · 상태: ${a.status}</div>
+      </td>
+      <td class="num">${fmt(a.ytdRevenue)} 만원</td>
+      <td class="num">${fmt(a.ytdExaminees)} 명</td>
+      <td>${a.taxInvoiceDate || "-"}</td>
+      <td>${a.expectedDepositDate || "-"}</td>
+      <td class="num">${fmt(a.paidToDate)} 만원</td>
+      <td class="num" style="font-weight:900; color:${ar>0 ? "#b91c1c" : "#0f172a"}">${fmt(ar)} 만원</td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  document.getElementById("accountsDesc").textContent =
+    q ? "검색 결과 · 내 담당 전체 거래처 기준" : "매출채권(미수금) 높은 거래처 TOP 5 · 내 담당 기준";
+
+  document.getElementById("scopeHint").textContent =
+    q
+      ? `현재: 내 담당 ${fmt(all.length)}곳에서 “${document.getElementById("q").value}” 검색 결과 ${fmt(list.length)}건`
+      : `현재: 내 담당 ${fmt(all.length)}곳 중 매출채권 TOP5만 노출됩니다. (전체는 우측 아이콘)`;
+}
+
+/** =========================
+ *  렌더
+ * ========================= */
 function render(){
   document.getElementById("userLine").textContent =
     `${CURRENT_USER.name} · ${CURRENT_USER.team} · ${NOW_YM} 기준`;
@@ -209,7 +382,11 @@ function render(){
     `수검 완료 ${fmt(k.done)} / 예약 ${fmt(k.booked)} 건(샘플)`;
   document.getElementById("kpiOmniRevenueSub").textContent =
     `내 담당 거래처 ${fmt(k.total)}곳 합산(샘플)`;
+
+  renderAccountsTable();
 }
+
+document.getElementById("q").addEventListener("input", renderAccountsTable);
 
 render();
 </script>
