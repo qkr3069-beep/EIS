@@ -191,7 +191,18 @@ html,body{ font-family:"Pretendard Variable", system-ui, -apple-system, Segoe UI
     </div>
 
     <div class="divider mb-4"></div>
+<!-- ⭐ 국보급 소식 (대표님 추천 기사) -->
+	<div class="mb-4 p-5 rounded-2xl border border-slate-200 bg-white">
+  	<div class="flex items-center justify-between mb-3">
+    	<div class="font-extrabold text-slate-900">
+     	 국보급 소식 <span class="muted text-sm font-semibold">· 대표님 추천</span>
+    	</div>
+    	<span class="chip">EDITOR’S PICK</span>
+  </div>
 
+  <!-- JS가 채우는 영역 -->
+  <div id="executiveNews" class="grid grid-cols-1 md:grid-cols-3 gap-3"></div>
+</div>
     <!-- 2x2 Grid -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 
@@ -325,9 +336,17 @@ function renderCEO(){
   document.getElementById("ceoSign").textContent = CEO.sign;
 }
 
-/* ================== ✅ 업계소식: RSS 불러오기(메인용 4카테고리) ================== */
-/* news.html과 동일한 “주요 4카테고리”만 가져와서 메인에 3건씩 */
+/* ================== ✅ 업계소식: RSS 불러오기(메인용) ================== */
+/* ✅ 국보급 소식(대표님 추천) + 주요 4카테고리(각 3건) */
 const INDUSTRY_FEEDS = [
+  {
+    key: "executive",
+    category: "국보급 소식 (대표님 추천 기사)",
+    tag: "EDITOR’S PICK",
+    targetUlId: "industry-executive",
+    rss: "https://news.google.com/rss/search?q=(%EA%B1%B4%EA%B0%95%EA%B2%80%EC%A7%84+OR+%EC%A2%85%ED%95%A9%EA%B2%80%EC%A7%84+OR+KMI+OR+%ED%94%8C%EB%9E%AB%ED%8F%BC+OR+%EB%94%94%EC%A7%80%ED%84%B8%ED%97%AC%EC%8A%A4+OR+%ED%97%AC%EC%8A%A4%EC%BC%80%EC%96%B4+OR+GC%EC%BC%80%EC%96%B4)%20(%EC%A0%95%EC%B1%85+OR+%EC%98%88%EC%82%B0+OR+%EA%B2%BD%EC%9F%81+OR+%EC%8A%A4%EC%BC%80%EC%A4%84+OR+%EC%A0%95%EC%82%B0+OR+%EB%A6%AC%ED%8F%AC%ED%8A%B8)&hl=ko&gl=KR&ceid=KR:ko"
+  },
+
   {
     key: "healthcheck",
     category: "건강검진",
@@ -357,6 +376,7 @@ const INDUSTRY_FEEDS = [
     rss: "https://news.google.com/rss/search?q=%ED%97%AC%EC%8A%A4%EC%BC%80%EC%96%B4+OR+%EB%94%94%EC%A7%80%ED%84%B8%ED%97%AC%EC%8A%A4+OR+AI+%EA%B1%B4%EA%B0%95+OR+%EC%9B%A8%EC%96%B4%EB%9F%AC%EB%B8%94+%EA%B1%B4%EA%B0%95&hl=ko&gl=KR&ceid=KR:ko"
   }
 ];
+
 
 async function fetchRSS2JSON(rssUrl){
   const r = await fetch("https://api.rss2json.com/v1/api.json?rss_url=" + encodeURIComponent(rssUrl));
@@ -422,12 +442,36 @@ function renderIndustryNewsItems(ulId, items, fallbackMsg){
 }
 
 async function loadIndustryNewsToMain(){
-  // 로딩 표시(선택)
+  // 로딩 표시
   INDUSTRY_FEEDS.forEach(cfg=>{
     renderIndustryNewsItems(cfg.targetUlId, [], "불러오는 중…");
   });
 
-  const blocks = await buildIndustryCategoryNews(3);
+  // ✅ 국보급은 5개, 나머지는 3개
+  const blocks = await Promise.all(
+    INDUSTRY_FEEDS.map(async (cfg) => {
+      try{
+        const data = await fetchRSS2JSON(cfg.rss);
+        const limit = (cfg.key === "executive") ? 5 : 3;
+
+        const items = (data.items || [])
+          .slice(0, limit)
+          .map(it => {
+            const desc = stripHtml(it.description);
+            return {
+              title: it.title,
+              date: toYMD(it.pubDate),
+              summary: desc.slice(0, 70) + (desc.length > 70 ? "..." : ""),
+              link: it.link
+            };
+          });
+
+        return { ...cfg, items };
+      }catch(e){
+        return { ...cfg, items: [], error: true };
+      }
+    })
+  );
 
   blocks.forEach(b=>{
     if (b.error){
@@ -437,6 +481,7 @@ async function loadIndustryNewsToMain(){
     renderIndustryNewsItems(b.targetUlId, b.items, "해당 카테고리 소식 없음");
   });
 }
+
 
 /* ================== 초기 렌더 ================== */
 renderOverlayBarChart(KMI, "kmiChart", "kmi");
