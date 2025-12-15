@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>OmniCare EIS · 관리자 페이지</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/variable/pretendardvariable.css" />
+
+<style>
+  html,body{ font-family:"Pretendard Variable", system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+  .card{
+    border:1px solid #e5e7eb; border-radius:16px; background:#fff;
+    box-shadow:0 8px 24px rgba(15,23,42,.06);
+  }
+  .muted{ color:#64748b; }
+  .divider{ height:1px; background:#e5e7eb; }
+  .chip{ border:1px solid #e5e7eb; border-radius:999px; padding:.25rem .6rem; font-size:.8rem; color:#334155; background:#f8fafc; }
+  .btn2{ border:1px solid #e5e7eb; background:#fff; color:#0f172a; border-radius:12px; padding:.55rem .9rem; font-weight:800; }
+  .small{ font-size:.85rem; }
+  .kpi{
+    border:1px solid #e5e7eb; border-radius:14px; padding:14px; background:linear-gradient(180deg,#fff,#f8fafc);
+  }
+  table{ width:100%; border-collapse:separate; border-spacing:0; }
+  th,td{ padding:12px 10px; border-bottom:1px solid #e5e7eb; }
+  th{ text-align:left; font-size:.85rem; color:#334155; background:#f8fafc; position:sticky; top:0; }
+  td{ color:#0f172a; }
+  .pill{
+    display:inline-flex; align-items:center; gap:6px;
+    border:1px solid #e5e7eb; border-radius:999px;
+    padding:.25rem .6rem; font-size:.8rem; background:#fff;
+  }
+</style>
+</head>
+
+<body class="bg-slate-50">
+
+<header class="sticky top-0 z-20 bg-white/90 backdrop-blur border-b border-slate-200">
+  <div class="max-w-[1440px] mx-auto px-2 py-3 flex items-center gap-3">
+    <a href="https://qkr3069-beep.github.io/EIS/" aria-label="메인으로 이동">
+      <img src="omnicare_logo.png" alt="옴니케어 로고" class="h-12 object-contain cursor-pointer" />
+    </a>
+    <div class="flex-1">
+      <div class="font-semibold text-slate-900">관리자 페이지</div>
+      <div class="text-sm muted">부서별 개요 · 직원별 현황 · 실행 리스크 신호</div>
+    </div>
+    <button onclick="location.href='mypage_manager.html'" class="btn2">마이페이지</button>
+  </div>
+</header>
+
+<main class="max-w-[1440px] mx-auto px-2 py-6 space-y-6">
+
+  <!-- 상단: 부서(팀) 필터 + 설명 -->
+  <section class="card p-5">
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+      <div>
+        <div class="font-extrabold text-slate-900 text-lg">부서별 개요</div>
+        <div class="muted small">선택한 부서 기준으로 KPI 합계/평균이 갱신됩니다.</div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <span class="chip">FILTER</span>
+        <select id="deptSelect" class="btn2 px-3 py-2 font-bold">
+          <option value="ALL">전체</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="divider my-4"></div>
+
+    <!-- KPI 요약 -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3" id="deptKpis"></div>
+  </section>
+
+  <!-- 직원별 현황 -->
+  <section class="card p-5">
+    <div class="flex items-start justify-between gap-3">
+      <div>
+        <div class="font-extrabold text-slate-900 text-lg">직원별 현황</div>
+        <div class="muted small">거래처가 아니라 ‘직원’을 기준으로 파이프라인/매출/활동 신호를 봅니다.</div>
+      </div>
+      <span class="chip">PEOPLE</span>
+    </div>
+
+    <div class="divider my-4"></div>
+
+    <div class="overflow-auto max-h-[520px] rounded-2xl border border-slate-200">
+      <table>
+        <thead>
+          <tr>
+            <th style="min-width:130px;">직원</th>
+            <th style="min-width:110px;">부서</th>
+            <th style="min-width:120px;">담당 거래처</th>
+            <th style="min-width:120px;">진행 파이프라인</th>
+            <th style="min-width:140px;">누계 매출(백만원)</th>
+            <th style="min-width:120px;">전환율</th>
+            <th style="min-width:150px;">리스크 신호</th>
+          </tr>
+        </thead>
+        <tbody id="staffTbody"></tbody>
+      </table>
+    </div>
+
+    <div class="mt-3 muted small">
+      * 샘플 지표입니다. 실제 서비스에서는 CRM/정산/콜로그/메일/캘린더 등에서 자동 집계하는 형태로 확장합니다.
+    </div>
+  </section>
+
+</main>
+
+<script>
+/* ================== 샘플 데이터 (직원 단위) ==================
+   - dept: 부서/팀
+   - accounts: 담당 거래처 수
+   - pipeline: 진행 파이프라인 건수(또는 가중점수)
+   - sales: 누계 매출(백만원)
+   - conv: 전환율(0~1)
+   - risk: 신호 텍스트(예: 미팅 급감/정산 지연 등)
+*/
+const STAFF = [
+  { name:"김영업", dept:"A팀", accounts:18, pipeline:6, sales:4200, conv:0.22, risk:"미팅 감소(7일)" },
+  { name:"박세일", dept:"A팀", accounts:14, pipeline:4, sales:3100, conv:0.19, risk:"정산 대기 2건" },
+  { name:"최리드", dept:"A팀", accounts:21, pipeline:8, sales:4800, conv:0.24, risk:"-" },
+
+  { name:"정컨설", dept:"B팀", accounts:16, pipeline:5, sales:3900, conv:0.20, risk:"견적 체류(10일)" },
+  { name:"이세일", dept:"B팀", accounts:12, pipeline:3, sales:2700, conv:0.17, risk:"리드 유입 급감" },
+  { name:"한파트", dept:"B팀", accounts:19, pipeline:7, sales:4600, conv:0.23, risk:"-" },
+
+  { name:"오제휴", dept:"제휴팀", accounts:10, pipeline:2, sales:2200, conv:0.15, risk:"재계약 임박 1건" },
+  { name:"윤운영", dept:"운영팀", accounts:0,  pipeline:0, sales:0,    conv:0.00, risk:"센터 대응 SLA 지연" },
+];
+
+/* ================== 유틸 ================== */
+function fmt(n){ return (n ?? 0).toLocaleString(); }
+function pct(x){
+  const v = (x ?? 0) * 100;
+  return `${v.toFixed(0)}%`;
+}
+
+/* ================== 부서 목록 세팅 ================== */
+function initDeptSelect(){
+  const sel = document.getElementById("deptSelect");
+  const depts = Array.from(new Set(STAFF.map(s=>s.dept))).sort();
+  depts.forEach(d=>{
+    const opt = document.createElement("option");
+    opt.value = d;
+    opt.textContent = d;
+    sel.appendChild(opt);
+  });
+  sel.addEventListener("change", renderAll);
+}
+
+/* ================== KPI(부서 합계/평균) ================== */
+function calcDeptAgg(dept){
+  const rows = dept==="ALL" ? STAFF : STAFF.filter(s=>s.dept===dept);
+  const headcount = rows.length;
+
+  const sumAccounts = rows.reduce((a,b)=>a+(b.accounts||0),0);
+  const sumPipeline = rows.reduce((a,b)=>a+(b.pipeline||0),0);
+  const sumSales = rows.reduce((a,b)=>a+(b.sales||0),0);
+
+  const avgConv = headcount ? rows.reduce((a,b)=>a+(b.conv||0),0)/headcount : 0;
+
+  // 리스크 카운트(“-” 제외)
+  const riskCount = rows.filter(r => (r.risk||"-").trim() !== "-").length;
+
+  return { headcount, sumAccounts, sumPipeline, sumSales, avgConv, riskCount };
+}
+
+function renderDeptKpis(){
+  const dept = document.getElementById("deptSelect").value;
+  const a = calcDeptAgg(dept);
+
+  const box = document.getElementById("deptKpis");
+  box.innerHTML = `
+    <div class="kpi">
+      <div class="muted small font-semibold">인원</div>
+      <div class="text-2xl font-extrabold text-slate-900 mt-1">${fmt(a.headcount)}</div>
+      <div class="muted small mt-1">선택 부서 기준</div>
+    </div>
+
+    <div class="kpi">
+      <div class="muted small font-semibold">담당 거래처 합계</div>
+      <div class="text-2xl font-extrabold text-slate-900 mt-1">${fmt(a.sumAccounts)}</div>
+      <div class="muted small mt-1">직원별 담당 수 합산</div>
+    </div>
+
+    <div class="kpi">
+      <div class="muted small font-semibold">파이프라인(건)</div>
+      <div class="text-2xl font-extrabold text-slate-900 mt-1">${fmt(a.sumPipeline)}</div>
+      <div class="muted small mt-1">진행/대기 포함</div>
+    </div>
+
+    <div class="kpi">
+      <div class="muted small font-semibold">누계 매출(백만원) / 평균 전환</div>
+      <div class="text-2xl font-extrabold text-slate-900 mt-1">${fmt(a.sumSales)} <span class="text-base font-bold muted">· ${pct(a.avgConv)}</span></div>
+      <div class="muted small mt-1">리스크 신호: ${fmt(a.riskCount)}명</div>
+    </div>
+  `;
+}
+
+/* ================== 직원 테이블 ================== */
+function renderStaffTable(){
+  const dept = document.getElementById("deptSelect").value;
+  const rows = dept==="ALL" ? STAFF : STAFF.filter(s=>s.dept===dept);
+
+  // 정렬(기본: 매출 desc)
+  rows.sort((a,b)=>(b.sales||0)-(a.sales||0));
+
+  const tb = document.getElementById("staffTbody");
+  tb.innerHTML = "";
+
+  rows.forEach(r=>{
+    const tr = document.createElement("tr");
+
+    const riskText = (r.risk||"-").trim();
+    const riskPill = riskText === "-"
+      ? `<span class="pill"><span class="w-2 h-2 rounded-full bg-emerald-500"></span>정상</span>`
+      : `<span class="pill"><span class="w-2 h-2 rounded-full bg-rose-500"></span>${riskText}</span>`;
+
+    tr.innerHTML = `
+      <td class="font-extrabold">${r.name}</td>
+      <td><span class="chip">${r.dept}</span></td>
+      <td class="font-bold">${fmt(r.accounts)}</td>
+      <td class="font-bold">${fmt(r.pipeline)}</td>
+      <td class="font-extrabold">${fmt(r.sales)}</td>
+      <td class="font-bold">${pct(r.conv)}</td>
+      <td>${riskPill}</td>
+    `;
+    tb.appendChild(tr);
+  });
+
+  if (rows.length === 0){
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td colspan="7" class="muted">표시할 직원이 없습니다.</td>`;
+    tb.appendChild(tr);
+  }
+}
+
+/* ================== 전체 렌더 ================== */
+function renderAll(){
+  renderDeptKpis();
+  renderStaffTable();
+}
+
+/* ================== 초기 실행 ================== */
+initDeptSelect();
+renderAll();
+</script>
+
+</body>
+</html>
