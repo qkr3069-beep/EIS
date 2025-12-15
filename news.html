@@ -105,16 +105,94 @@ function buildMoreLink(cat){
   return `https://news.google.com/search?q=${q}&hl=ko&gl=KR&ceid=KR%3Ako`;
 }
 
-function parseYMD(v){const[a,b,c]=v.split("-").map(Number);return new Date(a,b-1,c);}
-function isSameDate(dt,sel){ return Math.abs((new Date(dt)-parseYMD(sel))/86400000)<=1; }
+function parseYMD(v){
+  const [a,b,c] = (v||"").split("-").map(Number);
+  if(!a || !b || !c) return null;
+  return new Date(a, b-1, c, 0,0,0,0); // 로컬 자정
+}
+
+function parseItemDate(dt){
+  if(!dt) return null;
+
+  // 일반 파싱
+  let d = new Date(dt);
+  if(!Number.isNaN(d.getTime())) return d;
+
+  // "YYYY-MM-DD HH:mm:ss" 형태 보정(혹시나)
+  const fixed = String(dt).replace(" ", "T");
+  d = new Date(fixed);
+  if(!Number.isNaN(d.getTime())) return d;
+
+  return null;
+}
+
+function isSameDate(pubDate, sel){
+  const selD = parseYMD(sel);
+  const itemD = parseItemDate(pubDate);
+
+  // 선택일이 없으면 필터 X
+  if(!selD) return true;
+
+  // pubDate 파싱 실패하면 '일단 노출' (안 뜨는 문제 방지)
+  if(!itemD) return true;
+
+  const a = new Date(selD.getFullYear(), selD.getMonth(), selD.getDate()).getTime();
+  const b = new Date(itemD.getFullYear(), itemD.getMonth(), itemD.getDate()).getTime();
+
+  return Math.abs(a - b) <= 86400000; // ±1일
+}
+
+// 프록시 후보들(순차 시도)
+const PROXIES = [
+  // 1) AllOrigins JSON (가장 안정적으로 CORS 헤더 줌)
+  (u) => `https://api.allorigins.win/get?url=${encodeURIComponent(u)}`,
+  // 2) corsproxy.io (가끔 느리지만 CORS 해결용)
+  (u) => `https://corsproxy.io/?${encodeURIComponent(u)}`,
+  // 3) r.jina.ai (문서 프록시, RSS도 텍스트로 가져오는 용도로 종종 됨)
+  (u) => `https://r.jina.ai/http://${u.replace(/^https?:\/\//,'')}`
+];
+
+async function fetchTextWithFallback(url){
+  let lastErr;
+  for(const make of PROXIES){
+    try{
+      const proxyUrl = make(url);
+      const res = await fetch(proxyUrl, { cache: "no-store" });
+      if(!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      // allorigins/get 은 JSON { contents: "..." }
+      if (proxyUrl.includes("api.allorigins.win/get?url=")) {
+        const j = await res.json();
+        const txt = j && (j.contents || j.response || j.data);
+        if(!txt) throw new Error("Empty contents from allorigins");
+        return txt;
+      }
+
+      // 나머지는 raw text
+      const txt = await res.text();
+      if(!txt || txt.length < 20) throw new Error("Empty text");
+      return txt;
+
+    }catch(e){
+      lastErr = e;
+      // 다음 프록시로 넘어감
+    }
+  }
+  throw lastErr || new Error("All proxies failed");
+}
 
 async function fetchRSS(u){
-  const proxy = "https://api.allorigins.win/raw?url=";
-  const r = await fetch(proxy + encodeURIComponent(u));
-  const text = await r.text();
+  const text = await fetchTextWithFallback(u);
 
   // RSS XML → DOM 파싱
   const xml = new DOMParser().parseFromString(text, "text/xml");
+
+  // 파서 에러 감지
+  const parseErr = xml.querySelector("parsererror");
+  if(parseErr){
+    // 디버깅용(필요하면 콘솔에서 확인)
+    console.warn("RSS parse error:", parseErr.textContent?.slice(0,200));
+  }
 
   const items = Array.from(xml.querySelectorAll("item")).map(it => ({
     title: it.querySelector("title")?.textContent || "",
@@ -123,8 +201,14 @@ async function fetchRSS(u){
     description: it.querySelector("description")?.textContent || ""
   }));
 
+  // 혹시 item이 0개면, 응답이 RSS가 아닌 경우(차단/에러페이지)일 가능성 높음
+  if(items.length === 0){
+    console.warn("No items parsed. Response may be blocked or not RSS.");
+  }
+
   return { items };
 }
+
 
 function renderSection(wrap,cat,items,selDate){
   let num = 0;
