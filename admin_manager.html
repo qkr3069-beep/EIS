@@ -30,7 +30,43 @@
     display:inline-flex; align-items:center; gap:6px;
     border:1px solid #e5e7eb; border-radius:999px;
     padding:.25rem .6rem; font-size:.8rem; background:#fff;
+    white-space:nowrap;
   }
+
+  /* ===== 직원 조회 박스 ===== */
+  .searchBox{
+    border:1px solid #e5e7eb;
+    border-radius:16px;
+    background:linear-gradient(180deg,#fff,#f8fafc);
+    padding:12px;
+    min-width: 320px;
+  }
+  .searchInput{
+    width:100%;
+    border:1px solid #e5e7eb;
+    border-radius:12px;
+    padding:.55rem .75rem;
+    outline:none;
+    background:#fff;
+    font-weight:800;
+  }
+  .listItem{
+    border:1px solid #e5e7eb;
+    border-radius:14px;
+    padding:10px 12px;
+    background:#fff;
+    cursor:pointer;
+  }
+  .listItem:hover{ background:#f8fafc; }
+  .listItemActive{
+    border-color:#93c5fd;
+    box-shadow:0 0 0 3px rgba(59,130,246,.15);
+  }
+
+  /* ===== 직원 테이블 선택 강조 ===== */
+  tr.rowClickable{ cursor:pointer; }
+  tr.rowClickable:hover td{ background:#f8fafc; }
+  tr.rowActive td{ background:#eff6ff; }
 </style>
 </head>
 
@@ -43,9 +79,9 @@
     </a>
     <div class="flex-1">
       <div class="font-semibold text-slate-900">관리자 페이지</div>
-      <div class="text-sm muted">부서별 개요 · 직원별 현황 · 실행 리스크 신호</div>
+      <div class="text-sm muted">부서별 개요 · 직원별 현황 · 매출채권 리스크</div>
     </div>
-    <button onclick="location.href='mypage_manager.html'" class="btn2">마이페이지</button>
+    <button onclick="location.href='mypage_sales.html'" class="btn2">마이페이지</button>
   </div>
 </header>
 
@@ -71,71 +107,216 @@
 
     <!-- KPI 요약 -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3" id="deptKpis"></div>
+
+    <div class="mt-3 muted small">
+      * 리스크는 <b>매출채권/금년도 누적 매출</b> 비율(AR/Sales) 기준 샘플 로직입니다.
+    </div>
   </section>
 
-  <!-- 직원별 현황 -->
+  <!-- 직원별 현황 + 우측 직원 조회 -->
   <section class="card p-5">
-    <div class="flex items-start justify-between gap-3">
-      <div>
-        <div class="font-extrabold text-slate-900 text-lg">직원별 현황</div>
-        <div class="muted small">거래처가 아니라 ‘직원’을 기준으로 파이프라인/매출/활동 신호를 봅니다.</div>
+    <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+      <div class="flex-1">
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <div class="font-extrabold text-slate-900 text-lg">직원별 현황</div>
+            <div class="muted small">직원 단위로 ‘매출/입금/매출채권’과 리스크를 요약합니다.</div>
+          </div>
+          <span class="chip">PEOPLE</span>
+        </div>
+
+        <div class="divider my-4"></div>
+
+        <div class="overflow-auto max-h-[520px] rounded-2xl border border-slate-200">
+          <table>
+            <thead>
+              <tr>
+                <th style="min-width:130px;">직원</th>
+                <th style="min-width:110px;">부서</th>
+                <th style="min-width:120px;">담당 거래처</th>
+                <th style="min-width:150px;">금년도 누적 매출(백만원)</th>
+                <th style="min-width:150px;">누적 입금액(백만원)</th>
+                <th style="min-width:150px;">매출채권(백만원)</th>
+                <th style="min-width:170px;">리스크(AR/매출)</th>
+              </tr>
+            </thead>
+            <tbody id="staffTbody"></tbody>
+          </table>
+        </div>
+
+        <div class="mt-3 muted small">
+          * 직원 행을 클릭하거나, 우측에서 직원을 선택하면 아래에 담당 거래처가 펼쳐집니다.
+        </div>
       </div>
-      <span class="chip">PEOPLE</span>
+
+      <!-- ✅ 우측: 직원 조회 -->
+      <aside class="searchBox">
+        <div class="flex items-center justify-between">
+          <div class="font-extrabold text-slate-900">직원 조회</div>
+          <span class="chip">SEARCH</span>
+        </div>
+        <div class="muted small mt-1">직원을 선택하면 아래에 거래처 리스트가 노출됩니다.</div>
+
+        <div class="mt-3 space-y-2">
+          <input id="staffSearch" class="searchInput" placeholder="이름 검색 (예: 김영업)" />
+          <select id="staffDeptFilter" class="searchInput">
+            <option value="ALL">부서 전체</option>
+          </select>
+        </div>
+
+        <div class="divider my-3"></div>
+
+        <div id="staffSearchList" class="space-y-2 max-h-[360px] overflow-auto pr-1"></div>
+
+        <div class="divider my-3"></div>
+
+        <button id="clearStaffBtn" class="btn2 w-full">선택 해제</button>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ✅ 선택 직원의 거래처 전체 노출 -->
+  <section class="card p-5" id="accountSection" style="display:none;">
+    <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
+      <div>
+        <div class="font-extrabold text-slate-900 text-lg" id="accountTitle">— 담당 거래처</div>
+        <div class="muted small" id="accountSub">선택한 직원 기준으로 거래처 리스트가 노출됩니다.</div>
+      </div>
+      <span class="chip">ACCOUNTS</span>
     </div>
 
     <div class="divider my-4"></div>
 
-    <div class="overflow-auto max-h-[520px] rounded-2xl border border-slate-200">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-3" id="accountKpis"></div>
+
+    <div class="divider my-4"></div>
+
+    <div class="overflow-auto rounded-2xl border border-slate-200">
       <table>
         <thead>
           <tr>
-            <th style="min-width:130px;">직원</th>
-            <th style="min-width:110px;">부서</th>
-            <th style="min-width:120px;">담당 거래처</th>
-            <th style="min-width:120px;">진행 파이프라인</th>
-            <th style="min-width:140px;">누계 매출(백만원)</th>
-            <th style="min-width:120px;">전환율</th>
-            <th style="min-width:150px;">리스크 신호</th>
+            <th style="min-width:180px;">거래처</th>
+            <th style="min-width:120px;">상태</th>
+            <th style="min-width:160px;">금년도 누적 매출(백만원)</th>
+            <th style="min-width:160px;">금년도 누적 수검자</th>
+            <th style="min-width:160px;">누적 입금액(백만원)</th>
+            <th style="min-width:160px;">매출채권(백만원)</th>
+            <th style="min-width:170px;">리스크(AR/매출)</th>
           </tr>
         </thead>
-        <tbody id="staffTbody"></tbody>
+        <tbody id="accountTbody"></tbody>
       </table>
     </div>
 
     <div class="mt-3 muted small">
-      * 샘플 지표입니다. 실제 서비스에서는 CRM/정산/콜로그/메일/캘린더 등에서 자동 집계하는 형태로 확장합니다.
+      * 리스크는 샘플 기준입니다. 실제 적용 시 “월별 기준/입금 리드타임/정산 주기” 등을 함께 반영하는 것을 권장합니다.
     </div>
   </section>
 
 </main>
 
 <script>
-/* ================== 샘플 데이터 (직원 단위) ==================
-   - dept: 부서/팀
-   - accounts: 담당 거래처 수
-   - pipeline: 진행 파이프라인 건수(또는 가중점수)
-   - sales: 누계 매출(백만원)
-   - conv: 전환율(0~1)
-   - risk: 신호 텍스트(예: 미팅 급감/정산 지연 등)
+/* ================== 샘플 데이터 (거래처 단위) ==================
+  - staffName: 담당 직원명(샘플)
+  - salesYTD: 금년도 누적 매출(백만원)
+  - examineesYTD: 금년도 누적 수검자
+  - paidTotal: 누적 입금액(백만원)
+  - ar: 매출채권(백만원)
 */
-const STAFF = [
-  { name:"김영업", dept:"A팀", accounts:18, pipeline:6, sales:4200, conv:0.22, risk:"미팅 감소(7일)" },
-  { name:"박세일", dept:"A팀", accounts:14, pipeline:4, sales:3100, conv:0.19, risk:"정산 대기 2건" },
-  { name:"최리드", dept:"A팀", accounts:21, pipeline:8, sales:4800, conv:0.24, risk:"-" },
+const ACCOUNTS = [
+  { staffName:"김영업", name:"KMI 강남",   status:"활성", salesYTD:1800, examineesYTD:420, paidTotal:1400, ar:400 },
+  { staffName:"김영업", name:"○○병원",    status:"정체", salesYTD:600,  examineesYTD:140, paidTotal:350,  ar:250 },
+  { staffName:"김영업", name:"△△센터",    status:"휴면", salesYTD:120,  examineesYTD:25,  paidTotal:40,   ar:80  },
 
-  { name:"정컨설", dept:"B팀", accounts:16, pipeline:5, sales:3900, conv:0.20, risk:"견적 체류(10일)" },
-  { name:"이세일", dept:"B팀", accounts:12, pipeline:3, sales:2700, conv:0.17, risk:"리드 유입 급감" },
-  { name:"한파트", dept:"B팀", accounts:19, pipeline:7, sales:4600, conv:0.23, risk:"-" },
+  { staffName:"박세일", name:"KMI 여의도", status:"활성", salesYTD:1100, examineesYTD:260, paidTotal:900,  ar:200 },
+  { staffName:"박세일", name:"□□건강센터", status:"정체", salesYTD:420,  examineesYTD:90,  paidTotal:240,  ar:180 },
 
-  { name:"오제휴", dept:"제휴팀", accounts:10, pipeline:2, sales:2200, conv:0.15, risk:"재계약 임박 1건" },
-  { name:"윤운영", dept:"운영팀", accounts:0,  pipeline:0, sales:0,    conv:0.00, risk:"센터 대응 SLA 지연" },
+  { staffName:"최리드", name:"KMI 광화문", status:"활성", salesYTD:1500, examineesYTD:360, paidTotal:1300, ar:200 },
+  { staffName:"최리드", name:"☆☆검진기관", status:"활성", salesYTD:980,  examineesYTD:240, paidTotal:820,  ar:160 },
+
+  { staffName:"정컨설", name:"KMI 수원",   status:"활성", salesYTD:980,  examineesYTD:230, paidTotal:700,  ar:280 },
+  { staffName:"정컨설", name:"◇◇병원",    status:"정체", salesYTD:360,  examineesYTD:70,  paidTotal:120,  ar:240 },
+
+  { staffName:"이세일", name:"△△의료재단", status:"정체", salesYTD:520, examineesYTD:110, paidTotal:220, ar:300 },
+
+  { staffName:"한파트", name:"KMI 부산",   status:"활성", salesYTD:1250, examineesYTD:310, paidTotal:1020, ar:230 },
+
+  { staffName:"오제휴", name:"제휴A",      status:"활성", salesYTD:700,  examineesYTD:180, paidTotal:480,  ar:220 },
 ];
+
+/* ================== 직원 데이터는 거래처에서 집계 ================== */
+function buildStaffFromAccounts(){
+  const map = new Map();
+  // 샘플 dept 매핑(실서비스는 조직 DB로 매핑)
+  const deptByName = {
+    "김영업":"A팀", "박세일":"A팀", "최리드":"A팀",
+    "정컨설":"B팀", "이세일":"B팀", "한파트":"B팀",
+    "오제휴":"제휴팀", "윤운영":"운영팀"
+  };
+
+  ACCOUNTS.forEach(a=>{
+    if (!map.has(a.staffName)){
+      map.set(a.staffName, {
+        name: a.staffName,
+        dept: deptByName[a.staffName] || "미지정",
+        accounts: 0,
+        salesYTD: 0,
+        paidTotal: 0,
+        ar: 0
+      });
+    }
+    const s = map.get(a.staffName);
+    s.accounts += 1;
+    s.salesYTD += (a.salesYTD || 0);
+    s.paidTotal += (a.paidTotal || 0);
+    s.ar += (a.ar || 0);
+  });
+
+  // 운영팀처럼 거래처 없는 직원도 표시하고 싶으면 여기에 추가
+  // (요청 없으니 기본은 거래처가 있는 직원만 노출)
+
+  return Array.from(map.values());
+}
+
+let STAFF = buildStaffFromAccounts();
+
+/* ================== 상태 ================== */
+let selectedStaffName = null;
 
 /* ================== 유틸 ================== */
 function fmt(n){ return (n ?? 0).toLocaleString(); }
-function pct(x){
-  const v = (x ?? 0) * 100;
-  return `${v.toFixed(0)}%`;
+function ratio(ar, sales){
+  if (!sales) return 0;
+  return ar / sales;
+}
+function pct1(x){
+  return `${(x*100).toFixed(0)}%`;
+}
+function pillDot(color){
+  return `<span class="w-2 h-2 rounded-full ${color}"></span>`;
+}
+function statusPill(status){
+  const s = (status||"-").trim();
+  if (s === "활성") return `<span class="pill">${pillDot("bg-sky-500")}활성</span>`;
+  if (s === "정체") return `<span class="pill">${pillDot("bg-amber-500")}정체</span>`;
+  if (s === "휴면") return `<span class="pill">${pillDot("bg-slate-500")}휴면</span>`;
+  return `<span class="pill">${pillDot("bg-slate-400")}${s}</span>`;
+}
+
+/* ===== 리스크 규칙(샘플) =====
+   - AR/Sales < 15% : 정상
+   - 15% ~ 30%      : 주의
+   - 30% 이상       : 위험
+   * sales=0이면 "매출없음"으로 별도 표시
+*/
+function riskPillByAr(ar, sales){
+  if (!sales){
+    return `<span class="pill">${pillDot("bg-slate-400")}매출 없음</span>`;
+  }
+  const r = ratio(ar, sales);
+  if (r >= 0.30) return `<span class="pill">${pillDot("bg-rose-500")}위험 ${pct1(r)}</span>`;
+  if (r >= 0.15) return `<span class="pill">${pillDot("bg-amber-500")}주의 ${pct1(r)}</span>`;
+  return `<span class="pill">${pillDot("bg-emerald-500")}정상 ${pct1(r)}</span>`;
 }
 
 /* ================== 부서 목록 세팅 ================== */
@@ -148,7 +329,11 @@ function initDeptSelect(){
     opt.textContent = d;
     sel.appendChild(opt);
   });
-  sel.addEventListener("change", renderAll);
+  sel.addEventListener("change", () => {
+    renderAll();
+    renderStaffSearchList();
+    if (selectedStaffName) renderAccountsForStaff(selectedStaffName);
+  });
 }
 
 /* ================== KPI(부서 합계/평균) ================== */
@@ -157,15 +342,16 @@ function calcDeptAgg(dept){
   const headcount = rows.length;
 
   const sumAccounts = rows.reduce((a,b)=>a+(b.accounts||0),0);
-  const sumPipeline = rows.reduce((a,b)=>a+(b.pipeline||0),0);
-  const sumSales = rows.reduce((a,b)=>a+(b.sales||0),0);
+  const sumSales = rows.reduce((a,b)=>a+(b.salesYTD||0),0);
+  const sumPaid  = rows.reduce((a,b)=>a+(b.paidTotal||0),0);
+  const sumAr    = rows.reduce((a,b)=>a+(b.ar||0),0);
 
-  const avgConv = headcount ? rows.reduce((a,b)=>a+(b.conv||0),0)/headcount : 0;
+  const arRatio = sumSales ? (sumAr/sumSales) : 0;
 
-  // 리스크 카운트(“-” 제외)
-  const riskCount = rows.filter(r => (r.risk||"-").trim() !== "-").length;
+  // 위험 인원(AR/Sales >= 30%)
+  const riskyCount = rows.filter(r => r.salesYTD && ratio(r.ar, r.salesYTD) >= 0.30).length;
 
-  return { headcount, sumAccounts, sumPipeline, sumSales, avgConv, riskCount };
+  return { headcount, sumAccounts, sumSales, sumPaid, sumAr, arRatio, riskyCount };
 }
 
 function renderDeptKpis(){
@@ -187,15 +373,15 @@ function renderDeptKpis(){
     </div>
 
     <div class="kpi">
-      <div class="muted small font-semibold">파이프라인(건)</div>
-      <div class="text-2xl font-extrabold text-slate-900 mt-1">${fmt(a.sumPipeline)}</div>
-      <div class="muted small mt-1">진행/대기 포함</div>
+      <div class="muted small font-semibold">금년도 누적 매출 / 누적 입금</div>
+      <div class="text-2xl font-extrabold text-slate-900 mt-1">${fmt(a.sumSales)} <span class="text-base font-bold muted">· ${fmt(a.sumPaid)}</span></div>
+      <div class="muted small mt-1">단위: 백만원</div>
     </div>
 
     <div class="kpi">
-      <div class="muted small font-semibold">누계 매출(백만원) / 평균 전환</div>
-      <div class="text-2xl font-extrabold text-slate-900 mt-1">${fmt(a.sumSales)} <span class="text-base font-bold muted">· ${pct(a.avgConv)}</span></div>
-      <div class="muted small mt-1">리스크 신호: ${fmt(a.riskCount)}명</div>
+      <div class="muted small font-semibold">매출채권 / AR비율</div>
+      <div class="text-2xl font-extrabold text-slate-900 mt-1">${fmt(a.sumAr)} <span class="text-base font-bold muted">· ${pct1(a.arRatio)}</span></div>
+      <div class="muted small mt-1">위험 인원: ${fmt(a.riskyCount)}명</div>
     </div>
   `;
 }
@@ -203,31 +389,35 @@ function renderDeptKpis(){
 /* ================== 직원 테이블 ================== */
 function renderStaffTable(){
   const dept = document.getElementById("deptSelect").value;
-  const rows = dept==="ALL" ? STAFF : STAFF.filter(s=>s.dept===dept);
+  const rows = (dept==="ALL") ? [...STAFF] : STAFF.filter(s=>s.dept===dept);
 
-  // 정렬(기본: 매출 desc)
-  rows.sort((a,b)=>(b.sales||0)-(a.sales||0));
+  // 정렬: 위험비율 desc → 매출 desc
+  rows.sort((a,b)=>{
+    const ra = a.salesYTD ? ratio(a.ar, a.salesYTD) : -1;
+    const rb = b.salesYTD ? ratio(b.ar, b.salesYTD) : -1;
+    if (rb !== ra) return rb - ra;
+    return (b.salesYTD||0) - (a.salesYTD||0);
+  });
 
   const tb = document.getElementById("staffTbody");
   tb.innerHTML = "";
 
   rows.forEach(r=>{
     const tr = document.createElement("tr");
-
-    const riskText = (r.risk||"-").trim();
-    const riskPill = riskText === "-"
-      ? `<span class="pill"><span class="w-2 h-2 rounded-full bg-emerald-500"></span>정상</span>`
-      : `<span class="pill"><span class="w-2 h-2 rounded-full bg-rose-500"></span>${riskText}</span>`;
+    tr.className = "rowClickable";
+    tr.dataset.staffName = r.name;
 
     tr.innerHTML = `
       <td class="font-extrabold">${r.name}</td>
       <td><span class="chip">${r.dept}</span></td>
       <td class="font-bold">${fmt(r.accounts)}</td>
-      <td class="font-bold">${fmt(r.pipeline)}</td>
-      <td class="font-extrabold">${fmt(r.sales)}</td>
-      <td class="font-bold">${pct(r.conv)}</td>
-      <td>${riskPill}</td>
+      <td class="font-extrabold">${fmt(r.salesYTD)}</td>
+      <td class="font-bold">${fmt(r.paidTotal)}</td>
+      <td class="font-bold">${fmt(r.ar)}</td>
+      <td>${riskPillByAr(r.ar, r.salesYTD)}</td>
     `;
+
+    tr.addEventListener("click", () => selectStaff(r.name));
     tb.appendChild(tr);
   });
 
@@ -236,17 +426,209 @@ function renderStaffTable(){
     tr.innerHTML = `<td colspan="7" class="muted">표시할 직원이 없습니다.</td>`;
     tb.appendChild(tr);
   }
+
+  applySelectedRowHighlight();
+}
+
+function applySelectedRowHighlight(){
+  const tb = document.getElementById("staffTbody");
+  [...tb.querySelectorAll("tr")].forEach(tr=>{
+    if (tr.dataset.staffName && tr.dataset.staffName === selectedStaffName) tr.classList.add("rowActive");
+    else tr.classList.remove("rowActive");
+  });
+}
+
+/* ================== 우측 직원 조회 ================== */
+function initStaffSearchUI(){
+  const deptSel = document.getElementById("staffDeptFilter");
+  const depts = Array.from(new Set(STAFF.map(s=>s.dept))).sort();
+  depts.forEach(d=>{
+    const opt = document.createElement("option");
+    opt.value = d;
+    opt.textContent = d;
+    deptSel.appendChild(opt);
+  });
+
+  document.getElementById("staffSearch").addEventListener("input", renderStaffSearchList);
+  deptSel.addEventListener("change", renderStaffSearchList);
+
+  document.getElementById("clearStaffBtn").addEventListener("click", clearSelectedStaff);
+}
+
+function renderStaffSearchList(){
+  const q = (document.getElementById("staffSearch").value || "").trim();
+  const deptFilter = document.getElementById("staffDeptFilter").value;
+  const pageDept = document.getElementById("deptSelect").value;
+
+  let rows = [...STAFF];
+  if (pageDept !== "ALL") rows = rows.filter(s=>s.dept===pageDept);
+  if (deptFilter !== "ALL") rows = rows.filter(s=>s.dept===deptFilter);
+  if (q) rows = rows.filter(s=>s.name.includes(q));
+
+  const wrap = document.getElementById("staffSearchList");
+  wrap.innerHTML = "";
+
+  if (rows.length === 0){
+    const div = document.createElement("div");
+    div.className = "muted small";
+    div.textContent = "검색 결과가 없습니다.";
+    wrap.appendChild(div);
+    return;
+  }
+
+  // 리스트 정렬: 위험비율 desc
+  rows.sort((a,b)=>{
+    const ra = a.salesYTD ? ratio(a.ar, a.salesYTD) : -1;
+    const rb = b.salesYTD ? ratio(b.ar, b.salesYTD) : -1;
+    return rb - ra;
+  });
+
+  rows.forEach(s=>{
+    const div = document.createElement("div");
+    div.className = "listItem";
+    if (selectedStaffName === s.name) div.classList.add("listItemActive");
+
+    div.innerHTML = `
+      <div class="flex items-center justify-between">
+        <div class="font-extrabold text-slate-900">${s.name}</div>
+        <span class="chip">${s.dept}</span>
+      </div>
+      <div class="muted small mt-1">
+        담당 ${fmt(s.accounts)} · 매출 ${fmt(s.salesYTD)} · 채권 ${fmt(s.ar)} · ${pct1(s.salesYTD ? ratio(s.ar,s.salesYTD) : 0)}
+      </div>
+    `;
+
+    div.addEventListener("click", ()=> selectStaff(s.name));
+    wrap.appendChild(div);
+  });
+}
+
+function updateSearchListActive(){
+  const wrap = document.getElementById("staffSearchList");
+  [...wrap.querySelectorAll(".listItem")].forEach(el=>{
+    const name = (el.querySelector(".font-extrabold")?.textContent || "").trim();
+    if (name && name === selectedStaffName) el.classList.add("listItemActive");
+    else el.classList.remove("listItemActive");
+  });
+}
+
+/* ================== 직원 선택 → 거래처 표시 ================== */
+function selectStaff(name){
+  selectedStaffName = name;
+  applySelectedRowHighlight();
+  updateSearchListActive();
+  renderAccountsForStaff(name);
+
+  const sec = document.getElementById("accountSection");
+  if (sec && sec.style.display !== "none"){
+    sec.scrollIntoView({ behavior:"smooth", block:"start" });
+  }
+}
+
+function clearSelectedStaff(){
+  selectedStaffName = null;
+  applySelectedRowHighlight();
+  renderStaffSearchList();
+  hideAccountSection();
+}
+
+function hideAccountSection(){
+  document.getElementById("accountSection").style.display = "none";
+  document.getElementById("accountTbody").innerHTML = "";
+  document.getElementById("accountKpis").innerHTML = "";
+}
+
+function renderAccountsForStaff(staffName){
+  const staff = STAFF.find(s=>s.name===staffName);
+  const rows = ACCOUNTS.filter(a=>a.staffName===staffName);
+
+  const sec = document.getElementById("accountSection");
+  sec.style.display = "block";
+
+  document.getElementById("accountTitle").textContent = `${staffName} · 담당 거래처`;
+  document.getElementById("accountSub").textContent = staff
+    ? `부서: ${staff.dept} · 담당 ${fmt(staff.accounts)}개 (샘플) · 리스크는 AR/매출 비율 기준`
+    : `선택한 직원 기준으로 거래처 리스트가 노출됩니다.`;
+
+  // KPI: 상태별 + 매출/입금/채권 합 + AR비율
+  const active = rows.filter(r=>r.status==="활성").length;
+  const stalled = rows.filter(r=>r.status==="정체").length;
+  const dormant = rows.filter(r=>r.status==="휴면").length;
+
+  const sumSales = rows.reduce((a,b)=>a+(b.salesYTD||0),0);
+  const sumPaid  = rows.reduce((a,b)=>a+(b.paidTotal||0),0);
+  const sumAr    = rows.reduce((a,b)=>a+(b.ar||0),0);
+  const r = sumSales ? (sumAr/sumSales) : 0;
+
+  document.getElementById("accountKpis").innerHTML = `
+    <div class="kpi">
+      <div class="muted small font-semibold">거래처 수</div>
+      <div class="text-2xl font-extrabold text-slate-900 mt-1">${fmt(rows.length)}</div>
+      <div class="muted small mt-1">활성 ${fmt(active)} · 정체 ${fmt(stalled)} · 휴면 ${fmt(dormant)}</div>
+    </div>
+    <div class="kpi">
+      <div class="muted small font-semibold">금년도 누적 매출(백만원)</div>
+      <div class="text-2xl font-extrabold text-slate-900 mt-1">${fmt(sumSales)}</div>
+      <div class="muted small mt-1">담당 거래처 합산</div>
+    </div>
+    <div class="kpi">
+      <div class="muted small font-semibold">누적 입금액 / 매출채권(백만원)</div>
+      <div class="text-2xl font-extrabold text-slate-900 mt-1">${fmt(sumPaid)} <span class="text-base font-bold muted">· ${fmt(sumAr)}</span></div>
+      <div class="muted small mt-1">합산 기준</div>
+    </div>
+    <div class="kpi">
+      <div class="muted small font-semibold">AR/매출 비율</div>
+      <div class="text-2xl font-extrabold text-slate-900 mt-1">${pct1(r)}</div>
+      <div class="muted small mt-1">샘플 기준</div>
+    </div>
+  `;
+
+  const tb = document.getElementById("accountTbody");
+  tb.innerHTML = "";
+
+  // 거래처 정렬: 위험비율 desc → 매출 desc
+  rows.sort((a,b)=>{
+    const ra = a.salesYTD ? ratio(a.ar, a.salesYTD) : -1;
+    const rb = b.salesYTD ? ratio(b.ar, b.salesYTD) : -1;
+    if (rb !== ra) return rb - ra;
+    return (b.salesYTD||0) - (a.salesYTD||0);
+  });
+
+  if (rows.length === 0){
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td colspan="7" class="muted">등록된 거래처가 없습니다. (샘플 데이터 기준)</td>`;
+    tb.appendChild(tr);
+    return;
+  }
+
+  rows.forEach(rw=>{
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td class="font-extrabold">${rw.name}</td>
+      <td>${statusPill(rw.status)}</td>
+      <td class="font-extrabold">${fmt(rw.salesYTD)}</td>
+      <td class="font-bold">${fmt(rw.examineesYTD)}</td>
+      <td class="font-bold">${fmt(rw.paidTotal)}</td>
+      <td class="font-bold">${fmt(rw.ar)}</td>
+      <td>${riskPillByAr(rw.ar, rw.salesYTD)}</td>
+    `;
+    tb.appendChild(tr);
+  });
 }
 
 /* ================== 전체 렌더 ================== */
 function renderAll(){
+  // STAFF는 ACCOUNTS 기반이라, 실데이터 연동 시 여기서 재빌드 가능
+  STAFF = buildStaffFromAccounts();
   renderDeptKpis();
   renderStaffTable();
 }
 
 /* ================== 초기 실행 ================== */
 initDeptSelect();
+initStaffSearchUI();
 renderAll();
+renderStaffSearchList();
 </script>
 
 </body>
