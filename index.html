@@ -32,16 +32,10 @@ html,body{ font-family:"Pretendard Variable", system-ui, -apple-system, Segoe UI
 }
 
 /* 스크롤바 예쁘게(선택) */
-.chart-wrap::-webkit-scrollbar{
-  height:6px;
-}
-.chart-wrap::-webkit-scrollbar-thumb{
-  background:#cbd5f5;
-  border-radius:999px;
-}
-.chart-wrap::-webkit-scrollbar-track{
-  background:#f1f5f9;
-}
+.chart-wrap::-webkit-scrollbar{ height:6px; }
+.chart-wrap::-webkit-scrollbar-thumb{ background:#cbd5f5; border-radius:999px; }
+.chart-wrap::-webkit-scrollbar-track{ background:#f1f5f9; }
+
 .bar-col{ display:flex; flex-direction:column; align-items:center; gap:6px; }
 .bar-area{
   position:relative; width:100%; height:250px;
@@ -76,14 +70,6 @@ html,body{ font-family:"Pretendard Variable", system-ui, -apple-system, Segoe UI
 .bar-label{ font-size:.8rem; font-weight:800; color:#0f172a; text-align:center; }
 
 /* ===== 뉴스 ===== */
-.newsGrid{
-  display:grid;
-  grid-template-columns: 1fr;
-  gap:12px;
-}
-@media (min-width: 1024px){
-  .newsGrid{ grid-template-columns: repeat(2, 1fr); }
-}
 .newsCard{
   border:1px solid #e5e7eb;
   border-radius:14px;
@@ -120,7 +106,8 @@ html,body{ font-family:"Pretendard Variable", system-ui, -apple-system, Segoe UI
 
 <header class="sticky top-0 z-20 bg-white/90 backdrop-blur border-b border-slate-200">
   <div class="max-w-[1440px] mx-auto px-2 py-3 flex items-center gap-3">
-    <a href="omnicare_logo.png" aria-label="메인으로 이동">
+    <!-- ✅ 로고 클릭 시 메인으로 -->
+    <a href="https://qkr3069-beep.github.io/EIS/" aria-label="메인으로 이동">
       <img src="omnicare_logo.png"
            alt="옴니케어 로고"
            class="h-12 object-contain cursor-pointer" />
@@ -183,92 +170,73 @@ html,body{ font-family:"Pretendard Variable", system-ui, -apple-system, Segoe UI
     </div>
   </section>
 
- <!-- Industry News -->
-<section class="card p-4">
-<div class="mb-3 flex items-start justify-between gap-4">
-  <div>
-    <div class="font-semibold text-slate-900">업계 소식 브리핑</div>
-    <div class="muted small">
-      주요 카테고리별 핵심 이슈 요약 (각 3건)
-    </div>
-  </div>
-
-  <!-- 더보기 -->
-  <a href="news.html"
-   class="text-sm font-semibold text-slate-700 hover:text-slate-900 transition flex items-center gap-1">
-  더보기
-  <svg xmlns="http://www.w3.org/2000/svg"
-       class="h-4 w-4"
-       fill="none"
-       viewBox="0 0 24 24"
-       stroke="currentColor">
-    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-          d="M9 5l7 7-7 7" />
-  </svg>
-</a>
-
-  </div>
-
-  <div class="divider mb-4"></div>
-
-  <!-- 2x2 Grid -->
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-
-    <!-- 건강검진 -->
-    <div class="p-4 rounded-2xl border border-slate-200 bg-slate-50">
-      <div class="flex items-center justify-between mb-2">
-        <div class="font-semibold">건강검진</div>
-        <span class="chip">TREND</span>
+  <!-- Industry News -->
+  <section class="card p-4">
+    <div class="mb-3 flex items-start justify-between gap-4">
+      <div>
+        <div class="font-semibold text-slate-900">업계 소식 브리핑</div>
+        <div class="muted small">주요 카테고리별 핵심 이슈 (각 3건 · 자동 불러오기)</div>
       </div>
-      <ul class="space-y-2 text-sm">
-        <li>• 기업 검진 예산, 선택형·맞춤형으로 이동</li>
-        <li>• 2030 직장인, 기본검진보다 옵션 검진 선호</li>
-        <li>• 검진 결과 ‘사후 관리’ 서비스 중요도 증가</li>
-      </ul>
+
+      <!-- 더보기 -->
+      <a href="news.html"
+         class="text-sm font-semibold text-slate-700 hover:text-slate-900 transition flex items-center gap-1">
+        더보기
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4"
+             fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M9 5l7 7-7 7" />
+        </svg>
+      </a>
     </div>
 
-    <!-- 검진센터 -->
-    <div class="p-4 rounded-2xl border border-slate-200 bg-slate-50">
-      <div class="flex items-center justify-between mb-2">
-        <div class="font-semibold">검진센터</div>
-        <span class="chip">CENTER</span>
+    <div class="divider mb-4"></div>
+
+    <!-- 2x2 Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+      <!-- 건강검진 -->
+      <div class="p-4 rounded-2xl border border-slate-200 bg-slate-50">
+        <div class="flex items-center justify-between mb-2">
+          <div class="font-semibold">건강검진</div>
+          <span class="chip">TREND</span>
+        </div>
+        <!-- ✅ JS가 여기 채움 -->
+        <ul id="industry-healthcheck" class="space-y-2 text-sm"></ul>
       </div>
-      <ul class="space-y-2 text-sm">
-        <li>• 수도권 대형 센터, 주말 슬롯 조기 마감 지속</li>
-        <li>• 지방 센터, 출장검진 비중 확대 추세</li>
-        <li>• 내시경·MRI 장비 투자 양극화 심화</li>
-      </ul>
-    </div>
 
-    <!-- 경쟁사 -->
-    <div class="p-4 rounded-2xl border border-slate-200 bg-slate-50">
-      <div class="flex items-center justify-between mb-2">
-        <div class="font-semibold">경쟁사</div>
-        <span class="chip">COMPETITOR</span>
+      <!-- 검진센터 -->
+      <div class="p-4 rounded-2xl border border-slate-200 bg-slate-50">
+        <div class="flex items-center justify-between mb-2">
+          <div class="font-semibold">검진센터</div>
+          <span class="chip">CENTER</span>
+        </div>
+        <!-- ✅ JS가 여기 채움 -->
+        <ul id="industry-center" class="space-y-2 text-sm"></ul>
       </div>
-      <ul class="space-y-2 text-sm">
-        <li>• 일부 플랫폼, 병원 운영툴 무료 제공 전략</li>
-        <li>• 중개 수수료 인하 경쟁으로 수익성 압박</li>
-        <li>• 내부거래 의존도 높은 구조 지속 노출</li>
-      </ul>
-    </div>
 
-    <!-- 헬스케어 -->
-    <div class="p-4 rounded-2xl border border-slate-200 bg-slate-50">
-      <div class="flex items-center justify-between mb-2">
-        <div class="font-semibold">헬스케어</div>
-        <span class="chip">HEALTHCARE</span>
+      <!-- 경쟁사 -->
+      <div class="p-4 rounded-2xl border border-slate-200 bg-slate-50">
+        <div class="flex items-center justify-between mb-2">
+          <div class="font-semibold">경쟁사</div>
+          <span class="chip">COMPETITOR</span>
+        </div>
+        <!-- ✅ JS가 여기 채움 -->
+        <ul id="industry-competitor" class="space-y-2 text-sm"></ul>
       </div>
-      <ul class="space-y-2 text-sm">
-        <li>• 웨어러블 기반 건강 데이터 활용 확대</li>
-        <li>• AI 판독·리포트 자동화 솔루션 확산</li>
-        <li>• 예방 중심 헬스케어 서비스 투자 증가</li>
-      </ul>
+
+      <!-- 헬스케어 -->
+      <div class="p-4 rounded-2xl border border-slate-200 bg-slate-50">
+        <div class="flex items-center justify-between mb-2">
+          <div class="font-semibold">헬스케어</div>
+          <span class="chip">HEALTHCARE</span>
+        </div>
+        <!-- ✅ JS가 여기 채움 -->
+        <ul id="industry-healthcare" class="space-y-2 text-sm"></ul>
+      </div>
+
     </div>
-
-  </div>
-</section>
-
+  </section>
 
   <footer class="text-center muted small py-6">
     샘플 화면입니다. 실제 서비스에서는 DB/권한/감사로그/매출 집계/뉴스 수집이 추가됩니다.
@@ -318,51 +286,6 @@ const CEO = {
   sign: "— 대표"
 };
 
-const TOP_NEWS = [
-  { tag:"핵심", title:"검진 예약 플랫폼 경쟁 심화… 병원 운영툴 제공이 승부처", date:"2025-12-10", summary:"단순 중개에서 운영효율(정산/리포트/스케줄) 제공으로 가치 이동.", link:"#"},
-  { tag:"정책", title:"기업 복지 예산 조정… 건강검진 항목 재정비 움직임", date:"2025-12-05", summary:"혜택 체감과 ROI 중심 의사결정 가속.", link:"#"},
-  { tag:"거시", title:"환율 변동성 확대… 기업 비용 구조 점검 수요 증가", date:"2025-11-28", summary:"비용 절감 국면에서 효율·자동화 요구 상승.", link:"#"},
-];
-
-const CATEGORY_NEWS = [
-  {
-    category:"국보급 소식(옴니케어/내부)",
-    tag:"국보급",
-    items:[
-      { title:"대표 주간 코멘트: ‘전환율이 이익이다’", date:"2025-12-15", summary:"이번 주 KPI는 ‘미팅 전환’과 ‘정산 리드타임’ 두 가지.", link:"#"},
-      { title:"withKMI 운영 정책 업데이트 예정", date:"2025-12-13", summary:"상담→예약→정산 단계별 체크리스트 배포.", link:"#"},
-      { title:"Top 10 계정 리스크 점검 회의(월례)", date:"2025-12-11", summary:"미수/장기미접촉 계정 우선순위 재정렬.", link:"#"},
-    ]
-  },
-  {
-    category:"건강검진",
-    tag:"검진",
-    items:[
-      { title:"검진센터 내시경 라인 증설… 예약 여력 확대", date:"2025-12-12", summary:"주말 슬롯은 제한, 평일 물량은 증가.", link:"#"},
-      { title:"종합검진 패키지 개편… 옵션 다양화 추세", date:"2025-12-09", summary:"기본형 가격 인하+프리미엄 옵션 확대.", link:"#"},
-      { title:"기업 검진 문의 증가… 운영 편의성 요구 확대", date:"2025-12-08", summary:"정산·리포트 자동화가 주요 요구로 부상.", link:"#"},
-    ]
-  },
-  {
-    category:"플랫폼/IT",
-    tag:"IT",
-    items:[
-      { title:"병원 운영툴(정산/스케줄/리포트) 제공이 차별화", date:"2025-12-10", summary:"B2B 전환은 ‘관리자 편의’에서 결정.", link:"#"},
-      { title:"CRM 기반 영업 행동지표 관리 확산", date:"2025-12-07", summary:"접촉/제안/미팅/견적 이벤트를 데이터화.", link:"#"},
-      { title:"데이터 품질(QA)과 권한 분리 필요성 확대", date:"2025-12-06", summary:"EIS는 ‘정확도’가 신뢰를 만든다.", link:"#"},
-    ]
-  },
-  {
-    category:"경쟁사",
-    tag:"경쟁",
-    items:[
-      { title:"경쟁사, 플랫폼 운영 인력 확충 움직임", date:"2025-12-05", summary:"운영 인건비 증가로 수익모델 재정비 가능성.", link:"#"},
-      { title:"제휴 검진센터 확대… 네트워크 경쟁 격화", date:"2025-12-03", summary:"커버리지 확대+운영툴 제공 조합이 핵심.", link:"#"},
-      { title:"광고비 외 ‘채널 제휴’ 중심으로 전환", date:"2025-12-01", summary:"콘텐츠/멤버십 제휴로 CAC 관리.", link:"#"},
-    ]
-  }
-];
-
 /* ================== 렌더: 차트(이미지 스타일) ================== */
 function renderOverlayBarChart(data, wrapId, mode){
   const wrap = document.getElementById(wrapId);
@@ -402,47 +325,116 @@ function renderCEO(){
   document.getElementById("ceoSign").textContent = CEO.sign;
 }
 
-/* ================== 렌더: 뉴스 ================== */
-function renderNews(){
-  // top 3
-  const topWrap = document.getElementById("topNews");
-  topWrap.innerHTML = "";
-  TOP_NEWS.slice(0,3).forEach(n=>{
-    const div = document.createElement("div");
-    div.className = "newsItem";
-    div.innerHTML = `
-      <div class="flex items-center justify-between gap-2">
-        <a class="newsLink newsTitle" href="${n.link}" target="_blank" rel="noopener">${n.title}</a>
-        <span class="chip">${n.tag}</span>
-      </div>
-      <div class="newsMeta">${n.date} · ${n.summary}</div>
+/* ================== ✅ 업계소식: RSS 불러오기(메인용 4카테고리) ================== */
+/* news.html과 동일한 “주요 4카테고리”만 가져와서 메인에 3건씩 */
+const INDUSTRY_FEEDS = [
+  {
+    key: "healthcheck",
+    category: "건강검진",
+    tag: "TREND",
+    targetUlId: "industry-healthcheck",
+    rss: "https://news.google.com/rss/search?q=건강검진+OR+종합검진+OR+암검진+OR+대장내시경&hl=ko&gl=KR&ceid=KR:ko"
+  },
+  {
+    key: "center",
+    category: "검진센터",
+    tag: "CENTER",
+    targetUlId: "industry-center",
+    rss: "https://news.google.com/rss/search?q=KMI+OR+%22%ED%95%9C%EA%B5%AD%EC%9D%98%ED%95%99%EC%97%B0%EA%B5%AC%EC%86%8C%22+OR+%22%EA%B1%B4%EA%B0%95%EA%B4%80%EB%A6%AC%ED%98%91%ED%9A%8C%22+OR+%22%ED%95%98%EB%82%98%EB%A1%9C%EC%9D%98%EB%A3%8C%EC%9E%AC%EB%8B%A8%22&hl=ko&gl=KR&ceid=KR:ko"
+  },
+  {
+    key: "competitor",
+    category: "경쟁사",
+    tag: "COMPETITOR",
+    targetUlId: "industry-competitor",
+    rss: "https://news.google.com/rss/search?q=GC%EC%BC%80%EC%96%B4+OR+%EC%B9%B4%EC%B9%B4%EC%98%A4%ED%97%AC%EC%8A%A4%EC%BC%80%EC%96%B4+OR+%EC%9C%A0%EB%B9%84%EC%BC%80%EC%96%B4+OR+%EB%A0%88%EB%AA%AC%ED%97%AC%EC%8A%A4%EC%BC%80%EC%96%B4+OR+%EC%BC%80%EC%96%B4%EB%9E%A9%EC%8A%A4&hl=ko&gl=KR&ceid=KR:ko"
+  },
+  {
+    key: "healthcare",
+    category: "헬스케어",
+    tag: "HEALTHCARE",
+    targetUlId: "industry-healthcare",
+    rss: "https://news.google.com/rss/search?q=%ED%97%AC%EC%8A%A4%EC%BC%80%EC%96%B4+OR+%EB%94%94%EC%A7%80%ED%84%B8%ED%97%AC%EC%8A%A4+OR+AI+%EA%B1%B4%EA%B0%95+OR+%EC%9B%A8%EC%96%B4%EB%9F%AC%EB%B8%94+%EA%B1%B4%EA%B0%95&hl=ko&gl=KR&ceid=KR:ko"
+  }
+];
+
+async function fetchRSS2JSON(rssUrl){
+  const r = await fetch("https://api.rss2json.com/v1/api.json?rss_url=" + encodeURIComponent(rssUrl));
+  return r.json();
+}
+function stripHtml(s){
+  return (s || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+}
+function toYMD(dateStr){
+  const d = new Date(dateStr);
+  if (Number.isNaN(d.getTime())) return "";
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,"0");
+  const dd = String(d.getDate()).padStart(2,"0");
+  return `${y}-${m}-${dd}`;
+}
+
+async function buildIndustryCategoryNews(limitPerCategory = 3){
+  const results = await Promise.all(
+    INDUSTRY_FEEDS.map(async (cfg) => {
+      try{
+        const data = await fetchRSS2JSON(cfg.rss);
+        const items = (data.items || [])
+          .slice(0, limitPerCategory)
+          .map(it => ({
+            title: it.title,
+            date: toYMD(it.pubDate),
+            summary: stripHtml(it.description).slice(0, 70) + (stripHtml(it.description).length > 70 ? "..." : ""),
+            link: it.link
+          }));
+
+        return { ...cfg, items };
+      }catch(e){
+        return { ...cfg, items: [], error: true };
+      }
+    })
+  );
+  return results;
+}
+
+function renderIndustryNewsItems(ulId, items, fallbackMsg){
+  const ul = document.getElementById(ulId);
+  if (!ul) return;
+  ul.innerHTML = "";
+
+  if (!items || items.length === 0){
+    const li = document.createElement("li");
+    li.className = "text-slate-500";
+    li.textContent = fallbackMsg || "표시할 소식이 없습니다.";
+    ul.appendChild(li);
+    return;
+  }
+
+  items.slice(0,3).forEach(it=>{
+    const li = document.createElement("li");
+    li.className = "newsItem";
+    li.innerHTML = `
+      <a class="newsLink newsTitle" href="${it.link}" target="_blank" rel="noopener">${it.title}</a>
+      <div class="newsMeta">${it.date || "-"} · ${it.summary}</div>
     `;
-    topWrap.appendChild(div);
+    ul.appendChild(li);
+  });
+}
+
+async function loadIndustryNewsToMain(){
+  // 로딩 표시(선택)
+  INDUSTRY_FEEDS.forEach(cfg=>{
+    renderIndustryNewsItems(cfg.targetUlId, [], "불러오는 중…");
   });
 
-  // categories
-  const catWrap = document.getElementById("catNews");
-  catWrap.innerHTML = "";
-  CATEGORY_NEWS.forEach(block=>{
-    const card = document.createElement("div");
-    card.className = "newsCard";
-    card.innerHTML = `
-      <div class="flex items-center justify-between">
-        <div class="font-extrabold text-slate-900">${block.category}</div>
-        <span class="chip">${block.tag}</span>
-      </div>
-      <div class="mt-3 space-y-2">
-        ${block.items.slice(0,3).map(n=>`
-          <div class="newsItem">
-            <div class="flex items-start justify-between gap-2">
-              <a class="newsLink newsTitle" href="${n.link}" target="_blank" rel="noopener">${n.title}</a>
-            </div>
-            <div class="newsMeta">${n.date} · ${n.summary}</div>
-          </div>
-        `).join("")}
-      </div>
-    `;
-    catWrap.appendChild(card);
+  const blocks = await buildIndustryCategoryNews(3);
+
+  blocks.forEach(b=>{
+    if (b.error){
+      renderIndustryNewsItems(b.targetUlId, [], "불러오기에 실패했습니다. (네트워크/쿼터 이슈 가능)");
+      return;
+    }
+    renderIndustryNewsItems(b.targetUlId, b.items, "해당 카테고리 소식 없음");
   });
 }
 
@@ -450,7 +442,7 @@ function renderNews(){
 renderOverlayBarChart(KMI, "kmiChart", "kmi");
 renderOverlayBarChart(OMNI, "omniChart", "omni");
 renderCEO();
-renderNews();
+loadIndustryNewsToMain();
 </script>
 </body>
 </html>
