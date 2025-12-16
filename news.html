@@ -19,21 +19,19 @@
     .news-link{ color:#0f172a; font-weight:800; }
     .news-link:hover{ text-decoration:underline; }
 
+    .badge-load{ border:1px solid #e5e7eb; background:#f8fafc; color:#334155; border-radius:999px; padding:.15rem .55rem; font-size:.75rem; font-weight:800; }
     .badge-ok{ border:1px solid #bbf7d0; background:#ecfdf5; color:#065f46; border-radius:999px; padding:.15rem .55rem; font-size:.75rem; font-weight:800; }
     .badge-err{ border:1px solid #fecaca; background:#fff1f2; color:#9f1239; border-radius:999px; padding:.15rem .55rem; font-size:.75rem; font-weight:800; }
-    .badge-load{ border:1px solid #e5e7eb; background:#f8fafc; color:#334155; border-radius:999px; padding:.15rem .55rem; font-size:.75rem; font-weight:800; }
   </style>
 </head>
 
 <body class="bg-slate-50 text-slate-900 min-h-screen">
-
   <header class="sticky top-0 z-20 bg-white/90 backdrop-blur border-b border-slate-200">
     <div class="max-w-[1440px] mx-auto px-2 py-3 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
       <div class="flex items-center gap-3">
         <a href="https://qkr3069-beep.github.io/EIS/" aria-label="메인으로 이동" class="shrink-0">
           <img src="omnicare_logo.png" alt="옴니케어 로고" class="h-12 md:h-14 object-contain cursor-pointer" />
         </a>
-
         <div>
           <div class="font-semibold text-slate-900">OmniCare News Briefing</div>
           <div class="text-sm muted">업계/경쟁/센터/헬스케어 소식을 한 화면에</div>
@@ -57,19 +55,18 @@
           <div class="font-semibold text-slate-900">오늘의 브리핑</div>
           <div class="muted small">선택한 날짜 기준(±1일) 최신 기사 5건씩 노출</div>
         </div>
-        <div class="chip">SOURCE: Google News RSS</div>
+        <div class="chip">SOURCE: Google News RSS (via Cloudflare Worker)</div>
       </div>
       <div class="divider my-3"></div>
       <div id="news-container" class="space-y-5"></div>
       <div id="debugBox" class="mt-4 text-xs muted"></div>
     </div>
-
-    <footer class="text-center muted small py-6">
-      샘플 화면입니다. 실제 서비스에서는 사내 크롤러/권한/저장소를 연동하는 것을 권장합니다.
-    </footer>
   </main>
 
 <script>
+/** ✅ Cloudflare Worker 주소(끝에 슬래시 없이) */
+const PROXY_BASE = "https://eis.qkr3069.workers.dev";
+
 /* ===================== FEEDS ===================== */
 const feeds = {
   "건강검진": "https://news.google.com/rss/search?q=건강검진&hl=ko&gl=KR&ceid=KR:ko",
@@ -82,39 +79,16 @@ const feeds = {
   "주요 소식(국외)": "https://news.google.com/rss?hl=en-US&gl=US&ceid=US:en"
 };
 
-const CATEGORY_KEYWORDS = {
-  "건강검진": ["건강검진","종합검진","대장내시경","암검진"],
-  "검진센터 소식": ["KMI","한국의학연구소","건강관리협회","하나로의료재단","메디플러스","메디피아","SCL","세종365의원","대청병원","천안우리병원"],
-  "경쟁사 소식": ["GC케어","어떠케어","에임매드","착한의사","비바이노베이션","케어링크","케어랩스","레몬헬스케어","유비케어","살루스케어","카카오헬스케어"],
-  "헬스케어": ["헬스케어","디지털헬스","원격의료"],
-  "웰니스": ["웰니스","비만","영양관리","운동습관"],
-  "웨어러블": ["갤럭시워치","애플워치","스마트워치","핏빗","웨어러블기기"]
-};
-
-const TOP_PAGE = {
-  "주요 소식(국내)": "https://news.google.com/topstories?hl=ko&gl=KR&ceid=KR:ko",
-  "주요 소식(국외)": "https://news.google.com/topstories?hl=en-US&gl=US&ceid=US:en"
-};
-
-function buildMoreLink(cat){
-  if (TOP_PAGE[cat]) return TOP_PAGE[cat];
-  const terms = CATEGORY_KEYWORDS[cat];
-  if (!terms) return "#";
-  const q = terms.map(t=>`%22${encodeURIComponent(t)}%22`).join("%20OR%20");
-  return `https://news.google.com/search?q=${q}&hl=ko&gl=KR&ceid=KR%3Ako`;
-}
-
-/* ===================== UTIL ===================== */
 function stripHtml(s){
   return (s || "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 }
 function debug(msg){
   const box = document.getElementById("debugBox");
   if(!box) return;
-  box.innerHTML = (box.innerHTML + `<div>• ${msg}</div>`).slice(-5000);
+  box.innerHTML += `<div>• ${msg}</div>`;
 }
 
-/* ===================== DATE FILTER (안전형) ===================== */
+/* ===================== DATE FILTER ===================== */
 function parseYMD(v){
   const [a,b,c] = (v||"").split("-").map(Number);
   if(!a || !b || !c) return null;
@@ -124,9 +98,6 @@ function parseItemDate(dt){
   if(!dt) return null;
   const d = new Date(dt);
   if(!Number.isNaN(d.getTime())) return d;
-  const fixed = String(dt).replace(" ", "T");
-  const d2 = new Date(fixed);
-  if(!Number.isNaN(d2.getTime())) return d2;
   return null;
 }
 function passDateFilter(pubDate, sel){
@@ -139,72 +110,83 @@ function passDateFilter(pubDate, sel){
   return Math.abs(a - b) <= 86400000;
 }
 
-/* ===================== FETCH: r.jina.ai (CORS 안정) ===================== */
-/**
- * r.jina.ai 프록시로 RSS 원문을 텍스트로 받아온 뒤,
- * response 중 <?xml ...> 시작 위치부터 잘라서 XML 파싱
- */
-async function fetchRssXmlTextViaJina(rssUrl){
-  // r.jina.ai는 URL을 그대로 뒤에 붙이면 됨
-  const proxyUrl = "https://r.jina.ai/http://"+rssUrl.replace(/^https?:\/\//, "");
-  const res = await fetch(proxyUrl, { cache: "no-store" });
-  if(!res.ok) throw new Error(`jina HTTP ${res.status}`);
-  const text = await res.text();
-
-  const idx = text.indexOf("<?xml");
-  if(idx === -1){
-    // 가끔 프록시가 앞에 메타를 붙이는 경우 → RSS 루트 태그로도 시도
-    const idx2 = text.indexOf("<rss");
-    if(idx2 === -1) throw new Error("jina: XML start not found");
-    return text.slice(idx2);
-  }
-  return text.slice(idx);
+/* ===================== RSS via Worker (XML) ===================== */
+async function fetchRSSRaw(rssUrl){
+  const proxy = `${PROXY_BASE}/rss?url=` + encodeURIComponent(rssUrl);
+  const r = await fetch(proxy, { cache: "no-store" });
+  if(!r.ok) throw new Error("proxy failed: " + r.status);
+  return r.text();
 }
 
-function parseRssXmlToItems(xmlText){
-  const xml = new DOMParser().parseFromString(xmlText, "text/xml");
-  const items = Array.from(xml.querySelectorAll("item")).map(it => ({
-    title: it.querySelector("title")?.textContent || "",
-    link: it.querySelector("link")?.textContent || "",
-    pubDate: it.querySelector("pubDate")?.textContent || "",
-    description: it.querySelector("description")?.textContent || ""
-  }));
+function textOf(parent, selector){
+  const el = parent.querySelector(selector);
+  return el ? (el.textContent || "").trim() : "";
+}
+
+function firstLinkOfItem(itemEl){
+  // RSS: <link>https://...</link> or Atom: <link href="..."/>
+  const atomLink = itemEl.querySelector('link[href]');
+  if(atomLink && atomLink.getAttribute("href")) return atomLink.getAttribute("href").trim();
+
+  const rssLink = textOf(itemEl, "link");
+  if(rssLink) return rssLink;
+
+  const guid = textOf(itemEl, "guid");
+  if(guid && /^https?:\/\//i.test(guid)) return guid;
+
+  return "";
+}
+
+function parseRSSItems(xmlText){
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(xmlText, "text/xml");
+
+  // 파싱 에러 체크
+  const errNode = doc.querySelector("parsererror");
+  if(errNode) throw new Error("XML parse error");
+
+  // RSS 2.0: <item>, Atom: <entry>
+  const items = [];
+
+  const rssItems = Array.from(doc.querySelectorAll("item"));
+  if(rssItems.length){
+    for(const it of rssItems){
+      const title = textOf(it, "title");
+      const link = firstLinkOfItem(it);
+      const pubDate = textOf(it, "pubDate") || textOf(it, "date");
+      const description = textOf(it, "description") || textOf(it, "content\\:encoded");
+      if(title || link){
+        items.push({ title, link, pubDate, description });
+      }
+    }
+    return items;
+  }
+
+  const atomEntries = Array.from(doc.querySelectorAll("entry"));
+  for(const en of atomEntries){
+    const title = textOf(en, "title");
+    let link = "";
+    const l = en.querySelector('link[rel="alternate"][href]') || en.querySelector('link[href]');
+    if(l) link = (l.getAttribute("href") || "").trim();
+    const pubDate = textOf(en, "updated") || textOf(en, "published");
+    const description = textOf(en, "summary") || textOf(en, "content");
+    if(title || link){
+      items.push({ title, link, pubDate, description });
+    }
+  }
   return items;
 }
 
-async function fetchFeedSmart(rssUrl){
-  const cacheKey = "rsscache:jina:" + rssUrl;
-  const ttlMs = 10 * 60 * 1000;
-
-  try{
-    const cached = JSON.parse(localStorage.getItem(cacheKey) || "null");
-    if(cached && cached.t && (Date.now()-cached.t) < ttlMs && Array.isArray(cached.items)){
-      return { source:"CACHE", items: cached.items };
-    }
-  }catch(e){}
-
-  const xmlText = await fetchRssXmlTextViaJina(rssUrl);
-  const items = parseRssXmlToItems(xmlText);
-
-  try{
-    localStorage.setItem(cacheKey, JSON.stringify({ t: Date.now(), items }));
-  }catch(e){}
-
-  return { source:"JINA", items };
+async function fetchRssItems(rssUrl){
+  const xml = await fetchRSSRaw(rssUrl);
+  const items = parseRSSItems(xml);
+  return { items };
 }
 
 /* ===================== UI ===================== */
-function setBadge(sec, type, text){
-  const b = sec.querySelector("[data-badge]");
-  if(!b) return;
-  b.className = type === "ok" ? "badge-ok" : type === "err" ? "badge-err" : "badge-load";
-  b.textContent = text;
-}
-
 function makeSection(cat){
   const sec = document.createElement("section");
   sec.className = "card p-4";
-  sec.dataset.cat = cat;
   sec.innerHTML = `
     <div class="flex items-center justify-between gap-3 flex-wrap">
       <div class="flex items-center gap-2">
@@ -223,31 +205,22 @@ function makeSection(cat){
   return sec;
 }
 
-function ensureMoreBtn(sec, cat){
-  const head = sec.querySelector(".flex.items-center.justify-between");
-  if(!head) return;
-  head.querySelectorAll("a[data-more]").forEach(a=>a.remove());
-  const more = document.createElement("a");
-  more.href = buildMoreLink(cat);
-  more.target = "_blank";
-  more.rel = "noopener";
-  more.className = "btn2 text-sm";
-  more.textContent = "더보기";
-  more.setAttribute("data-more","1");
-  head.appendChild(more);
+function setBadge(sec, kind, text){
+  const b = sec.querySelector("[data-badge]");
+  b.className = kind === "ok" ? "badge-ok" : kind === "err" ? "badge-err" : "badge-load";
+  b.textContent = text;
 }
 
-function renderItems(sec, cat, items, selDate, sourceLabel){
+function renderOK(sec, items, selDate){
   const listWrap = sec.querySelector("[data-items]");
   const emptyEl = sec.querySelector("[data-empty]");
   const errEl = sec.querySelector("[data-error]");
   listWrap.innerHTML = "";
   emptyEl.style.display = "none";
   errEl.style.display = "none";
-  errEl.textContent = "";
 
   let num = 0;
-  for(const it of (items || [])){
+  for(const it of items){
     if(num >= 5) break;
     if(!passDateFilter(it.pubDate, selDate)) continue;
 
@@ -255,60 +228,45 @@ function renderItems(sec, cat, items, selDate, sourceLabel){
     const row = document.createElement("div");
     row.className = "p-3 rounded-2xl bg-slate-50 border border-slate-200";
     row.innerHTML = `
-      <a class="news-link block" href="${it.link}" target="_blank" rel="noopener">${it.title}</a>
+      <a class="news-link block" href="${it.link || "#"}" target="_blank" rel="noopener">${it.title || "(제목 없음)"}</a>
       <div class="muted small mt-1">${clean ? clean + "…" : ""}</div>
     `;
     listWrap.appendChild(row);
     num++;
   }
 
-  ensureMoreBtn(sec, cat);
-
-  if(num === 0){
-    emptyEl.style.display = "";
-  }
-
-  setBadge(sec, "ok", sourceLabel || "OK");
+  if(num === 0) emptyEl.style.display = "";
+  setBadge(sec, "ok", "OK");
 }
 
-function renderError(sec, cat, message){
+function renderERR(sec, msg){
   const listWrap = sec.querySelector("[data-items]");
   const emptyEl = sec.querySelector("[data-empty]");
   const errEl = sec.querySelector("[data-error]");
-
   listWrap.innerHTML = "";
   emptyEl.style.display = "none";
   errEl.style.display = "";
-  errEl.textContent = `불러오기에 실패했습니다: ${message}`;
-
-  ensureMoreBtn(sec, cat);
+  errEl.textContent = "불러오기에 실패했습니다: " + msg;
   setBadge(sec, "err", "ERROR");
 }
 
-/* ===================== CONCURRENCY LIMIT ===================== */
+/* ===================== 동시성 제한 ===================== */
 async function runWithLimit(tasks, limit){
   const results = new Array(tasks.length);
   let i = 0;
-
   async function worker(){
     while(i < tasks.length){
       const cur = i++;
-      try{
-        results[cur] = { status:"fulfilled", value: await tasks[cur]() };
-      }catch(e){
-        results[cur] = { status:"rejected", reason: e };
-      }
+      try{ results[cur] = { ok:true, val: await tasks[cur]() }; }
+      catch(e){ results[cur] = { ok:false, err:e }; }
     }
   }
-
-  const workers = Array.from({length: Math.min(limit, tasks.length)}, () => worker());
-  await Promise.all(workers);
+  await Promise.all(Array.from({length: Math.min(limit, tasks.length)}, worker));
   return results;
 }
 
 /* ===================== LOAD ===================== */
 let loadToken = 0;
-
 async function loadAllNews(){
   const token = ++loadToken;
   document.getElementById("debugBox").innerHTML = "";
@@ -320,41 +278,35 @@ async function loadAllNews(){
   const entries = Object.entries(feeds);
   const secMap = new Map();
 
-  // 섹션 먼저
   for(const [cat] of entries){
     const sec = makeSection(cat);
     secMap.set(cat, sec);
     c.appendChild(sec);
   }
 
-  // 태스크
   const tasks = entries.map(([cat, url]) => async () => {
-    const r = await fetchFeedSmart(url);
-    return { cat, url, ...r };
+    const data = await fetchRssItems(url);
+    return { cat, items: data.items };
   });
 
-  // ✅ 동시 2개 제한(안정/속도 밸런스)
+  // ✅ 너무 많이 동시에 때리면 구글이/프록시가 불안정할 수 있어서 2~3 권장
   const results = await runWithLimit(tasks, 2);
   if(token !== loadToken) return;
 
-  results.forEach((res, idx) => {
+  results.forEach((r, idx) => {
     const cat = entries[idx][0];
     const sec = secMap.get(cat);
 
-    if(res.status === "fulfilled"){
-      const v = res.value;
-      renderItems(sec, cat, v.items, selDate, v.source);
-      debug(`${cat}: OK (${v.source}) items=${(v.items||[]).length}`);
-    }else{
-      const msg = String(res.reason?.message || res.reason || "unknown");
-      renderError(sec, cat, msg);
-      debug(`${cat}: FAIL (${msg})`);
-      console.warn("[NEWS] fail:", cat, res.reason);
+    if(r.ok){
+      renderOK(sec, r.val.items, selDate);
+      debug(`${cat}: OK items=${r.val.items.length}`);
+    } else {
+      renderERR(sec, r.err?.message || String(r.err));
+      debug(`${cat}: FAIL ${r.err?.message || r.err}`);
     }
   });
 }
 
-/* ===================== INIT ===================== */
 window.onload = () => {
   document.getElementById("datePicker").value = new Date().toISOString().slice(0,10);
   document.getElementById("btnLoad").addEventListener("click", loadAllNews);
