@@ -67,7 +67,7 @@ html,body{ font-family:"Pretendard Variable", system-ui, -apple-system, Segoe UI
   white-space:nowrap;
 }
 
-/* ✅ NEW: 옴니 오른쪽(본부/지사) "균등 7칸" 전용 */
+/* ✅ Omni 오른쪽(본부/지사) "균등" 전용 */
 .chart-equal{
   display:grid;
   gap:12px;
@@ -78,7 +78,7 @@ html,body{ font-family:"Pretendard Variable", system-ui, -apple-system, Segoe UI
 .chart-equal .bar-col{ width:100%; }
 .chart-equal .bar-area{ height:250px; }
 .chart-equal .top-num,
-.chart-equal .bottom-num{ font-size:.70rem; } /* 7칸이라 약간만 줄임 */
+.chart-equal .bottom-num{ font-size:.70rem; }
 .chart-equal .bar-label{ font-size:.78rem; }
 
 /* ===== Omni stacked bar ===== */
@@ -306,7 +306,7 @@ html,body{ font-family:"Pretendard Variable", system-ui, -apple-system, Segoe UI
     <div class="flex items-start justify-between gap-3">
       <div>
         <div class="font-extrabold text-slate-900 text-lg">국보급 이야기</div>
-        <div class="muted small">대표님 한 말씀</div>
+        <div class="muted small">대표님 한 말씀 (Google Sheet 자동 반영)</div>
       </div>
       <span class="chip">MESSAGE</span>
     </div>
@@ -314,9 +314,10 @@ html,body{ font-family:"Pretendard Variable", system-ui, -apple-system, Segoe UI
     <div class="divider my-4"></div>
 
     <div class="kbBox">
-      <div class="quote" id="ceoQuote">“숫자는 과거를 말하고, 실행은 내일을 만든다.”</div>
+      <div class="quote" id="ceoQuote">“불러오는 중…”</div>
       <div class="mt-3 text-slate-900 leading-relaxed" id="ceoBody"></div>
-      <div class="mt-4 muted small font-semibold" id="ceoSign">— 대표</div>
+      <div class="mt-4 muted small font-semibold" id="ceoSign">—</div>
+      <div class="mt-2 muted text-xs" id="ceoUpdatedAt" style="display:none;"></div>
     </div>
   </section>
 
@@ -392,7 +393,74 @@ html,body{ font-family:"Pretendard Variable", system-ui, -apple-system, Segoe UI
 </main>
 
 <script>
-/* ================== 샘플(JSON) ================== */
+/* ================== (A) 국보급 이야기: Google Sheet 연동 ================== */
+/**
+ * Apps Script doGet()가 JSON 반환한다고 가정:
+ * {
+ *   "quote": "...",
+ *   "body": "문장1\n문장2\n문장3",
+ *   "sign": "— 대표",
+ *   "updatedAt": "ISO..."
+ * }
+ */
+const CEO_SHEET_API = "https://script.google.com/macros/s/AKfycbzz26AeyUw4R_Q9Gqmi97T2ib-BjGVBZ2yp1e5bSYLATKhas9vl2PXFlZ4ujhG-lgNL/exec";
+
+const CEO_FALLBACK = {
+  quote: "“숫자는 과거를 말하고, 실행은 내일을 만든다.”",
+  body: [
+    "오늘은 누계보다 속도를 봅시다.",
+    "우리가 이기는 포인트는 ‘단가’가 아니라 ‘운영 편의성’과 ‘전환 정밀도’입니다.",
+    "각 조직은 상위 3개 레버(리드→미팅→계약, 정산, 재구매)를 ‘매주 하나’만 개선해도 누계는 자연히 따라옵니다."
+  ],
+  sign: "— 대표"
+};
+
+function renderCEOFromData(data){
+  const quoteEl = document.getElementById("ceoQuote");
+  const bodyEl  = document.getElementById("ceoBody");
+  const signEl  = document.getElementById("ceoSign");
+  const updEl   = document.getElementById("ceoUpdatedAt");
+
+  const quote = (data && String(data.quote||"").trim()) || CEO_FALLBACK.quote;
+  const sign  = (data && String(data.sign||"").trim())  || CEO_FALLBACK.sign;
+
+  let bodyLines = [];
+  if (data && Array.isArray(data.body)) {
+    bodyLines = data.body.map(s=>String(s||"").trim()).filter(Boolean);
+  } else {
+    const raw = data ? String(data.body||"").trim() : "";
+    bodyLines = raw ? raw.split(/\r?\n/).map(s=>s.trim()).filter(Boolean) : CEO_FALLBACK.body;
+  }
+
+  quoteEl.textContent = quote;
+  bodyEl.innerHTML = bodyLines.map(p=>`<p class="mt-2">${p}</p>`).join("");
+  signEl.textContent = sign;
+
+  const updatedAt = data && data.updatedAt ? String(data.updatedAt) : "";
+  if (updatedAt) {
+    updEl.style.display = "block";
+    updEl.textContent = "업데이트: " + updatedAt;
+  } else {
+    updEl.style.display = "none";
+  }
+}
+
+async function loadCEOFromGoogleSheet(){
+  try{
+    // 캐시 방지(시트 수정 즉시 반영)
+    const url = CEO_SHEET_API + (CEO_SHEET_API.includes("?") ? "&" : "?") + "t=" + Date.now();
+    const res = await fetch(url, { cache: "no-store" });
+    if(!res.ok) throw new Error("HTTP " + res.status);
+    const data = await res.json();
+    if (data && data.error) throw new Error(data.error);
+    renderCEOFromData(data);
+  }catch(err){
+    console.warn("[CEO] sheet fetch failed:", err);
+    renderCEOFromData(null); // fallback
+  }
+}
+
+/* ================== (B) 샘플(JSON) ================== */
 const SECTION1_SAMPLE = {
   "section1": {
     "kmiSalesSummary": {
@@ -443,37 +511,7 @@ function toThousandWon(v){ return Math.round((Number(v)||0) / 1000); }  // 원 �
 function fmtKrwThousand(n){ return (Number(n)||0).toLocaleString() + "천원"; }
 function fmtNum(n){ return (Number(n)||0).toLocaleString(); }
 
-/* ================== overlay bar chart (기본) ================== */
-function renderOverlayBarChart_NoDiff(data, wrapId, mode){
-  const wrap = document.getElementById(wrapId);
-  if (!wrap) return;
-  wrap.innerHTML = "";
-  const maxGoal = Math.max(...data.map(d=>d.goal||0), 1);
-
-  data.forEach(d=>{
-    const goalH = (d.goal/maxGoal)*100;
-    const actualH = (d.actual/maxGoal)*100;
-
-    const col = document.createElement("div");
-    col.className = "bar-col";
-
-    const goalClass = (mode==="omni") ? "bar-goal omni-goal" : "bar-goal";
-    const actualClass = (mode==="omni") ? "bar-actual omni-actual" : "bar-actual kmi-actual";
-
-    col.innerHTML = `
-      <div class="top-num">${(d.goal||0).toLocaleString()}</div>
-      <div class="bar-area">
-        <div class="${goalClass}" style="height:${goalH}%"></div>
-        <div class="${actualClass}" style="height:${actualH}%"></div>
-      </div>
-      <div class="bottom-num">${(d.actual||0).toLocaleString()}</div>
-      <div class="bar-label" title="${(d.name||"-")}">${d.name||"-"}</div>
-    `;
-    wrap.appendChild(col);
-  });
-}
-
-/* ✅ NEW: 옴니 오른쪽 "7개 균등" 렌더 */
+/* ================== overlay bar chart ================== */
 function renderOverlayBarChart_EqualCols(data, wrapId, mode){
   const wrap = document.getElementById(wrapId);
   if (!wrap) return;
@@ -535,23 +573,7 @@ function setStack(segId, value, total){
   el.style.width = pct + "%";
 }
 
-/* ================== 대표 메시지 ================== */
-const CEO = {
-  quote: "“숫자는 과거를 말하고, 실행은 내일을 만든다.”",
-  body: [
-    "오늘은 누계보다 속도를 봅시다.",
-    "우리가 이기는 포인트는 ‘단가’가 아니라 ‘운영 편의성’과 ‘전환 정밀도’입니다.",
-    "각 조직은 상위 3개 레버(리드→미팅→계약, 정산, 재구매)를 ‘매주 하나’만 개선해도 누계는 자연히 따라옵니다."
-  ],
-  sign: "— 대표"
-};
-function renderCEO(){
-  document.getElementById("ceoQuote").textContent = CEO.quote;
-  document.getElementById("ceoBody").innerHTML = CEO.body.map(p=>`<p class="mt-2">${p}</p>`).join("");
-  document.getElementById("ceoSign").textContent = CEO.sign;
-}
-
-/* ================== 뉴스 RSS(그대로) ================== */
+/* ================== 뉴스 RSS ================== */
 const INDUSTRY_FEEDS = [
   { key:"executive", targetUlId:"executiveNews", rss:"https://news.google.com/rss/search?q=(%EA%B1%B4%EA%B0%95%EA%B2%80%EC%A7%84+OR+%EC%A2%85%ED%95%A9%EA%B2%80%EC%A7%84+OR+KMI+OR+%ED%94%8C%EB%9E%AB%ED%8F%BC+OR+%EB%94%94%EC%A7%80%ED%84%B8%ED%97%AC%EC%8A%A4+OR+%ED%97%AC%EC%8A%A4%EC%BC%80%EC%96%B4+OR+GC%EC%BC%80%EC%96%B4)%20(%EC%A0%95%EC%B1%85+OR+%EC%98%88%EC%82%B0+OR+%EA%B2%BD%EC%9F%81+OR+%EC%8A%A4%EC%BC%80%EC%A4%84+OR+%EC%A0%95%EC%82%B0+OR+%EB%A6%AC%ED%8F%AC%ED%8A%B8)&hl=ko&gl=KR&ceid=KR:ko" },
   { key:"healthcheck", targetUlId:"industry-healthcheck", rss:"https://news.google.com/rss/search?q=건강검진+OR+종합검진+OR+암검진+OR+대장내시경&hl=ko&gl=KR&ceid=KR:ko" },
@@ -639,9 +661,13 @@ async function fetchSection1(){
 
 /* ================== 초기 렌더 ================== */
 (async function init(){
-  renderCEO();
+  // ✅ 대표 메시지: 구글 시트에서 가져오기 (실패 시 fallback)
+  await loadCEOFromGoogleSheet();
+
+  // 뉴스
   loadIndustryNewsToMain();
 
+  // 데이터
   const s1 = await fetchSection1();
 
   // ===== Omni (좌: 큰 숫자 + 구성) =====
@@ -674,7 +700,7 @@ async function fetchSection1(){
   document.getElementById("curWithTxt").textContent  = fmtKrwThousand(cWith);
   document.getElementById("curEtcTxt").textContent   = fmtKrwThousand(cEtc);
 
-  // ===== Omni (우: 본부/지사별 차트) — 7개 균등 꽉차게 =====
+  // ===== Omni (우: 본부/지사별 차트) =====
   const orgBars = buildOmniByOrgBars(s1.omniSalesByRegionList);
   renderOverlayBarChart_EqualCols(orgBars, "omniChartByOrg", "omni");
 
