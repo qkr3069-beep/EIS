@@ -20,7 +20,7 @@ html,body{ font-family:"Pretendard Variable", system-ui, -apple-system, Segoe UI
 .btn2{ border:1px solid #e5e7eb; background:#fff; color:#0f172a; border-radius:12px; padding:.55rem .9rem; font-weight:700; }
 .small{ font-size:.85rem; }
 
-/* ===== 차트 (이미지 스타일 유사) ===== */
+/* ===== Overlay Bar Chart (기본: 스크롤형) ===== */
 .chart-wrap{
   display:grid;
   grid-auto-flow: column;
@@ -34,11 +34,9 @@ html,body{ font-family:"Pretendard Variable", system-ui, -apple-system, Segoe UI
 .chart-wrap::-webkit-scrollbar-thumb{ background:#cbd5f5; border-radius:999px; }
 .chart-wrap::-webkit-scrollbar-track{ background:#f1f5f9; }
 
-.bar-col{ display:flex; flex-direction:column; align-items:center; gap:6px; }
-.bar-area{
-  position:relative; width:100%; height:250px;
-  display:flex; align-items:flex-end;
-}
+.bar-col{ display:flex; flex-direction:column; align-items:center; gap:6px; min-width:0; }
+.bar-area{ position:relative; width:100%; height:250px; display:flex; align-items:flex-end; }
+
 .bar-goal{
   width:100%;
   background:#e5e7eb;
@@ -55,28 +53,35 @@ html,body{ font-family:"Pretendard Variable", system-ui, -apple-system, Segoe UI
   border-radius:6px;
 }
 
-/* KMI: 목표 회색 / 누계 진한 */
 .kmi-actual{ background:#0f172a; }
-
-/* OmniCare: 목표 하늘색 / 누계 진한 남색 */
 .omni-goal{ background:#bfdbfe; }
 .omni-actual{ background:#1e3a8a; }
 
 .top-num{ font-size:.75rem; color:#374151; font-weight:800; }
 .bottom-num{ font-size:.75rem; color:#0f172a; font-weight:900; }
-.bar-label{ font-size:.8rem; font-weight:800; color:#0f172a; text-align:center; }
-
-/* ===== KPI mini ===== */
-.kpiRow{ display:flex; flex-wrap:wrap; gap:10px; margin-top:10px; }
-.kpi{
-  border:1px solid #e5e7eb; border-radius:14px; background:#fff;
-  padding:10px 12px;
+.bar-label{
+  font-size:.8rem; font-weight:800; color:#0f172a; text-align:center;
+  max-width:100%;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
 }
-.kpi .t{ font-size:.78rem; color:#64748b; font-weight:700; }
-.kpi .v{ font-size:1.05rem; font-weight:900; color:#0f172a; margin-top:2px; }
-.kpi .s{ font-size:.78rem; color:#64748b; margin-top:2px; }
 
-/* ===== Omni stacked bar (총괄) ===== */
+/* ✅ NEW: 옴니 오른쪽(본부/지사) "균등 7칸" 전용 */
+.chart-equal{
+  display:grid;
+  gap:12px;
+  align-items:end;
+  overflow:hidden;       /* 스크롤 제거 */
+  padding-bottom:6px;
+}
+.chart-equal .bar-col{ width:100%; }
+.chart-equal .bar-area{ height:250px; }
+.chart-equal .top-num,
+.chart-equal .bottom-num{ font-size:.70rem; } /* 7칸이라 약간만 줄임 */
+.chart-equal .bar-label{ font-size:.78rem; }
+
+/* ===== Omni stacked bar ===== */
 .stack{
   width:100%;
   border:1px solid #e5e7eb;
@@ -86,9 +91,13 @@ html,body{ font-family:"Pretendard Variable", system-ui, -apple-system, Segoe UI
   height:14px;
 }
 .seg{ height:100%; display:inline-block; }
-.seg-third{ background:#93c5fd; }    /* 3자 */
-.seg-with{  background:#fca5a5; }    /* WITH KMI */
-.seg-etc{   background:#bbf7d0; }    /* 그 외 */
+.seg-third{ background:#93c5fd; }  /* 3자 */
+.seg-with{  background:#fca5a5; }  /* WITH KMI */
+.seg-etc{
+  background:#22c55e !important; /* 진한 초록 */
+  box-shadow: inset 0 0 0 1px rgba(15,23,42,.18);
+}
+
 .legend{
   display:flex; flex-wrap:wrap; gap:10px; margin-top:8px;
   font-size:.82rem; color:#334155; font-weight:800;
@@ -96,9 +105,61 @@ html,body{ font-family:"Pretendard Variable", system-ui, -apple-system, Segoe UI
 .dot{ width:10px; height:10px; border-radius:3px; display:inline-block; margin-right:6px; vertical-align:middle; }
 .dot-third{ background:#93c5fd; }
 .dot-with{ background:#fca5a5; }
-.dot-etc{ background:#bbf7d0; }
+.dot-etc{ background:#22c55e; }
+
 .metaLine{ font-size:.82rem; color:#64748b; margin-top:6px; }
 .moneyStrong{ font-weight:900; color:#0f172a; }
+
+/* ✅ Omni KPI 2분할(가득) */
+.omniKpiRow{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap:12px;
+  margin-top:12px;
+}
+.omniKpi{
+  border:1px solid #e5e7eb;
+  border-radius:16px;
+  background:#fff;
+  padding:16px 18px;
+  min-height:92px;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+}
+.omniKpi .t{
+  font-size:.86rem;
+  color:#64748b;
+  font-weight:800;
+}
+.omniKpi .v{
+  margin-top:6px;
+  font-size:2.1rem;
+  line-height:1.1;
+  font-weight:900;
+  letter-spacing:-0.02em;
+  color:#0f172a;
+  word-break:keep-all;
+}
+@media (min-width: 1024px){
+  .omniKpi .v{ font-size:2.6rem; }
+}
+.omniKpi .s{
+  margin-top:6px;
+  font-size:.82rem;
+  color:#64748b;
+  font-weight:700;
+}
+
+/* ===== KPI (KMI) ===== */
+.kpiRow{ display:flex; flex-wrap:wrap; gap:10px; margin-top:10px; }
+.kpi{
+  border:1px solid #e5e7eb; border-radius:14px; background:#fff;
+  padding:10px 12px;
+}
+.kpi .t{ font-size:.78rem; color:#64748b; font-weight:700; }
+.kpi .v{ font-size:1.05rem; font-weight:900; color:#0f172a; margin-top:2px; }
+.kpi .s{ font-size:.78rem; color:#64748b; margin-top:2px; }
 
 /* ===== 뉴스 ===== */
 .newsItem{
@@ -112,6 +173,7 @@ html,body{ font-family:"Pretendard Variable", system-ui, -apple-system, Segoe UI
 .newsLink{ color:#0f172a; text-decoration:none; }
 .newsLink:hover{ text-decoration:underline; }
 
+/* ===== 국보급 이야기 ===== */
 .kbBox{
   background:linear-gradient(180deg,#ffffff, #f8fafc);
   border:1px solid #e5e7eb;
@@ -146,105 +208,100 @@ html,body{ font-family:"Pretendard Variable", system-ui, -apple-system, Segoe UI
 
 <main class="max-w-[1440px] mx-auto px-2 py-6 space-y-6">
 
-  <!-- 1행: KMI + OmniCare -->
-  <section class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-    <!-- KMI -->
-    <div class="card p-5">
-      <div class="flex items-start justify-between gap-3">
-        <div>
-          <div class="font-extrabold text-slate-900 text-lg">KMI 검진 누계 매출</div>
-          <div class="muted small">목표(회색) 대비 누계(진한색) · 전체 지점 한 차트</div>
-        </div>
-        <!-- ✅ 단위: 천 원 -->
-        <span class="chip">단위: 천 원</span>
+  <!-- 1행: 옴니케어 누계 매출 (2분할) -->
+  <section class="card p-5">
+    <div class="flex items-start justify-between gap-3">
+      <div>
+        <div class="font-extrabold text-slate-900 text-lg">옴니케어 누계 매출</div>
+        <div class="muted small">좌: 총괄(합계+구성) / 우: 본부·지사별</div>
       </div>
-
-      <!-- ✅ 합계/예약 KPI -->
-      <div class="kpiRow">
-        <div class="kpi">
-          <div class="t">누계매출 합계</div>
-          <div class="v" id="kmiSumSales">-</div>
-          <div class="s">전년대비/증감률은 표시 생략</div>
-        </div>
-        <div class="kpi">
-          <div class="t">누적 예약 건수</div>
-          <div class="v" id="kmiTotalReserv">-</div>
-          <div class="s">KMI: <span id="kmiReserv">-</span> · 타센터: <span id="otherReserv">-</span></div>
-        </div>
-      </div>
-
-      <div class="chart-wrap mt-4" id="kmiChart"></div>
+      <span class="chip">단위: 천 원</span>
     </div>
 
-    <!-- OmniCare: 좌(총괄/구성) + 우(본부/지사별) -->
-    <div class="card p-5">
-      <div class="flex items-start justify-between gap-3">
-        <div>
-          <div class="font-extrabold text-slate-900 text-lg">옴니케어 누계 매출</div>
-          <div class="muted small">좌: 예상/현재 + 구성(3자·WITH KMI·그 외) / 우: 본부·지사별</div>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
+      <!-- 좌: 총괄 + 구성 -->
+      <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+        <div class="font-extrabold text-slate-900 mb-2">총괄(예상 vs 현재) · 구성</div>
+
+        <div class="omniKpiRow">
+          <div class="omniKpi">
+            <div class="t">2025년 예상 매출 합계</div>
+            <div class="v" id="omniExpectedTotal">-</div>
+            <div class="s">3자 + WITH KMI + 그 외</div>
+          </div>
+          <div class="omniKpi">
+            <div class="t">현재 누계 매출 합계</div>
+            <div class="v" id="omniCurrentTotal">-</div>
+            <div class="s">3자 + WITH KMI + 그 외</div>
+          </div>
         </div>
-        <!-- ✅ 단위: 천 원 -->
-        <span class="chip">단위: 천 원</span>
+
+        <!-- 예상 구성 -->
+        <div class="mt-4">
+          <div class="metaLine"><b class="moneyStrong">예상</b> 구성 (3자 / WITH KMI / 그 외)</div>
+          <div class="stack mt-2" aria-label="예상 매출 구성">
+            <span class="seg seg-third" id="expThird" style="width:0%"></span>
+            <span class="seg seg-with"  id="expWith"  style="width:0%"></span>
+            <span class="seg seg-etc"   id="expEtc"   style="width:0%"></span>
+          </div>
+          <div class="legend">
+            <span><i class="dot dot-third"></i>3자: <span id="expThirdTxt">-</span></span>
+            <span><i class="dot dot-with"></i>WITH KMI: <span id="expWithTxt">-</span></span>
+            <span><i class="dot dot-etc"></i>그 외: <span id="expEtcTxt">-</span></span>
+          </div>
+        </div>
+
+        <!-- 현재 구성 -->
+        <div class="mt-4">
+          <div class="metaLine"><b class="moneyStrong">현재</b> 구성 (3자 / WITH KMI / 그 외)</div>
+          <div class="stack mt-2" aria-label="현재 매출 구성">
+            <span class="seg seg-third" id="curThird" style="width:0%"></span>
+            <span class="seg seg-with"  id="curWith"  style="width:0%"></span>
+            <span class="seg seg-etc"   id="curEtc"   style="width:0%"></span>
+          </div>
+          <div class="legend">
+            <span><i class="dot dot-third"></i>3자: <span id="curThirdTxt">-</span></span>
+            <span><i class="dot dot-with"></i>WITH KMI: <span id="curWithTxt">-</span></span>
+            <span><i class="dot dot-etc"></i>그 외: <span id="curEtcTxt">-</span></span>
+          </div>
+        </div>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-        <!-- 좌: 총괄(예상/현재) + 구성(스택) -->
-        <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-          <div class="font-extrabold text-slate-900 mb-2">총괄(예상 vs 현재) · 구성</div>
-
-          <!-- ✅ 예상/현재 합계 -->
-          <div class="kpiRow" style="margin-top:0;">
-            <div class="kpi" style="background:#fff;">
-              <div class="t">2025년 예상 매출(합계)</div>
-              <div class="v" id="omniExpectedTotal">-</div>
-            </div>
-            <div class="kpi" style="background:#fff;">
-              <div class="t">현재 누계 매출(합계)</div>
-              <div class="v" id="omniCurrentTotal">-</div>
-            </div>
-          </div>
-
-          <!-- ✅ 구성: 예상 -->
-          <div class="mt-3">
-            <div class="metaLine"><b class="moneyStrong">예상</b> 구성 (3자 / WITH KMI / 그 외)</div>
-            <div class="stack mt-2" aria-label="예상 매출 구성">
-              <span class="seg seg-third" id="expThird" style="width:0%"></span>
-              <span class="seg seg-with"  id="expWith"  style="width:0%"></span>
-              <span class="seg seg-etc"   id="expEtc"   style="width:0%"></span>
-            </div>
-            <div class="legend">
-              <span><i class="dot dot-third"></i>3자: <span id="expThirdTxt">-</span></span>
-              <span><i class="dot dot-with"></i>WITH KMI: <span id="expWithTxt">-</span></span>
-              <span><i class="dot dot-etc"></i>그 외: <span id="expEtcTxt">-</span></span>
-            </div>
-          </div>
-
-          <!-- ✅ 구성: 현재 -->
-          <div class="mt-4">
-            <div class="metaLine"><b class="moneyStrong">현재</b> 구성 (3자 / WITH KMI / 그 외)</div>
-            <div class="stack mt-2" aria-label="현재 매출 구성">
-              <span class="seg seg-third" id="curThird" style="width:0%"></span>
-              <span class="seg seg-with"  id="curWith"  style="width:0%"></span>
-              <span class="seg seg-etc"   id="curEtc"   style="width:0%"></span>
-            </div>
-            <div class="legend">
-              <span><i class="dot dot-third"></i>3자: <span id="curThirdTxt">-</span></span>
-              <span><i class="dot dot-with"></i>WITH KMI: <span id="curWithTxt">-</span></span>
-              <span><i class="dot dot-etc"></i>그 외: <span id="curEtcTxt">-</span></span>
-            </div>
-          </div>
-        </div>
-
-        <!-- 우: 본부/지사별 (기존 막대 유지) -->
-        <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-          <div class="font-extrabold text-slate-900 mb-2">본부/지사별 매출(총합)</div>
-          <div class="chart-wrap" id="omniChartByOrg"></div>
-        </div>
+      <!-- 우: 본부/지사별 (균등 7개) -->
+      <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+        <div class="font-extrabold text-slate-900 mb-2">본부/지사별 매출(총합)</div>
+        <div class="chart-equal" id="omniChartByOrg"></div>
       </div>
     </div>
   </section>
 
-  <!-- 2행: 국보급 이야기 -->
+  <!-- 2행: KMI 검진 누계 매출 -->
+  <section class="card p-5">
+    <div class="flex items-start justify-between gap-3">
+      <div>
+        <div class="font-extrabold text-slate-900 text-lg">KMI 검진 누계 매출</div>
+        <div class="muted small">목표(회색) 대비 누계(검은색) · 전체 지점 한 차트</div>
+      </div>
+      <span class="chip">단위: 천 원</span>
+    </div>
+
+    <div class="kpiRow">
+      <div class="kpi">
+        <div class="t">누계매출 합계</div>
+        <div class="v" id="kmiSumSales">-</div>
+        <div class="s">전년대비/증감률 표시는 생략</div>
+      </div>
+      <div class="kpi">
+        <div class="t">누적 예약 건수</div>
+        <div class="v" id="kmiTotalReserv">-</div>
+        <div class="s">KMI: <span id="kmiReserv">-</span> · 타센터: <span id="otherReserv">-</span></div>
+      </div>
+    </div>
+
+    <div class="chart-equal mt-4" id="kmiChart"></div>
+  </section>
+
+  <!-- 국보급 이야기 -->
   <section class="card p-6">
     <div class="flex items-start justify-between gap-3">
       <div>
@@ -335,10 +392,7 @@ html,body{ font-family:"Pretendard Variable", system-ui, -apple-system, Segoe UI
 </main>
 
 <script>
-/* ================= 권한/유저(샘플) ================= */
-const CURRENT_USER = { id:"u1", name:"김영업", team:"A팀", role:"sales" };
-
-/* ================== 네가 준 section1 샘플(JSON) ================== */
+/* ================== 샘플(JSON) ================== */
 const SECTION1_SAMPLE = {
   "section1": {
     "kmiSalesSummary": {
@@ -385,13 +439,14 @@ const SECTION1_SAMPLE = {
 
 /* ================== 유틸 ================== */
 function clamp(n,min,max){ return Math.max(min, Math.min(max,n)); }
-function toThousandWon(v){ return Math.round((Number(v)||0) / 1000); }   // 원 → 천원
+function toThousandWon(v){ return Math.round((Number(v)||0) / 1000); }  // 원 → 천원
 function fmtKrwThousand(n){ return (Number(n)||0).toLocaleString() + "천원"; }
 function fmtNum(n){ return (Number(n)||0).toLocaleString(); }
 
-/* ================== 차트 렌더(중간 diff 없음) ================== */
+/* ================== overlay bar chart (기본) ================== */
 function renderOverlayBarChart_NoDiff(data, wrapId, mode){
   const wrap = document.getElementById(wrapId);
+  if (!wrap) return;
   wrap.innerHTML = "";
   const maxGoal = Math.max(...data.map(d=>d.goal||0), 1);
 
@@ -412,13 +467,47 @@ function renderOverlayBarChart_NoDiff(data, wrapId, mode){
         <div class="${actualClass}" style="height:${actualH}%"></div>
       </div>
       <div class="bottom-num">${(d.actual||0).toLocaleString()}</div>
-      <div class="bar-label">${d.name||"-"}</div>
+      <div class="bar-label" title="${(d.name||"-")}">${d.name||"-"}</div>
     `;
     wrap.appendChild(col);
   });
 }
 
-/* ================== KMI: 지역별 bars(단위=천원) ================== */
+/* ✅ NEW: 옴니 오른쪽 "7개 균등" 렌더 */
+function renderOverlayBarChart_EqualCols(data, wrapId, mode){
+  const wrap = document.getElementById(wrapId);
+  if (!wrap) return;
+
+  wrap.classList.add("chart-equal");
+  wrap.style.gridTemplateColumns = `repeat(${data.length}, minmax(0, 1fr))`;
+
+  wrap.innerHTML = "";
+  const maxGoal = Math.max(...data.map(d=>d.goal||0), 1);
+
+  data.forEach(d=>{
+    const goalH = (d.goal/maxGoal)*100;
+    const actualH = (d.actual/maxGoal)*100;
+
+    const col = document.createElement("div");
+    col.className = "bar-col";
+
+    const goalClass = (mode==="omni") ? "bar-goal omni-goal" : "bar-goal";
+    const actualClass = (mode==="omni") ? "bar-actual omni-actual" : "bar-actual kmi-actual";
+
+    col.innerHTML = `
+      <div class="top-num">${(d.goal||0).toLocaleString()}</div>
+      <div class="bar-area">
+        <div class="${goalClass}" style="height:${goalH}%"></div>
+        <div class="${actualClass}" style="height:${actualH}%"></div>
+      </div>
+      <div class="bottom-num">${(d.actual||0).toLocaleString()}</div>
+      <div class="bar-label" title="${(d.name||"-")}">${d.name||"-"}</div>
+    `;
+    wrap.appendChild(col);
+  });
+}
+
+/* ================== KMI: 지역별 bars(천원 단위) ================== */
 function buildKmiByRegionBars(list){
   return (list||[]).map(r=>({
     name: r.name,
@@ -427,14 +516,26 @@ function buildKmiByRegionBars(list){
   }));
 }
 
-/* ================== Omni: 구성(스택) 렌더 ================== */
+/* ================== Omni: org bars(천원 단위) ================== */
+function buildOmniByOrgBars(list){
+  return (list||[]).map(r=>{
+    const total = toThousandWon(r.otherSalesPrice) + toThousandWon(r.withkmiSalesPrice) + toThousandWon(r.etcSalesPrice);
+    return { name:r.name, goal: total, actual: total };
+  });
+}
+
+/* ================== Omni: 스택 (최소 폭 보장) ================== */
 function setStack(segId, value, total){
   const el = document.getElementById(segId);
-  const pct = total>0 ? clamp((value/total)*100, 0, 100) : 0;
+  if (!el) return;
+
+  let pct = total>0 ? (value/total)*100 : 0;
+  pct = clamp(pct, 0, 100);
+  if (value > 0 && pct < 1) pct = 1;
   el.style.width = pct + "%";
 }
 
-/* ================== 대표 메시지(그대로) ================== */
+/* ================== 대표 메시지 ================== */
 const CEO = {
   quote: "“숫자는 과거를 말하고, 실행은 내일을 만든다.”",
   body: [
@@ -450,7 +551,7 @@ function renderCEO(){
   document.getElementById("ceoSign").textContent = CEO.sign;
 }
 
-/* ================== ✅ 업계소식 RSS(그대로) ================== */
+/* ================== 뉴스 RSS(그대로) ================== */
 const INDUSTRY_FEEDS = [
   { key:"executive", targetUlId:"executiveNews", rss:"https://news.google.com/rss/search?q=(%EA%B1%B4%EA%B0%95%EA%B2%80%EC%A7%84+OR+%EC%A2%85%ED%95%A9%EA%B2%80%EC%A7%84+OR+KMI+OR+%ED%94%8C%EB%9E%AB%ED%8F%BC+OR+%EB%94%94%EC%A7%80%ED%84%B8%ED%97%AC%EC%8A%A4+OR+%ED%97%AC%EC%8A%A4%EC%BC%80%EC%96%B4+OR+GC%EC%BC%80%EC%96%B4)%20(%EC%A0%95%EC%B1%85+OR+%EC%98%88%EC%82%B0+OR+%EA%B2%BD%EC%9F%81+OR+%EC%8A%A4%EC%BC%80%EC%A4%84+OR+%EC%A0%95%EC%82%B0+OR+%EB%A6%AC%ED%8F%AC%ED%8A%B8)&hl=ko&gl=KR&ceid=KR:ko" },
   { key:"healthcheck", targetUlId:"industry-healthcheck", rss:"https://news.google.com/rss/search?q=건강검진+OR+종합검진+OR+암검진+OR+대장내시경&hl=ko&gl=KR&ceid=KR:ko" },
@@ -463,9 +564,7 @@ async function fetchRSS2JSON(rssUrl){
   const r = await fetch("https://api.rss2json.com/v1/api.json?rss_url=" + encodeURIComponent(rssUrl));
   return r.json();
 }
-function stripHtml(s){
-  return (s || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
-}
+function stripHtml(s){ return (s || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim(); }
 function toYMD(dateStr){
   const d = new Date(dateStr);
   if (Number.isNaN(d.getTime())) return "";
@@ -512,44 +611,28 @@ function renderNewsIntoTarget(targetId, items, fallbackMsg){
 }
 async function loadIndustryNewsToMain(){
   INDUSTRY_FEEDS.forEach(cfg=> renderNewsIntoTarget(cfg.targetUlId, [], "불러오는 중…"));
-
   const blocks = await Promise.all(
     INDUSTRY_FEEDS.map(async (cfg) => {
       try{
         const data = await fetchRSS2JSON(cfg.rss);
         const limit = (cfg.key === "executive") ? 5 : 3;
-
-        const items = (data.items || [])
-          .slice(0, limit)
-          .map(it => {
-            const desc = stripHtml(it.description);
-            return {
-              title: it.title,
-              date: toYMD(it.pubDate),
-              summary: desc.slice(0, 70) + (desc.length > 70 ? "..." : ""),
-              link: it.link
-            };
-          });
-
+        const items = (data.items || []).slice(0, limit).map(it => {
+          const desc = stripHtml(it.description);
+          return { title: it.title, date: toYMD(it.pubDate), summary: desc.slice(0,70)+(desc.length>70?"...":""), link: it.link };
+        });
         return { ...cfg, items };
       }catch(e){
         return { ...cfg, items: [], error: true };
       }
     })
   );
-
   blocks.forEach(b=>{
-    if (b.error){
-      renderNewsIntoTarget(b.targetUlId, [], "불러오기에 실패했습니다. (네트워크/쿼터 이슈 가능)");
-      return;
-    }
+    if (b.error) return renderNewsIntoTarget(b.targetUlId, [], "불러오기에 실패했습니다. (네트워크/쿼터 이슈 가능)");
     renderNewsIntoTarget(b.targetUlId, b.items, "해당 카테고리 소식 없음");
   });
 }
 
-/* ================== (나중에 실연동용) section1 fetch 자리 ==================
-   지금은 샘플을 그대로 씀
-*/
+/* ================== section1 fetch ================== */
 async function fetchSection1(){
   return SECTION1_SAMPLE.section1;
 }
@@ -561,19 +644,7 @@ async function fetchSection1(){
 
   const s1 = await fetchSection1();
 
-  /* ===== KMI KPI(합계 + 예약) ===== */
-  const ksum = String(s1.kmiSalesSummary.currentCumulativeSales || "0").replaceAll(",","");
-  // currentCumulativeSales는 문자열(콤마 포함)이니까 숫자로 변환
-  document.getElementById("kmiSumSales").textContent = fmtKrwThousand(toThousandWon(ksum));
-  document.getElementById("kmiTotalReserv").textContent = fmtNum(s1.kmiSalesSummary.totalReservCount || 0);
-  document.getElementById("kmiReserv").textContent = fmtNum(s1.kmiSalesSummary.kmiReservCount || 0);
-  document.getElementById("otherReserv").textContent = fmtNum(s1.kmiSalesSummary.otherCenterReservCount || 0);
-
-  /* ===== KMI 차트(단위=천원) ===== */
-  const kmiBars = buildKmiByRegionBars(s1.kmiSalesByRegionList);
-  renderOverlayBarChart_NoDiff(kmiBars, "kmiChart", "kmi");
-
-  /* ===== Omni 합계(예상/현재) ===== */
+  // ===== Omni (좌: 큰 숫자 + 구성) =====
   const omni = s1.omniSalesSummary;
 
   const eThird = toThousandWon(omni.expectedOtherServiceUsingSalesPrice);
@@ -587,9 +658,8 @@ async function fetchSection1(){
   const currentTotal = cThird + cWith + cEtc;
 
   document.getElementById("omniExpectedTotal").textContent = fmtKrwThousand(expectedTotal);
-  document.getElementById("omniCurrentTotal").textContent = fmtKrwThousand(currentTotal);
+  document.getElementById("omniCurrentTotal").textContent  = fmtKrwThousand(currentTotal);
 
-  /* ===== Omni 스택(예상/현재 구성) ===== */
   setStack("expThird", eThird, expectedTotal);
   setStack("expWith",  eWith,  expectedTotal);
   setStack("expEtc",   eEtc,   expectedTotal);
@@ -604,13 +674,22 @@ async function fetchSection1(){
   document.getElementById("curWithTxt").textContent  = fmtKrwThousand(cWith);
   document.getElementById("curEtcTxt").textContent   = fmtKrwThousand(cEtc);
 
-  /* ===== Omni 우측(본부/지사별) 막대: 총합(단위=천원) ===== */
-  const orgBars = (s1.omniSalesByRegionList||[]).map(r=>{
-    const total = toThousandWon(r.otherSalesPrice) + toThousandWon(r.withkmiSalesPrice) + toThousandWon(r.etcSalesPrice);
-    return { name:r.name, goal: total, actual: total };
-  });
-  renderOverlayBarChart_NoDiff(orgBars, "omniChartByOrg", "omni");
+  // ===== Omni (우: 본부/지사별 차트) — 7개 균등 꽉차게 =====
+  const orgBars = buildOmniByOrgBars(s1.omniSalesByRegionList);
+  renderOverlayBarChart_EqualCols(orgBars, "omniChartByOrg", "omni");
+
+  // ===== KMI KPI =====
+  const ksum = String(s1.kmiSalesSummary.currentCumulativeSales || "0").replaceAll(",","");
+  document.getElementById("kmiSumSales").textContent = fmtKrwThousand(toThousandWon(ksum));
+  document.getElementById("kmiTotalReserv").textContent = fmtNum(s1.kmiSalesSummary.totalReservCount || 0);
+  document.getElementById("kmiReserv").textContent = fmtNum(s1.kmiSalesSummary.kmiReservCount || 0);
+  document.getElementById("otherReserv").textContent = fmtNum(s1.kmiSalesSummary.otherCenterReservCount || 0);
+
+  // ===== KMI 차트 =====
+  const kmiBars = buildKmiByRegionBars(s1.kmiSalesByRegionList);
+  renderOverlayBarChart_EqualCols(kmiBars, "kmiChart", "kmi");
 })();
 </script>
+
 </body>
 </html>
