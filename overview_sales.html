@@ -48,6 +48,16 @@
   .kpi .v{ font-size:1.15rem; font-weight:900; color:#0f172a; margin-top:2px; }
   .kpi .s{ font-size:.78rem; color:var(--muted); margin-top:2px; font-weight:800; }
 
+  /* ✅ 영업부 상세: 상단 선택 + 하단 KPI 그리드 */
+  .kpiGrid{
+    display:grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap:10px;
+  }
+  @media (min-width: 1024px){
+    .kpiGrid{ grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  }
+
   /* ===== 균등 차트 (본부/지사) ===== */
   .chart-equal{
     display:grid;
@@ -68,8 +78,8 @@
     border-radius:10px;
     overflow:hidden;
     display:flex;
-    flex-direction:column;        /* 위→아래 */
-    justify-content:flex-end;     /* 아래에 붙여서 */
+    flex-direction:column;
+    justify-content:flex-end;
     background:transparent;
   }
   .segV{ width:100%; }
@@ -98,8 +108,8 @@
     display:flex;
   }
   .seg{ height:100%; display:block; flex:0 0 auto; }
-  .seg-third{ background:#93c5fd; }  /* 3자 */
-  .seg-with{  background:#fca5a5; }  /* WITH KMI */
+  .seg-third{ background:#93c5fd; }
+  .seg-with{  background:#fca5a5; }
   .seg-etc{
     background:#22c55e !important;
     box-shadow: inset 0 0 0 1px rgba(15,23,42,.18);
@@ -258,41 +268,41 @@
 
     <div class="divider my-4"></div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-3 items-end">
-      <div class="lg:col-span-5">
-        <div class="text-xs muted font-extrabold">본부/지사 선택</div>
-        <select id="orgSel" class="input mt-1"></select>
-      </div>
-      <div class="lg:col-span-7">
-        <div class="kpiRow lg:justify-end">
-          <div class="kpi">
-            <div class="t">선택 영업부 총 매출</div>
-            <div class="v mono" id="orgTotalSales">-</div>
-            <div class="s">3자 + WITH + 기타</div>
-          </div>
+    <!-- ✅ (1) 본부/지사 선택을 위로 -->
+    <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+      <div class="text-xs muted font-extrabold">본부/지사 선택</div>
+      <select id="orgSel" class="input mt-2"></select>
 
-          <!-- ✅ 추가: 누적 검진자 수 -->
-          <div class="kpi">
-            <div class="t">누적 검진자 수</div>
-            <div class="v mono" id="orgExamCount">-</div>
-            <div class="s">수검자(더미/연동 예정)</div>
-          </div>
+      <!-- ✅ (2) 아래 행에 KPI 숫자 5개 정렬 -->
+      <div class="mt-3 kpiGrid">
+        <div class="kpi">
+          <div class="t">선택 영업부 총 매출</div>
+          <div class="v mono" id="orgTotalSales">-</div>
+          <div class="s">3자 + WITH + 기타</div>
+        </div>
 
-          <div class="kpi">
-            <div class="t">3자 매출</div>
-            <div class="v mono" id="orgThirdSales">-</div>
-            <div class="s">otherSalesPrice</div>
-          </div>
-          <div class="kpi">
-            <div class="t">WITH KMI 매출</div>
-            <div class="v mono" id="orgWithSales">-</div>
-            <div class="s">withkmiSalesPrice</div>
-          </div>
-          <div class="kpi">
-            <div class="t">기타 매출</div>
-            <div class="v mono" id="orgEtcSales">-</div>
-            <div class="s">etcSalesPrice</div>
-          </div>
+        <div class="kpi">
+          <div class="t">누적 검진자 수</div>
+          <div class="v mono" id="orgExamCount">-</div>
+          <div class="s">직원 기여 검진자 합계</div>
+        </div>
+
+        <div class="kpi">
+          <div class="t">3자 매출</div>
+          <div class="v mono" id="orgThirdSales">-</div>
+          <div class="s">otherSalesPrice</div>
+        </div>
+
+        <div class="kpi">
+          <div class="t">WITH KMI 매출</div>
+          <div class="v mono" id="orgWithSales">-</div>
+          <div class="s">withkmiSalesPrice</div>
+        </div>
+
+        <div class="kpi">
+          <div class="t">기타 매출</div>
+          <div class="v mono" id="orgEtcSales">-</div>
+          <div class="s">etcSalesPrice</div>
         </div>
       </div>
     </div>
@@ -331,7 +341,7 @@
               <th>직원</th>
               <th>팀</th>
               <th class="right">기여 매출(천원)</th>
-              <th class="right">기여 리드(더미)</th>
+              <th class="right">기여 검진자(명)</th>
               <th class="right">기여율</th>
               <th>평가</th>
             </tr>
@@ -397,41 +407,6 @@ function makeSeededRand(seed=1){
   return () => { s = (1664525 * s + 1013904223) >>> 0; return (s / 0xFFFFFFFF); };
 }
 
-function genOrgStaffContrib(orgList){
-  const seedBase = new Date().getFullYear()*10000 + (new Date().getMonth()+1)*100 + new Date().getDate();
-  const rnd = makeSeededRand(seedBase);
-
-  const map = {};
-  orgList.forEach(org=>{
-    const name = org.name;
-    const totalTh = toThousandWon(org.otherSalesPrice) + toThousandWon(org.withkmiSalesPrice) + toThousandWon(org.etcSalesPrice);
-
-    const staffN = 3 + Math.floor(rnd()*3);
-    const picks = STAFF_POOL.slice().sort(()=>rnd()-0.5).slice(0, staffN);
-
-    let weights = picks.map(()=>0.8 + rnd()*1.2);
-    const wsum = weights.reduce((s,x)=>s+x,0);
-    weights = weights.map(w=>w/wsum);
-
-    let remSales = totalTh;
-    let remLead = Math.max(20, Math.round(totalTh/60));
-    const contrib = picks.map((p, i)=>{
-      const sales = (i===picks.length-1) ? remSales : Math.round(totalTh*weights[i]);
-      remSales -= sales;
-      const lead  = (i===picks.length-1) ? remLead : Math.round(remLead*weights[i]*(0.85+rnd()*0.3));
-      remLead -= lead;
-      return { name:p.name, team:p.team, salesTh:sales, lead:lead, share: totalTh>0 ? sales/totalTh : 0 };
-    }).sort((a,b)=>b.salesTh-a.salesTh);
-
-    map[name] = { org:name, totalTh, staffContrib:contrib };
-  });
-  return map;
-}
-
-/* =========================================================
-   ✅ 추가: 영업부별 누적 검진자(더미) 생성
-   - 나중에 API에서 orgRow.examCount 같은 값이 내려오면 그걸 우선 사용
-   ========================================================= */
 function genOrgExamCounts(orgList){
   const seedBase = 7777 + new Date().getFullYear()*100 + (new Date().getMonth()+1);
   const rnd = makeSeededRand(seedBase);
@@ -441,10 +416,45 @@ function genOrgExamCounts(orgList){
     const name = org.name;
     const totalTh = toThousandWon(org.otherSalesPrice) + toThousandWon(org.withkmiSalesPrice) + toThousandWon(org.etcSalesPrice);
 
-    // 매출이 많을수록 검진자도 대체로 많게(더미)
-    const base = Math.max(10, Math.round(totalTh / 80)); // 대략 스케일
-    const jitter = Math.round(base * (0.65 + rnd()*0.9)); // 0.65~1.55배
+    const base = Math.max(10, Math.round(totalTh / 80));
+    const jitter = Math.round(base * (0.65 + rnd()*0.9));
     map[name] = jitter;
+  });
+  return map;
+}
+
+function genOrgStaffContrib(orgList, orgExamMap){
+  const seedBase = new Date().getFullYear()*10000 + (new Date().getMonth()+1)*100 + new Date().getDate();
+  const rnd = makeSeededRand(seedBase);
+
+  const map = {};
+  orgList.forEach(org=>{
+    const name = org.name;
+
+    const totalSalesTh = toThousandWon(org.otherSalesPrice) + toThousandWon(org.withkmiSalesPrice) + toThousandWon(org.etcSalesPrice);
+    const orgExamCount = Number(orgExamMap?.[name] ?? 0);
+
+    const staffN = 3 + Math.floor(rnd()*3);
+    const picks = STAFF_POOL.slice().sort(()=>rnd()-0.5).slice(0, staffN);
+
+    let weights = picks.map(()=>0.8 + rnd()*1.2);
+    const wsum = weights.reduce((s,x)=>s+x,0);
+    weights = weights.map(w=>w/wsum);
+
+    let remSales = totalSalesTh;
+    let remExam = orgExamCount;
+
+    const contrib = picks.map((p, i)=>{
+      const sales = (i===picks.length-1) ? remSales : Math.round(totalSalesTh*weights[i]);
+      remSales -= sales;
+
+      const examCnt = (i===picks.length-1) ? remExam : Math.round(orgExamCount*weights[i]);
+      remExam -= examCnt;
+
+      return { name:p.name, team:p.team, salesTh:sales, examCnt:examCnt, share: totalSalesTh>0 ? sales/totalSalesTh : 0 };
+    }).sort((a,b)=>b.salesTh-a.salesTh);
+
+    map[name] = { org:name, totalSalesTh, orgExamCount, staffContrib:contrib };
   });
   return map;
 }
@@ -465,7 +475,6 @@ function badgeByShare(share){
   return { cls:"badge badge-ok", label:"기여" };
 }
 
-/* ✅ 3개 스택(가로) 표시 보정 */
 function applyStack3(ids, values, minPct=1.2){
   const [idA,idB,idC] = ids;
   const [a,b,c] = values.map(v=>Number(v)||0);
@@ -479,15 +488,13 @@ function applyStack3(ids, values, minPct=1.2){
     return;
   }
 
-  let pA = (a/total)*100;
-  let pB = (b/total)*100;
-  let pC = (c/total)*100;
+  let pA = (a/total)*100, pB = (b/total)*100, pC = (c/total)*100;
 
   if (a>0 && pA < minPct) pA = minPct;
   if (b>0 && pB < minPct) pB = minPct;
   if (c>0 && pC < minPct) pC = minPct;
 
-  let sum = pA + pB + pC;
+  const sum = pA + pB + pC;
   if (sum > 100){
     const scale = 100 / sum;
     pA *= scale; pB *= scale; pC *= scale;
@@ -521,7 +528,7 @@ function stackPctsWithMin(third, withKmi, etc, minPct=1.6){
 
   const fixed3 = Math.max(0, pThird);
   const fixedW = Math.max(0, pWith);
-  let fixedE   = Math.max(0, 100 - fixed3 - fixedW);
+  const fixedE = Math.max(0, 100 - fixed3 - fixedW);
   return { pThird:fixed3, pWith:fixedW, pEtc:fixedE };
 }
 
@@ -535,9 +542,6 @@ function buildOmniByOrgBars(list){
   });
 }
 
-/* ✅ 하단=3자 / 중단=WITH / 상단=기타
-   - column + justify-end에서는 "마지막 DOM 요소가 바닥"
-   - 그래서 DOM은 (기타 → WITH → 3자) */
 function renderOrgStackedBars_EqualCols(data, wrapId){
   const wrap = $(wrapId);
   if (!wrap) return;
@@ -608,7 +612,7 @@ function setOrgOptions(orgNames){
   });
 }
 
-function renderOrgDetail(orgRow, staffMap, examMap){
+function renderOrgDetail(orgRow, staffMap){
   const name = orgRow.name;
   $("orgChip").textContent = name;
 
@@ -617,26 +621,24 @@ function renderOrgDetail(orgRow, staffMap, examMap){
   const etcTh   = toThousandWon(orgRow.etcSalesPrice);
   const totalTh = thirdTh + withTh + etcTh;
 
-  // ✅ 누적 검진자 수: (1) API 필드 우선 → (2) 더미 맵
-  const realExam = Number(orgRow.examCount ?? orgRow.totalExamCount ?? orgRow.cumulativeExamCount);
-  const examCount = Number.isFinite(realExam) ? realExam : Number(examMap?.[name] ?? 0);
-
   $("orgSubtitle").textContent = `${name} · 총 ${fmtTh(totalTh)} (3자 ${fmtTh(thirdTh)} / WITH ${fmtTh(withTh)} / 기타 ${fmtTh(etcTh)})`;
   $("orgTotalSales").textContent = fmtTh(totalTh);
   $("orgThirdSales").textContent = fmtTh(thirdTh);
   $("orgWithSales").textContent  = fmtTh(withTh);
   $("orgEtcSales").textContent   = fmtTh(etcTh);
 
-  $("orgExamCount").textContent = examCount ? fmtNum(examCount) + "명" : "-";
-
   applyStack3(["orgSegThird","orgSegWith","orgSegEtc"], [thirdTh, withTh, etcTh], 1.2);
   $("orgThirdTxt").textContent = fmtTh(thirdTh);
   $("orgWithTxt").textContent  = fmtTh(withTh);
   $("orgEtcTxt").textContent   = fmtTh(etcTh);
 
+  const list = (staffMap[name]?.staffContrib || []).slice();
+  const sumExam = list.reduce((s,x)=>s+(Number(x.examCnt)||0), 0);
+  $("orgExamCount").textContent = sumExam ? (fmtNum(sumExam) + "명") : "-";
+
   const tb = $("staffTbody");
   tb.innerHTML = "";
-  const list = (staffMap[name]?.staffContrib || []).slice();
+
   list.forEach(s=>{
     const b = badgeByShare(s.share);
     const tr = document.createElement("tr");
@@ -644,7 +646,7 @@ function renderOrgDetail(orgRow, staffMap, examMap){
       <td class="font-extrabold text-slate-900">${s.name}</td>
       <td class="muted font-semibold">${s.team}</td>
       <td class="right mono font-extrabold">${fmtNum(s.salesTh)}</td>
-      <td class="right mono font-extrabold">${fmtNum(s.lead)}</td>
+      <td class="right mono font-extrabold">${fmtNum(s.examCnt)}</td>
       <td class="right mono font-extrabold">${pct(s.share)}</td>
       <td><span class="${b.cls}">${b.label}</span></td>
     `;
@@ -653,7 +655,7 @@ function renderOrgDetail(orgRow, staffMap, examMap){
 
   const top = list[0];
   $("staffFoot").textContent = top
-    ? `Top 기여자: ${top.name} (${top.team}) · 기여매출 ${fmtNum(top.salesTh)}천원 · 기여율 ${pct(top.share)}`
+    ? `Top 기여자: ${top.name} (${top.team}) · 기여매출 ${fmtNum(top.salesTh)}천원 · 기여율 ${pct(top.share)} · 기여 검진자 ${fmtNum(top.examCnt)}명 (합계 ${fmtNum(sumExam)}명)`
     : "기여 데이터 없음";
 }
 
@@ -666,7 +668,7 @@ function bind(){
   $("orgSel").addEventListener("change", (e)=>{
     state.selectedOrg = e.target.value;
     const row = state.orgList.find(x=>x.name===state.selectedOrg);
-    if (row) renderOrgDetail(row, state.staffMap, state.examMap);
+    if (row) renderOrgDetail(row, state.staffMap);
   });
 }
 
@@ -677,21 +679,15 @@ function bind(){
   const omni = s1.omniSalesSummary;
   const orgList = (s1.omniSalesByRegionList || []).slice();
 
-  // 1) 상단 전체 KPI + 구성
   renderOmniTotals(omni);
 
-  // 2) 본부/지사 차트(스택)
   const orgBars = buildOmniByOrgBars(orgList);
   renderOrgStackedBars_EqualCols(orgBars, "omniChartByOrg");
 
-  // 3) 상세 더미(직원 기여)
-  state.orgList = orgList;
-  state.staffMap = genOrgStaffContrib(orgList);
-
-  // ✅ 4) 누적 검진자(더미) 맵 생성
   state.examMap = genOrgExamCounts(orgList);
+  state.orgList = orgList;
+  state.staffMap = genOrgStaffContrib(orgList, state.examMap);
 
-  // 5) 선택 UI
   const orgNames = orgList.map(o=>o.name);
   setOrgOptions(orgNames);
 
@@ -699,7 +695,7 @@ function bind(){
   $("orgSel").value = state.selectedOrg;
 
   const row = orgList.find(x=>x.name===state.selectedOrg);
-  if (row) renderOrgDetail(row, state.staffMap, state.examMap);
+  if (row) renderOrgDetail(row, state.staffMap);
 })();
 </script>
 
