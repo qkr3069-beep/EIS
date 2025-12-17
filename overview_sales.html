@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>OmniCare EIS · Omni Sales Overview</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/variable/pretendardvariable.css" />
+
+<style>
+  html,body{ font-family:"Pretendard Variable", system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+  :root{
+    --card:#fff;
+    --muted:#64748b;
+    --divider:#e5e7eb;
+    --shadow:0 8px 24px rgba(15,23,42,.06);
+    --radius:16px;
+  }
+  .card{ background:var(--card); border:1px solid var(--divider); border-radius:var(--radius); box-shadow:var(--shadow); }
+  .muted{ color:var(--muted); }
+  .divider{ height:1px; background:var(--divider); }
+
+  .chip{ border:1px solid var(--divider); border-radius:999px; padding:.25rem .6rem; font-size:.8rem; color:#334155; background:#f8fafc; font-weight:900; }
+  .btn2{ border:1px solid var(--divider); background:#fff; color:#0f172a; border-radius:12px; padding:.55rem .9rem; font-weight:900; }
+  .btn2:hover{ background:#f8fafc; }
+
+  .input{
+    border:1px solid var(--divider);
+    border-radius:12px;
+    padding:.6rem .8rem;
+    background:#fff;
+    width:100%;
+    outline:none;
+    font-weight:900;
+    color:#0f172a;
+  }
+  .input:focus{ border-color:#c7d2fe; box-shadow:0 0 0 4px rgba(31,79,255,.08); }
+
+  .kpiRow{ display:flex; flex-wrap:wrap; gap:10px; margin-top:10px; }
+  .kpi{
+    border:1px solid var(--divider);
+    border-radius:14px;
+    background:#fff;
+    padding:10px 12px;
+  }
+  .kpi .t{ font-size:.78rem; color:var(--muted); font-weight:900; }
+  .kpi .v{ font-size:1.15rem; font-weight:900; color:#0f172a; margin-top:2px; }
+  .kpi .s{ font-size:.78rem; color:var(--muted); margin-top:2px; font-weight:800; }
+
+  /* ===== 균등 차트 (본부/지사) ===== */
+  .chart-equal{
+    display:grid;
+    gap:12px;
+    align-items:end;
+    overflow:hidden;
+    padding-bottom:6px;
+  }
+  .bar-col{ display:flex; flex-direction:column; align-items:center; gap:6px; min-width:0; }
+  .bar-area{ position:relative; width:100%; height:250px; display:flex; align-items:flex-end; }
+  .bar-goal{ width:100%; background:#bfdbfe; border-radius:10px; position:absolute; bottom:0; }
+  .bar-actual{ width:56%; position:absolute; bottom:0; left:50%; transform:translateX(-50%); border-radius:8px; background:#1e3a8a; }
+  .top-num{ font-size:.72rem; color:#374151; font-weight:900; }
+  .bottom-num{ font-size:.72rem; color:#0f172a; font-weight:900; }
+  .bar-label{
+    font-size:.82rem; font-weight:900; color:#0f172a; text-align:center;
+    max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
+
+  /* ===== 스택 바 (구성) ===== */
+  .stack{
+    width:100%;
+    border:1px solid var(--divider);
+    border-radius:14px;
+    overflow:hidden;
+    background:#f8fafc;
+    height:14px;
+  }
+  .seg{ height:100%; display:inline-block; }
+  .seg-third{ background:#93c5fd; }  /* 3자 */
+  .seg-with{  background:#fca5a5; }  /* WITH KMI */
+  .seg-etc{
+    background:#22c55e !important;
+    box-shadow: inset 0 0 0 1px rgba(15,23,42,.18);
+  }
+  .legend{
+    display:flex; flex-wrap:wrap; gap:10px; margin-top:8px;
+    font-size:.82rem; color:#334155; font-weight:900;
+  }
+  .dot{ width:10px; height:10px; border-radius:3px; display:inline-block; margin-right:6px; vertical-align:middle; }
+  .dot-third{ background:#93c5fd; }
+  .dot-with{ background:#fca5a5; }
+  .dot-etc{ background:#22c55e; }
+
+  /* ===== table ===== */
+  .table-wrap{ overflow:auto; border-radius:14px; border:1px solid var(--divider); }
+  table{ width:100%; border-collapse:separate; border-spacing:0; }
+  th, td{ padding:12px 12px; border-bottom:1px solid var(--divider); }
+  th{
+    position:sticky; top:0;
+    background:#f8fafc;
+    text-align:left;
+    font-size:.85rem;
+    color:#475569;
+    z-index:1;
+    user-select:none;
+    white-space:nowrap;
+    font-weight:900;
+  }
+  tr:hover td{ background:#fbfdff; }
+  .right{ text-align:right; }
+  .mono{ font-variant-numeric:tabular-nums; }
+
+  .badge{
+    font-size:.75rem;
+    padding:.2rem .55rem;
+    border-radius:999px;
+    border:1px solid var(--divider);
+    background:#fff;
+    white-space:nowrap;
+    font-weight:900;
+  }
+  .badge-ok{ background:#ecfeff; border-color:#a5f3fc; color:#155e75; }
+  .badge-warn{ background:#fffbeb; border-color:#fde68a; color:#92400e; }
+  .badge-bad{ background:#fef2f2; border-color:#fecaca; color:#991b1b; }
+
+  .secTitle{ font-weight:900; color:#0f172a; font-size:1.05rem; }
+  .secSub{ font-size:.85rem; color:var(--muted); font-weight:900; margin-top:2px; }
+</style>
+</head>
+
+<body class="bg-slate-50">
+
+<header class="sticky top-0 z-20 bg-white/90 backdrop-blur border-b border-slate-200">
+  <div class="max-w-[1440px] mx-auto px-2 py-3 flex items-center gap-3">
+    <a href="https://qkr3069-beep.github.io/EIS/" aria-label="메인으로 이동">
+      <img src="omnicare_logo.png" alt="옴니케어 로고" class="h-12 object-contain cursor-pointer" />
+    </a>
+    <div class="flex-1">
+      <div class="font-semibold text-slate-900">Omni Sales Overview</div>
+      <div class="text-sm muted">옴니케어 매출 · 전체 → 영업부 상세(구성/직원 기여)</div>
+    </div>
+
+    <button onclick="location.href='index.html'" class="btn2">메인</button>
+    <button onclick="location.href='admin_manager.html'" class="btn2">관리자</button>
+    <button onclick="location.href='mypage_sales.html'" class="btn2">마이페이지</button>
+  </div>
+</header>
+
+<main class="max-w-[1440px] mx-auto px-2 py-6 space-y-6">
+
+  <!-- 1) 상단: 옴니케어 전체 누계 매출/목표(메인 동일 감성) -->
+  <section class="card p-5">
+    <div class="flex items-start justify-between gap-3">
+      <div>
+        <div class="font-extrabold text-slate-900 text-lg">옴니케어 · 전체 누계 매출</div>
+        <div class="muted text-sm font-semibold">3자 / WITH KMI / 기타 구성 포함 · 단위: 천원</div>
+      </div>
+      <span class="chip">단위: 천원</span>
+    </div>
+
+    <div class="kpiRow">
+      <div class="kpi">
+        <div class="t">2025년 예상(합계)</div>
+        <div class="v mono" id="omniExpectedTotal">-</div>
+        <div class="s">3자 + WITH KMI + 기타</div>
+      </div>
+      <div class="kpi">
+        <div class="t">현재 누계(합계)</div>
+        <div class="v mono" id="omniCurrentTotal">-</div>
+        <div class="s">3자 + WITH KMI + 기타</div>
+      </div>
+      <div class="kpi">
+        <div class="t">달성률(현재/예상)</div>
+        <div class="v mono" id="omniAch">-</div>
+        <div class="s">현재 합계 ÷ 예상 합계</div>
+      </div>
+    </div>
+
+    <div class="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div class="p-4 rounded-2xl border border-slate-200 bg-slate-50">
+        <div class="font-extrabold text-slate-900">예상 구성</div>
+        <div class="stack mt-2" aria-label="예상 매출 구성">
+          <span class="seg seg-third" id="expThird" style="width:0%"></span>
+          <span class="seg seg-with"  id="expWith"  style="width:0%"></span>
+          <span class="seg seg-etc"   id="expEtc"   style="width:0%"></span>
+        </div>
+        <div class="legend">
+          <span><i class="dot dot-third"></i>3자: <span id="expThirdTxt">-</span></span>
+          <span><i class="dot dot-with"></i>WITH KMI: <span id="expWithTxt">-</span></span>
+          <span><i class="dot dot-etc"></i>기타: <span id="expEtcTxt">-</span></span>
+        </div>
+      </div>
+
+      <div class="p-4 rounded-2xl border border-slate-200 bg-slate-50">
+        <div class="font-extrabold text-slate-900">현재 구성</div>
+        <div class="stack mt-2" aria-label="현재 매출 구성">
+          <span class="seg seg-third" id="curThird" style="width:0%"></span>
+          <span class="seg seg-with"  id="curWith"  style="width:0%"></span>
+          <span class="seg seg-etc"   id="curEtc"   style="width:0%"></span>
+        </div>
+        <div class="legend">
+          <span><i class="dot dot-third"></i>3자: <span id="curThirdTxt">-</span></span>
+          <span><i class="dot dot-with"></i>WITH KMI: <span id="curWithTxt">-</span></span>
+          <span><i class="dot dot-etc"></i>기타: <span id="curEtcTxt">-</span></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2) 본부/지사별 총합 차트 -->
+  <section class="card p-5">
+    <div class="flex items-start justify-between gap-3">
+      <div>
+        <div class="font-extrabold text-slate-900 text-lg">본부/지사별 매출(총합)</div>
+        <div class="muted text-sm font-semibold">각 영업부 총합(3자+WITH+기타) · 단위: 천원</div>
+      </div>
+      <span class="chip">ORG</span>
+    </div>
+
+    <div class="mt-4 chart-equal" id="omniChartByOrg"></div>
+
+    <div class="mt-3 muted text-xs font-semibold">
+      ※ 이 화면에서는 막대를 “총합”으로 보여주고, 하단 상세에서 구성(3자/with/기타)와 직원 기여도를 봅니다.
+    </div>
+  </section>
+
+  <!-- 3) 영업부 선택 + 상세 -->
+  <section class="card p-5">
+    <div class="flex items-start justify-between gap-3">
+      <div>
+        <div class="secTitle">영업부 상세</div>
+        <div class="secSub" id="orgSubtitle">본부/지사를 선택하면 상세(구성/직원 기여)가 표시됩니다.</div>
+      </div>
+      <span class="chip" id="orgChip">ORG</span>
+    </div>
+
+    <div class="divider my-4"></div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-3 items-end">
+      <div class="lg:col-span-5">
+        <div class="text-xs muted font-extrabold">본부/지사 선택</div>
+        <select id="orgSel" class="input mt-1"></select>
+      </div>
+      <div class="lg:col-span-7">
+        <div class="kpiRow lg:justify-end">
+          <div class="kpi">
+            <div class="t">선택 영업부 총 매출</div>
+            <div class="v mono" id="orgTotalSales">-</div>
+            <div class="s">3자 + WITH + 기타</div>
+          </div>
+          <div class="kpi">
+            <div class="t">3자 매출</div>
+            <div class="v mono" id="orgThirdSales">-</div>
+            <div class="s">otherSalesPrice</div>
+          </div>
+          <div class="kpi">
+            <div class="t">WITH KMI 매출</div>
+            <div class="v mono" id="orgWithSales">-</div>
+            <div class="s">withkmiSalesPrice</div>
+          </div>
+          <div class="kpi">
+            <div class="t">기타 매출</div>
+            <div class="v mono" id="orgEtcSales">-</div>
+            <div class="s">etcSalesPrice</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3) 구성(스택) -->
+    <div class="mt-4 p-4 rounded-2xl border border-slate-200 bg-slate-50">
+      <div class="font-extrabold text-slate-900">매출 형태 구성 (3자 / WITH KMI / 기타)</div>
+      <div class="stack mt-2">
+        <span class="seg seg-third" id="orgSegThird" style="width:0%"></span>
+        <span class="seg seg-with"  id="orgSegWith"  style="width:0%"></span>
+        <span class="seg seg-etc"   id="orgSegEtc"   style="width:0%"></span>
+      </div>
+      <div class="legend">
+        <span><i class="dot dot-third"></i>3자: <span id="orgThirdTxt">-</span></span>
+        <span><i class="dot dot-with"></i>WITH KMI: <span id="orgWithTxt">-</span></span>
+        <span><i class="dot dot-etc"></i>기타: <span id="orgEtcTxt">-</span></span>
+      </div>
+    </div>
+
+    <!-- 4) 직원별 기여도 -->
+    <div class="mt-4 p-4 rounded-2xl border border-slate-200 bg-white">
+      <div class="flex items-start justify-between gap-3">
+        <div>
+          <div class="font-extrabold text-slate-900">직원별 기여도</div>
+          <div class="muted text-sm font-semibold mt-1">기여 매출(천원) 기준 · 더미</div>
+        </div>
+        <span class="chip">STAFF</span>
+      </div>
+
+      <div class="divider my-4"></div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>직원</th>
+              <th>팀</th>
+              <th class="right">기여 매출(천원)</th>
+              <th class="right">기여 리드(더미)</th>
+              <th class="right">기여율</th>
+              <th>평가</th>
+            </tr>
+          </thead>
+          <tbody id="staffTbody"></tbody>
+        </table>
+      </div>
+
+      <div class="mt-3 muted text-xs font-semibold" id="staffFoot">-</div>
+    </div>
+  </section>
+
+  <footer class="text-center muted text-sm py-6 font-semibold">
+    ※ 본 페이지는 샘플 화면(더미)입니다. 실제 서비스에서는 DB/권한/집계 로직/감사로그가 추가됩니다.
+  </footer>
+
+</main>
+
+<script>
+/* =========================================================
+   샘플(JSON) — 메인에서 쓰던 omni 구조를 그대로 사용
+   ========================================================= */
+const SECTION1_SAMPLE = {
+  section1: {
+    omniSalesSummary: {
+      expectedTotalSalesPrice: null,
+      expectedOtherServiceUsingSalesPrice: 5228986318,
+      expectedWithkmiServiceUsingSalesPrice: 1771490000,
+      expectedEtcSalesPrice: 590500000,
+      otherServiceUsingSalesPrice: 4894059272,
+      withkmiServiceUsingSalesPrice: 1719822727,
+      etcSalesPrice: 304500000,
+      totalSalesPrice: null
+    },
+    omniSalesByRegionList: [
+      {"name":"1본부","otherSalesPrice":1676746818,"withkmiSalesPrice":394306363,"etcSalesPrice":0},
+      {"name":"2본부","otherSalesPrice":1896188000,"withkmiSalesPrice":522207272,"etcSalesPrice":0},
+      {"name":"수원지사","otherSalesPrice":459350909,"withkmiSalesPrice":27586363,"etcSalesPrice":0},
+      {"name":"대구지사","otherSalesPrice":119692727,"withkmiSalesPrice":321623181,"etcSalesPrice":28500000},
+      {"name":"부산지사","otherSalesPrice":533028636,"withkmiSalesPrice":287047272,"etcSalesPrice":5636363},
+      {"name":"광주지사","otherSalesPrice":205712181,"withkmiSalesPrice":166275000,"etcSalesPrice":36363636},
+      {"name":"제휴사업","otherSalesPrice":1554545,"withkmiSalesPrice":572727,"etcSalesPrice":124500000}
+    ]
+  }
+};
+
+async function fetchSection1(){
+  // 실제 연동 시 여기만 API로 교체하면 됨
+  return SECTION1_SAMPLE.section1;
+}
+
+/* =========================================================
+   더미: 직원 풀 + 영업부별 기여 생성
+   ========================================================= */
+const STAFF_POOL = [
+  { name:"김민수", team:"영업1팀" },
+  { name:"박지현", team:"영업1팀" },
+  { name:"이도윤", team:"영업2팀" },
+  { name:"최서연", team:"영업2팀" },
+  { name:"정하준", team:"전략영업" },
+  { name:"윤예린", team:"영업지원" }
+];
+
+function makeSeededRand(seed=1){
+  let s = seed >>> 0;
+  return () => { s = (1664525 * s + 1013904223) >>> 0; return (s / 0xFFFFFFFF); };
+}
+
+function genOrgStaffContrib(orgList){
+  const seedBase = new Date().getFullYear()*10000 + (new Date().getMonth()+1)*100 + new Date().getDate();
+  const rnd = makeSeededRand(seedBase);
+
+  const map = {};
+  orgList.forEach(org=>{
+    const name = org.name;
+    const totalTh = toThousandWon(org.otherSalesPrice) + toThousandWon(org.withkmiSalesPrice) + toThousandWon(org.etcSalesPrice);
+
+    const staffN = 3 + Math.floor(rnd()*3); // 3~5
+    const picks = STAFF_POOL.slice().sort(()=>rnd()-0.5).slice(0, staffN);
+
+    let weights = picks.map(()=>0.8 + rnd()*1.2);
+    const wsum = weights.reduce((s,x)=>s+x,0);
+    weights = weights.map(w=>w/wsum);
+
+    let remSales = totalTh;
+    let remLead = Math.max(20, Math.round(totalTh/60)); // 더미 리드
+    const contrib = picks.map((p, i)=>{
+      const sales = (i===picks.length-1) ? remSales : Math.round(totalTh*weights[i]);
+      remSales -= sales;
+      const lead  = (i===picks.length-1) ? remLead : Math.round(remLead*weights[i]*(0.85+rnd()*0.3));
+      remLead -= lead;
+      return { name:p.name, team:p.team, salesTh:sales, lead:lead, share: totalTh>0 ? sales/totalTh : 0 };
+    }).sort((a,b)=>b.salesTh-a.salesTh);
+
+    map[name] = { org:name, totalTh, staffContrib:contrib };
+  });
+  return map;
+}
+
+/* =========================================================
+   유틸 + 렌더
+   ========================================================= */
+const $ = (id) => document.getElementById(id);
+function clamp(n,min,max){ return Math.max(min, Math.min(max,n)); }
+function toThousandWon(v){ return Math.round((Number(v)||0)/1000); }
+function fmtTh(n){ return (Number(n)||0).toLocaleString("ko-KR") + "천원"; }
+function fmtNum(n){ return (Number(n)||0).toLocaleString("ko-KR"); }
+function pct(x){ return (x*100).toFixed(1) + "%"; }
+
+function setStack(elId, value, total){
+  const el = $(elId);
+  if (!el) return;
+  let p = total>0 ? (value/total)*100 : 0;
+  p = clamp(p, 0, 100);
+  if (value>0 && p<1) p = 1;
+  el.style.width = p + "%";
+}
+
+function badgeByShare(share){
+  if (share >= 0.45) return { cls:"badge badge-bad", label:"핵심" };
+  if (share >= 0.25) return { cls:"badge badge-warn", label:"주요" };
+  return { cls:"badge badge-ok", label:"기여" };
+}
+
+/* ===== 본부/지사 차트 ===== */
+function buildOmniByOrgBars(list){
+  return (list||[]).map(r=>{
+    const total = toThousandWon(r.otherSalesPrice) + toThousandWon(r.withkmiSalesPrice) + toThousandWon(r.etcSalesPrice);
+    return { name:r.name, goal: total, actual: total };
+  });
+}
+function renderOverlayBarChart_EqualCols(data, wrapId){
+  const wrap = $(wrapId);
+  if (!wrap) return;
+  wrap.classList.add("chart-equal");
+  wrap.style.gridTemplateColumns = `repeat(${data.length}, minmax(0, 1fr))`;
+  wrap.innerHTML = "";
+  const maxGoal = Math.max(...data.map(d=>d.goal||0), 1);
+
+  data.forEach(d=>{
+    const goalH = (d.goal/maxGoal)*100;
+    const actualH = (d.actual/maxGoal)*100;
+
+    const col = document.createElement("div");
+    col.className = "bar-col";
+    col.innerHTML = `
+      <div class="top-num">${(d.goal||0).toLocaleString()}</div>
+      <div class="bar-area">
+        <div class="bar-goal" style="height:${goalH}%"></div>
+        <div class="bar-actual" style="height:${actualH}%"></div>
+      </div>
+      <div class="bottom-num">${(d.actual||0).toLocaleString()}</div>
+      <div class="bar-label" title="${d.name||"-"}">${d.name||"-"}</div>
+    `;
+    wrap.appendChild(col);
+  });
+}
+
+/* ===== 상단 전체 KPI + 구성 ===== */
+function renderOmniTotals(omni){
+  const eThird = toThousandWon(omni.expectedOtherServiceUsingSalesPrice);
+  const eWith  = toThousandWon(omni.expectedWithkmiServiceUsingSalesPrice);
+  const eEtc   = toThousandWon(omni.expectedEtcSalesPrice);
+  const expectedTotal = eThird + eWith + eEtc;
+
+  const cThird = toThousandWon(omni.otherServiceUsingSalesPrice);
+  const cWith  = toThousandWon(omni.withkmiServiceUsingSalesPrice);
+  const cEtc   = toThousandWon(omni.etcSalesPrice);
+  const currentTotal = cThird + cWith + cEtc;
+
+  $("omniExpectedTotal").textContent = fmtTh(expectedTotal);
+  $("omniCurrentTotal").textContent  = fmtTh(currentTotal);
+  $("omniAch").textContent = expectedTotal>0 ? pct(currentTotal/expectedTotal) : "-";
+
+  setStack("expThird", eThird, expectedTotal);
+  setStack("expWith",  eWith,  expectedTotal);
+  setStack("expEtc",   eEtc,   expectedTotal);
+  $("expThirdTxt").textContent = fmtTh(eThird);
+  $("expWithTxt").textContent  = fmtTh(eWith);
+  $("expEtcTxt").textContent   = fmtTh(eEtc);
+
+  setStack("curThird", cThird, currentTotal);
+  setStack("curWith",  cWith,  currentTotal);
+  setStack("curEtc",   cEtc,   currentTotal);
+  $("curThirdTxt").textContent = fmtTh(cThird);
+  $("curWithTxt").textContent  = fmtTh(cWith);
+  $("curEtcTxt").textContent   = fmtTh(cEtc);
+}
+
+/* ===== 영업부 상세 ===== */
+function setOrgOptions(orgNames){
+  const sel = $("orgSel");
+  sel.innerHTML = "";
+  orgNames.forEach(n=>{
+    const opt = document.createElement("option");
+    opt.value = n;
+    opt.textContent = n;
+    sel.appendChild(opt);
+  });
+}
+
+function renderOrgDetail(orgRow, staffMap){
+  const name = orgRow.name;
+  $("orgChip").textContent = name;
+
+  const thirdTh = toThousandWon(orgRow.otherSalesPrice);
+  const withTh  = toThousandWon(orgRow.withkmiSalesPrice);
+  const etcTh   = toThousandWon(orgRow.etcSalesPrice);
+  const totalTh = thirdTh + withTh + etcTh;
+
+  $("orgSubtitle").textContent = `${name} · 총 ${fmtTh(totalTh)} (3자 ${fmtTh(thirdTh)} / WITH ${fmtTh(withTh)} / 기타 ${fmtTh(etcTh)})`;
+  $("orgTotalSales").textContent = fmtTh(totalTh);
+  $("orgThirdSales").textContent = fmtTh(thirdTh);
+  $("orgWithSales").textContent  = fmtTh(withTh);
+  $("orgEtcSales").textContent   = fmtTh(etcTh);
+
+  setStack("orgSegThird", thirdTh, totalTh);
+  setStack("orgSegWith",  withTh,  totalTh);
+  setStack("orgSegEtc",   etcTh,   totalTh);
+  $("orgThirdTxt").textContent = fmtTh(thirdTh);
+  $("orgWithTxt").textContent  = fmtTh(withTh);
+  $("orgEtcTxt").textContent   = fmtTh(etcTh);
+
+  // 직원 기여도
+  const tb = $("staffTbody");
+  tb.innerHTML = "";
+  const list = (staffMap[name]?.staffContrib || []).slice();
+  list.forEach(s=>{
+    const b = badgeByShare(s.share);
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td class="font-extrabold text-slate-900">${s.name}</td>
+      <td class="muted font-semibold">${s.team}</td>
+      <td class="right mono font-extrabold">${fmtNum(s.salesTh)}</td>
+      <td class="right mono font-extrabold">${fmtNum(s.lead)}</td>
+      <td class="right mono font-extrabold">${pct(s.share)}</td>
+      <td><span class="${b.cls}">${b.label}</span></td>
+    `;
+    tb.appendChild(tr);
+  });
+
+  const top = list[0];
+  $("staffFoot").textContent = top
+    ? `Top 기여자: ${top.name} (${top.team}) · 기여매출 ${fmtNum(top.salesTh)}천원 · 기여율 ${pct(top.share)}`
+    : "기여 데이터 없음";
+}
+
+/* =========================================================
+   init
+   ========================================================= */
+const state = {
+  orgList: [],
+  staffMap: {},
+  selectedOrg: ""
+};
+
+function bind(){
+  $("orgSel").addEventListener("change", (e)=>{
+    state.selectedOrg = e.target.value;
+    const row = state.orgList.find(x=>x.name===state.selectedOrg);
+    if (row) renderOrgDetail(row, state.staffMap);
+  });
+}
+
+(async function init(){
+  bind();
+
+  const s1 = await fetchSection1();
+  const omni = s1.omniSalesSummary;
+  const orgList = (s1.omniSalesByRegionList || []).slice();
+
+  // 1) 상단 전체 KPI + 구성
+  renderOmniTotals(omni);
+
+  // 2) 본부/지사 총합 차트
+  const orgBars = buildOmniByOrgBars(orgList);
+  renderOverlayBarChart_EqualCols(orgBars, "omniChartByOrg");
+
+  // 3) 상세 더미(직원 기여)
+  state.orgList = orgList;
+  state.staffMap = genOrgStaffContrib(orgList);
+
+  // 4) 선택 UI
+  const orgNames = orgList.map(o=>o.name);
+  setOrgOptions(orgNames);
+
+  state.selectedOrg = orgNames[0] || "";
+  $("orgSel").value = state.selectedOrg;
+
+  const row = orgList.find(x=>x.name===state.selectedOrg);
+  if (row) renderOrgDetail(row, state.staffMap);
+})();
+</script>
+
+</body>
+</html>
