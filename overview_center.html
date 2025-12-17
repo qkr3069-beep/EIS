@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>OmniCare EIS · KMI Center Overview</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/variable/pretendardvariable.css" />
+
+<style>
+  html,body{ font-family:"Pretendard Variable", system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+  :root{
+    --card:#fff;
+    --muted:#64748b;
+    --divider:#e5e7eb;
+    --shadow:0 8px 24px rgba(15,23,42,.06);
+    --radius:16px;
+  }
+  .card{ background:var(--card); border:1px solid var(--divider); border-radius:var(--radius); box-shadow:var(--shadow); }
+  .muted{ color:var(--muted); }
+  .divider{ height:1px; background:var(--divider); }
+
+  .chip{ border:1px solid var(--divider); border-radius:999px; padding:.25rem .6rem; font-size:.8rem; color:#334155; background:#f8fafc; font-weight:800; }
+  .btn2{ border:1px solid var(--divider); background:#fff; color:#0f172a; border-radius:12px; padding:.55rem .9rem; font-weight:800; }
+  .btn2:hover{ background:#f8fafc; }
+
+  .input{
+    border:1px solid var(--divider);
+    border-radius:12px;
+    padding:.6rem .8rem;
+    background:#fff;
+    width:100%;
+    outline:none;
+    font-weight:800;
+    color:#0f172a;
+  }
+  .input:focus{ border-color:#c7d2fe; box-shadow:0 0 0 4px rgba(31,79,255,.08); }
+
+  /* ===== 균등 차트 ===== */
+  .chart-equal{
+    display:grid;
+    gap:12px;
+    align-items:end;
+    overflow:hidden;
+    padding-bottom:6px;
+  }
+  .bar-col{ display:flex; flex-direction:column; align-items:center; gap:6px; min-width:0; }
+  .bar-area{ position:relative; width:100%; height:260px; display:flex; align-items:flex-end; }
+  .bar-goal{ width:100%; background:#e5e7eb; border-radius:10px; position:absolute; bottom:0; }
+  .bar-actual{ width:56%; position:absolute; bottom:0; left:50%; transform:translateX(-50%); border-radius:8px; background:#0f172a; }
+  .top-num{ font-size:.72rem; color:#374151; font-weight:900; }
+  .bottom-num{ font-size:.72rem; color:#0f172a; font-weight:900; }
+  .bar-label{
+    font-size:.82rem; font-weight:900; color:#0f172a; text-align:center;
+    max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
+
+  /* ===== mini bars ===== */
+  .mini-grid{ display:grid; gap:12px; }
+  @media (min-width: 768px){ .mini-grid{ grid-template-columns: 1fr 1fr; } }
+  .mini-card{
+    border:1px solid var(--divider);
+    border-radius:16px;
+    background:linear-gradient(180deg,#ffffff,#fbfdff);
+    padding:16px;
+  }
+
+  .kpiRow{ display:flex; flex-wrap:wrap; gap:10px; margin-top:10px; }
+  .kpi{
+    border:1px solid var(--divider);
+    border-radius:14px;
+    background:#fff;
+    padding:10px 12px;
+  }
+  .kpi .t{ font-size:.78rem; color:var(--muted); font-weight:900; }
+  .kpi .v{ font-size:1.15rem; font-weight:900; color:#0f172a; margin-top:2px; }
+  .kpi .s{ font-size:.78rem; color:var(--muted); margin-top:2px; font-weight:800; }
+
+  .hbar{
+    height:14px;
+    background:#f1f5f9;
+    border:1px solid var(--divider);
+    border-radius:999px;
+    overflow:hidden;
+  }
+  .hfill{ height:100%; background:#1e3a8a; border-radius:999px; }
+  .hfill2{ height:100%; background:#0ea5e9; border-radius:999px; }
+  .hfill3{ height:100%; background:#22c55e; border-radius:999px; }
+  .legend{
+    display:flex; flex-wrap:wrap; gap:12px;
+    font-size:.82rem; font-weight:900; color:#334155;
+    margin-top:10px;
+  }
+  .dot{ width:10px; height:10px; border-radius:3px; display:inline-block; margin-right:6px; vertical-align:middle; }
+  .dot1{ background:#1e3a8a; }
+  .dot2{ background:#0ea5e9; }
+  .dot3{ background:#22c55e; }
+
+  /* ===== table ===== */
+  .table-wrap{ overflow:auto; border-radius:14px; border:1px solid var(--divider); }
+  table{ width:100%; border-collapse:separate; border-spacing:0; }
+  th, td{ padding:12px 12px; border-bottom:1px solid var(--divider); }
+  th{
+    position:sticky; top:0;
+    background:#f8fafc;
+    text-align:left;
+    font-size:.85rem;
+    color:#475569;
+    z-index:1;
+    user-select:none;
+    white-space:nowrap;
+    font-weight:900;
+  }
+  tr:hover td{ background:#fbfdff; }
+  .right{ text-align:right; }
+  .mono{ font-variant-numeric:tabular-nums; }
+
+  .badge{
+    font-size:.75rem;
+    padding:.2rem .55rem;
+    border-radius:999px;
+    border:1px solid var(--divider);
+    background:#fff;
+    white-space:nowrap;
+    font-weight:900;
+  }
+  .badge-ok{ background:#ecfeff; border-color:#a5f3fc; color:#155e75; }
+  .badge-warn{ background:#fffbeb; border-color:#fde68a; color:#92400e; }
+  .badge-bad{ background:#fef2f2; border-color:#fecaca; color:#991b1b; }
+
+  .secTitle{ font-weight:900; color:#0f172a; font-size:1.05rem; }
+  .secSub{ font-size:.85rem; color:var(--muted); font-weight:900; margin-top:2px; }
+</style>
+</head>
+
+<body class="bg-slate-50">
+
+<header class="sticky top-0 z-20 bg-white/90 backdrop-blur border-b border-slate-200">
+  <div class="max-w-[1440px] mx-auto px-2 py-3 flex items-center gap-3">
+    <a href="https://qkr3069-beep.github.io/EIS/" aria-label="메인으로 이동">
+      <img src="omnicare_logo.png" alt="옴니케어 로고" class="h-12 object-contain cursor-pointer" />
+    </a>
+    <div class="flex-1">
+      <div class="font-semibold text-slate-900">KMI Center Overview</div>
+      <div class="text-sm muted">전체 매출 → 센터별 누계/목표 → 센터 상세</div>
+    </div>
+
+    <button onclick="location.href='index.html'" class="btn2">메인</button>
+    <button onclick="location.href='admin_manager.html'" class="btn2">관리자</button>
+    <button onclick="location.href='mypage_sales.html'" class="btn2">마이페이지</button>
+  </div>
+</header>
+
+<main class="max-w-[1440px] mx-auto px-2 py-6 space-y-6">
+
+  <!-- 0) KMI 검진 전체 매출 (먼저) -->
+  <section class="card p-5">
+    <div class="flex items-start justify-between gap-3">
+      <div>
+        <div class="font-extrabold text-slate-900 text-lg">KMI 검진 · 전체 누계 매출</div>
+        <div class="muted text-sm font-semibold">센터별 합산(샘플) · 실제 서비스에서는 DB 집계로 대체</div>
+      </div>
+      <span class="chip">단위: 천원</span>
+    </div>
+
+    <div class="kpiRow">
+      <div class="kpi">
+        <div class="t">전체 누계(합계)</div>
+        <div class="v mono" id="kmiTotalSales">-</div>
+        <div class="s">센터별 누계매출 합산</div>
+      </div>
+      <div class="kpi">
+        <div class="t">전체 목표(합계)</div>
+        <div class="v mono" id="kmiTotalGoal">-</div>
+        <div class="s">센터별 목표매출 합산</div>
+      </div>
+      <div class="kpi">
+        <div class="t">전체 달성률</div>
+        <div class="v mono" id="kmiTotalAch">-</div>
+        <div class="s">누계/목표</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 1) 센터별 누계/목표 (메인 동일) -->
+  <section class="card p-5">
+    <div class="flex items-start justify-between gap-3">
+      <div>
+        <div class="font-extrabold text-slate-900 text-lg">센터별 누계 매출(메인 동일)</div>
+        <div class="muted text-sm font-semibold">목표(회색) 대비 누계(검은색) · 천원 단위</div>
+      </div>
+      <span class="chip">CENTER</span>
+    </div>
+
+    <div class="mt-4 chart-equal" id="kmiChart"></div>
+  </section>
+
+  <!-- 2) 센터 상세 (여기에 센터 선택) -->
+  <section class="card p-5">
+    <div class="flex items-start justify-between gap-3">
+      <div>
+        <div class="secTitle">센터 상세</div>
+        <div class="secSub" id="centerSubtitle">센터를 선택하면 상세 지표가 표시됩니다.</div>
+      </div>
+      <span class="chip" id="centerChip">CENTER</span>
+    </div>
+
+    <div class="divider my-4"></div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-3 items-end">
+      <div class="lg:col-span-6">
+        <div class="text-xs muted font-extrabold">센터 선택</div>
+        <select id="centerSel" class="input mt-1"></select>
+      </div>
+      <div class="lg:col-span-6">
+        <div class="kpiRow lg:justify-end">
+          <div class="kpi">
+            <div class="t">선택 센터 누계</div>
+            <div class="v mono" id="kpiCenterSales">-</div>
+            <div class="s">달성률: <span id="kpiCenterAch">-</span></div>
+          </div>
+          <div class="kpi">
+            <div class="t">선택 센터 목표</div>
+            <div class="v mono" id="kpiCenterGoal">-</div>
+            <div class="s">목표 기준</div>
+          </div>
+          <div class="kpi">
+            <div class="t">센터 수검(더미)</div>
+            <div class="v mono" id="kpiCenterPeople">-</div>
+            <div class="s">성별/나이 분포 반영</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="mini-grid mt-4">
+      <!-- 1) 검진 형태별 -->
+      <div class="mini-card">
+        <div class="font-extrabold text-slate-900">1) 검진 형태별 수</div>
+        <div class="muted text-sm font-semibold mt-1">종검 / 종검 외 / 국가 / 종검+종검 외</div>
+
+        <div class="mt-4 space-y-3" id="typeBars"></div>
+
+        <div class="legend">
+          <span><i class="dot dot1"></i>종합검진</span>
+          <span><i class="dot dot2"></i>종검 외</span>
+          <span><i class="dot dot3"></i>국가검진</span>
+        </div>
+      </div>
+
+      <!-- 2) 수검자 성별/나이 -->
+      <div class="mini-card">
+        <div class="font-extrabold text-slate-900">2) 수검자 데이터</div>
+        <div class="muted text-sm font-semibold mt-1">성별 / 나이대 분포</div>
+
+        <div class="mt-4">
+          <div class="text-xs muted font-extrabold">성별</div>
+          <div class="mt-2 space-y-3" id="genderBars"></div>
+        </div>
+
+        <div class="mt-5">
+          <div class="text-xs muted font-extrabold">나이대</div>
+          <div class="mt-2 space-y-3" id="ageBars"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3) 영업기여도 -->
+    <div class="mt-4 mini-card">
+      <div class="flex items-start justify-between gap-3">
+        <div>
+          <div class="font-extrabold text-slate-900">3) 영업 직원 기여도</div>
+          <div class="muted text-sm font-semibold mt-1">매출/예약/기여율(더미) · 센터별 Top 기여자</div>
+        </div>
+        <span class="chip">SALES</span>
+      </div>
+
+      <div class="divider my-4"></div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>직원</th>
+              <th>팀</th>
+              <th class="right">기여 매출(천원)</th>
+              <th class="right">기여 예약</th>
+              <th class="right">기여율</th>
+              <th>평가</th>
+            </tr>
+          </thead>
+          <tbody id="staffTbody"></tbody>
+        </table>
+      </div>
+
+      <div class="mt-3 muted text-xs font-semibold" id="staffFoot">-</div>
+    </div>
+  </section>
+
+  <footer class="text-center muted text-sm py-6 font-semibold">
+    ※ 본 페이지는 샘플 화면(더미)입니다. 실제 서비스에서는 DB/권한/집계 로직/감사로그가 추가됩니다.
+  </footer>
+</main>
+
+<script>
+/* =========================================================
+   0) 센터별 누계/목표 샘플(메인과 동일 구조)
+   ========================================================= */
+const SECTION1_SAMPLE = {
+  section1: {
+    kmiSalesByRegionList: [
+      {"name":"광화문","summarySalesPrice":53285695937,"goalsSalesPrice":53000000000},
+      {"name":"여의도","summarySalesPrice":61008849652,"goalsSalesPrice":63900000000},
+      {"name":"강남","summarySalesPrice":66246179006,"goalsSalesPrice":68700000000},
+      {"name":"수원","summarySalesPrice":64863541879,"goalsSalesPrice":66300000000},
+      {"name":"대구","summarySalesPrice":44617977823,"goalsSalesPrice":46650000000},
+      {"name":"부산","summarySalesPrice":44705140202,"goalsSalesPrice":47600000000},
+      {"name":"광주","summarySalesPrice":40530362396,"goalsSalesPrice":41750000000},
+      {"name":"제주","summarySalesPrice":9115232746,"goalsSalesPrice":9600000000},
+      {"name":"수도권출장","summarySalesPrice":3313988664,"goalsSalesPrice":2500000000}
+    ]
+  }
+};
+
+async function fetchSection1(){
+  // 실제 연동 시 여기만 API로 교체하면 됨
+  return SECTION1_SAMPLE.section1;
+}
+
+/* =========================================================
+   1) 센터 상세 더미 생성 (형태/성별/나이/영업기여)
+   ========================================================= */
+const STAFF_POOL = [
+  { name:"김민수", team:"영업1팀" },
+  { name:"박지현", team:"영업1팀" },
+  { name:"이도윤", team:"영업2팀" },
+  { name:"최서연", team:"영업2팀" },
+  { name:"정하준", team:"전략영업" }
+];
+
+function makeSeededRand(seed=1){
+  let s = seed >>> 0;
+  return () => { s = (1664525 * s + 1013904223) >>> 0; return (s / 0xFFFFFFFF); };
+}
+
+function genCenterDetailsFromSales(regionList){
+  const seedBase = new Date().getFullYear()*10000 + (new Date().getMonth()+1)*100 + new Date().getDate();
+  const rnd = makeSeededRand(seedBase);
+
+  const map = {};
+  regionList.forEach((r) => {
+    const center = r.name;
+    const salesWon = Number(r.summarySalesPrice||0);
+    const goalWon  = Number(r.goalsSalesPrice||0);
+
+    const estPeople = Math.max(80, Math.round((salesWon / 420000) * (0.85 + rnd()*0.4)));
+    const male = Math.round(estPeople * (0.46 + rnd()*0.18));
+    const female = Math.max(0, estPeople - male);
+
+    const pCom = 0.45 + rnd()*0.25;
+    const pNat = 0.10 + rnd()*0.20;
+    const pNon = Math.max(0.05, 1 - pCom - pNat);
+    let com = Math.round(estPeople * pCom);
+    let nat = Math.round(estPeople * pNat);
+    let non = Math.max(0, estPeople - com - nat);
+    const paid = com + non;
+
+    const ages = [
+      { band:"20대", p: 0.06 + rnd()*0.06 },
+      { band:"30대", p: 0.12 + rnd()*0.10 },
+      { band:"40대", p: 0.26 + rnd()*0.10 },
+      { band:"50대", p: 0.28 + rnd()*0.10 },
+      { band:"60대+", p: 0.16 + rnd()*0.10 }
+    ];
+    const sumP = ages.reduce((s,a)=>s+a.p,0);
+    ages.forEach(a=>a.p/=sumP);
+    const ageCounts = {};
+    let remain = estPeople;
+    ages.forEach((a, i) => {
+      const v = (i === ages.length-1) ? remain : Math.round(estPeople * a.p);
+      ageCounts[a.band] = v;
+      remain -= v;
+    });
+
+    const staffN = 3 + Math.floor(rnd()*3);
+    const picks = STAFF_POOL.slice().sort(()=>rnd()-0.5).slice(0, staffN);
+
+    const salesTh = Math.round(salesWon/1000);
+    let weights = picks.map(()=>0.8 + rnd()*1.2);
+    const wsum = weights.reduce((s,x)=>s+x,0);
+    weights = weights.map(w=>w/wsum);
+
+    let remSales = salesTh;
+    let remReserv = estPeople;
+    const contrib = picks.map((p, i) => {
+      const share = (i === picks.length-1) ? remSales : Math.round(salesTh * weights[i]);
+      remSales -= share;
+
+      const reserv = (i === picks.length-1) ? remReserv : Math.round(estPeople * (weights[i] * (0.85 + rnd()*0.3)));
+      remReserv -= reserv;
+
+      return { name: p.name, team: p.team, salesTh: share, reserv: reserv };
+    });
+
+    contrib.forEach(c => c.share = salesTh>0 ? c.salesTh/salesTh : 0);
+    contrib.sort((a,b)=>b.salesTh-a.salesTh);
+
+    map[center] = {
+      center,
+      salesTh,
+      goalTh: Math.round(goalWon/1000),
+      people: estPeople,
+      examType: { com, non, nat, paid },
+      gender: { male, female },
+      ages: ageCounts,
+      staffContrib: contrib
+    };
+  });
+  return map;
+}
+
+/* =========================================================
+   2) UI 렌더
+   ========================================================= */
+const $ = (id) => document.getElementById(id);
+
+function toThousandWon(v){ return Math.round((Number(v)||0) / 1000); }
+function fmtTh(n){ return (Number(n)||0).toLocaleString("ko-KR") + "천원"; }
+function fmtNum(n){ return (Number(n)||0).toLocaleString("ko-KR"); }
+function clamp(n,min,max){ return Math.max(min, Math.min(max,n)); }
+function pct(x){ return (x*100).toFixed(1) + "%"; }
+
+function badgeByShare(share){
+  if (share >= 0.45) return { cls:"badge badge-bad", label:"핵심" };
+  if (share >= 0.25) return { cls:"badge badge-warn", label:"주요" };
+  return { cls:"badge badge-ok", label:"기여" };
+}
+
+function renderOverlayBarChart_EqualCols(data, wrapId){
+  const wrap = $(wrapId);
+  if (!wrap) return;
+  wrap.classList.add("chart-equal");
+  wrap.style.gridTemplateColumns = `repeat(${data.length}, minmax(0, 1fr))`;
+  wrap.innerHTML = "";
+
+  const maxGoal = Math.max(...data.map(d=>d.goal||0), 1);
+
+  data.forEach(d=>{
+    const goalH = (d.goal/maxGoal)*100;
+    const actualH = (d.actual/maxGoal)*100;
+
+    const col = document.createElement("div");
+    col.className = "bar-col";
+    col.innerHTML = `
+      <div class="top-num">${(d.goal||0).toLocaleString()}</div>
+      <div class="bar-area">
+        <div class="bar-goal" style="height:${goalH}%"></div>
+        <div class="bar-actual" style="height:${actualH}%"></div>
+      </div>
+      <div class="bottom-num">${(d.actual||0).toLocaleString()}</div>
+      <div class="bar-label" title="${d.name||"-"}">${d.name||"-"}</div>
+    `;
+    wrap.appendChild(col);
+  });
+}
+
+function renderTypeBars(d){
+  const box = $("typeBars");
+  const { com, non, nat, paid } = d.examType;
+  const maxV = Math.max(com, non, nat, paid, 1);
+
+  const row = (label, v, cls) => `
+    <div>
+      <div class="flex items-center justify-between">
+        <div class="font-extrabold text-slate-900">${label}</div>
+        <div class="font-extrabold text-slate-900 mono">${fmtNum(v)}</div>
+      </div>
+      <div class="hbar mt-2">
+        <div class="${cls}" style="width:${clamp((v/maxV)*100,0,100)}%"></div>
+      </div>
+    </div>
+  `;
+
+  box.innerHTML = [
+    row("종합검진", com, "hfill"),
+    row("종검 외", non, "hfill2"),
+    row("국가검진", nat, "hfill3"),
+    `<div class="divider my-2"></div>`,
+    row("종검 + 종검 외", paid, "hfill")
+  ].join("");
+}
+
+function renderGenderBars(d){
+  const box = $("genderBars");
+  const male = d.gender.male;
+  const female = d.gender.female;
+  const maxV = Math.max(male, female, 1);
+
+  const row = (label, v) => `
+    <div>
+      <div class="flex items-center justify-between">
+        <div class="font-extrabold text-slate-900">${label}</div>
+        <div class="font-extrabold text-slate-900 mono">${fmtNum(v)}</div>
+      </div>
+      <div class="hbar mt-2">
+        <div class="hfill2" style="width:${clamp((v/maxV)*100,0,100)}%"></div>
+      </div>
+    </div>
+  `;
+  box.innerHTML = row("남성", male) + row("여성", female);
+}
+
+function renderAgeBars(d){
+  const box = $("ageBars");
+  const entries = Object.entries(d.ages || {});
+  const maxV = Math.max(...entries.map(([k,v])=>v), 1);
+
+  const row = (label, v) => `
+    <div>
+      <div class="flex items-center justify-between">
+        <div class="font-extrabold text-slate-900">${label}</div>
+        <div class="font-extrabold text-slate-900 mono">${fmtNum(v)}</div>
+      </div>
+      <div class="hbar mt-2">
+        <div class="hfill" style="width:${clamp((v/maxV)*100,0,100)}%"></div>
+      </div>
+    </div>
+  `;
+  box.innerHTML = entries.map(([band, v])=>row(band, v)).join("");
+}
+
+function renderStaffContrib(d){
+  const tb = $("staffTbody");
+  const list = d.staffContrib || [];
+  tb.innerHTML = "";
+
+  list.forEach(s=>{
+    const b = badgeByShare(s.share);
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td class="font-extrabold text-slate-900">${s.name}</td>
+      <td class="muted font-semibold">${s.team}</td>
+      <td class="right mono font-extrabold">${fmtNum(s.salesTh)}</td>
+      <td class="right mono font-extrabold">${fmtNum(s.reserv)}</td>
+      <td class="right mono font-extrabold">${pct(s.share)}</td>
+      <td><span class="${b.cls}">${b.label}</span></td>
+    `;
+    tb.appendChild(tr);
+  });
+
+  const top = list[0];
+  $("staffFoot").textContent = top
+    ? `Top 기여자: ${top.name} (${top.team}) · 기여매출 ${fmtNum(top.salesTh)}천원 · 기여율 ${pct(top.share)}`
+    : "기여 데이터 없음";
+}
+
+function renderCenterHeader(d){
+  $("centerSubtitle").textContent = `${d.center} · 누계 ${fmtTh(d.salesTh)} / 목표 ${fmtTh(d.goalTh)} · 달성률 ${pct(d.goalTh>0 ? d.salesTh/d.goalTh : 0)}`;
+  $("centerChip").textContent = d.center;
+  $("kpiCenterSales").textContent = fmtTh(d.salesTh);
+  $("kpiCenterGoal").textContent = fmtTh(d.goalTh);
+  $("kpiCenterAch").textContent = pct(d.goalTh>0 ? d.salesTh/d.goalTh : 0);
+  $("kpiCenterPeople").textContent = fmtNum(d.people);
+}
+
+function renderCenterAll(d){
+  renderCenterHeader(d);
+  renderTypeBars(d);
+  renderGenderBars(d);
+  renderAgeBars(d);
+  renderStaffContrib(d);
+}
+
+/* =========================================================
+   3) init + 이벤트
+   ========================================================= */
+const state = {
+  regionList: [],
+  detailsMap: {},
+  selectedCenter: ""
+};
+
+function buildKmiBars(regionList){
+  return regionList.map(r=>({
+    name: r.name,
+    goal: toThousandWon(r.goalsSalesPrice),
+    actual: toThousandWon(r.summarySalesPrice)
+  }));
+}
+
+function setCenterOptions(centers){
+  const sel = $("centerSel");
+  sel.innerHTML = "";
+  centers.forEach(c=>{
+    const opt = document.createElement("option");
+    opt.value = c;
+    opt.textContent = c;
+    sel.appendChild(opt);
+  });
+}
+
+function renderTotalKmi(regionList){
+  const totalSalesTh = regionList.reduce((s,r)=>s + toThousandWon(r.summarySalesPrice), 0);
+  const totalGoalTh  = regionList.reduce((s,r)=>s + toThousandWon(r.goalsSalesPrice), 0);
+  $("kmiTotalSales").textContent = fmtTh(totalSalesTh);
+  $("kmiTotalGoal").textContent  = fmtTh(totalGoalTh);
+  $("kmiTotalAch").textContent   = totalGoalTh>0 ? pct(totalSalesTh/totalGoalTh) : "-";
+}
+
+function bind(){
+  $("centerSel").addEventListener("change", (e)=>{
+    state.selectedCenter = e.target.value;
+    const d = state.detailsMap[state.selectedCenter];
+    if (d) renderCenterAll(d);
+  });
+}
+
+(async function init(){
+  bind();
+
+  const s1 = await fetchSection1();
+  state.regionList = (s1.kmiSalesByRegionList || []).slice();
+
+  // 0) 전체 매출 KPI
+  renderTotalKmi(state.regionList);
+
+  // 1) 센터별 차트(메인 동일)
+  const bars = buildKmiBars(state.regionList);
+  renderOverlayBarChart_EqualCols(bars, "kmiChart");
+
+  // 2) 상세 더미 생성 (리프레시 버튼 없음)
+  state.detailsMap = genCenterDetailsFromSales(state.regionList);
+
+  // 3) 센터 선택 옵션은 "센터 상세"에서만
+  const centers = state.regionList.map(r=>r.name);
+  setCenterOptions(centers);
+
+  state.selectedCenter = centers[0] || "";
+  $("centerSel").value = state.selectedCenter;
+
+  const d = state.detailsMap[state.selectedCenter];
+  if (d) renderCenterAll(d);
+})();
+</script>
+
+</body>
+</html>
