@@ -528,9 +528,15 @@ function fmtKrwThousand(n){ return (Number(n)||0).toLocaleString() + "천원"; }
 function fmtNum(n){ return (Number(n)||0).toLocaleString(); }
 
 /* ================== overlay bar chart ================== */
-function renderOverlayBarChart_EqualCols(data, wrapId, mode){
+/**
+ * ✅ 수정 포인트:
+ * - 본부/지사별(omniChartByOrg)에서는 "goal(하늘색 배경)"을 렌더링하지 않도록 옵션 추가
+ */
+function renderOverlayBarChart_EqualCols(data, wrapId, mode, opts){
   const wrap = document.getElementById(wrapId);
   if (!wrap) return;
+
+  const options = Object.assign({ hideGoal: false }, (opts||{}));
 
   wrap.classList.add("chart-equal");
   wrap.style.gridTemplateColumns = `repeat(${data.length}, minmax(0, 1fr))`;
@@ -551,7 +557,7 @@ function renderOverlayBarChart_EqualCols(data, wrapId, mode){
     col.innerHTML = `
       <div class="top-num">${(d.goal||0).toLocaleString()}</div>
       <div class="bar-area">
-        <div class="${goalClass}" style="height:${goalH}%"></div>
+        ${options.hideGoal ? "" : `<div class="${goalClass}" style="height:${goalH}%"></div>`}
         <div class="${actualClass}" style="height:${actualH}%"></div>
       </div>
       <div class="bottom-num">${(d.actual||0).toLocaleString()}</div>
@@ -717,8 +723,9 @@ async function fetchSection1(){
   document.getElementById("curEtcTxt").textContent   = fmtKrwThousand(cEtc);
 
   // ===== Omni (우: 본부/지사별 차트) =====
+  // ✅ 여기서만 hideGoal:true → 하늘색(omni-goal) 제거, 진한 남색(omni-actual)만 표시
   const orgBars = buildOmniByOrgBars(s1.omniSalesByRegionList);
-  renderOverlayBarChart_EqualCols(orgBars, "omniChartByOrg", "omni");
+  renderOverlayBarChart_EqualCols(orgBars, "omniChartByOrg", "omni", { hideGoal: true });
 
   // ===== KMI KPI =====
   const ksum = String(s1.kmiSalesSummary.currentCumulativeSales || "0").replaceAll(",","");
