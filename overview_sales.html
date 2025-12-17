@@ -58,8 +58,28 @@
   }
   .bar-col{ display:flex; flex-direction:column; align-items:center; gap:6px; min-width:0; }
   .bar-area{ position:relative; width:100%; height:250px; display:flex; align-items:flex-end; }
-  .bar-goal{ width:100%; background:#bfdbfe; border-radius:10px; position:absolute; bottom:0; }
-  .bar-actual{ width:56%; position:absolute; bottom:0; left:50%; transform:translateX(-50%); border-radius:8px; background:#1e3a8a; }
+
+  .bar-stack{
+    position:absolute;
+    bottom:0;
+    left:50%;
+    transform:translateX(-50%);
+    width:56%;
+    border-radius:10px;
+    overflow:hidden;
+    display:flex;
+    flex-direction:column;        /* 위→아래 */
+    justify-content:flex-end;     /* 아래에 붙여서 */
+    background:transparent;
+  }
+  .segV{ width:100%; }
+  .segV-third{ background:#93c5fd; } /* 3자 */
+  .segV-with { background:#fca5a5; } /* WITH KMI */
+  .segV-etc  {
+    background:#22c55e !important; /* 기타 */
+    box-shadow: inset 0 0 0 1px rgba(15,23,42,.18);
+  }
+
   .top-num{ font-size:.72rem; color:#374151; font-weight:900; }
   .bottom-num{ font-size:.72rem; color:#0f172a; font-weight:900; }
   .bar-label{
@@ -75,8 +95,9 @@
     overflow:hidden;
     background:#f8fafc;
     height:14px;
+    display:flex;
   }
-  .seg{ height:100%; display:inline-block; }
+  .seg{ height:100%; display:block; flex:0 0 auto; }
   .seg-third{ background:#93c5fd; }  /* 3자 */
   .seg-with{  background:#fca5a5; }  /* WITH KMI */
   .seg-etc{
@@ -149,7 +170,7 @@
 
 <main class="max-w-[1440px] mx-auto px-2 py-6 space-y-6">
 
-  <!-- 1) 상단: 옴니케어 전체 누계 매출/목표(메인 동일 감성) -->
+  <!-- 1) 상단: 옴니케어 전체 누계 매출/예상 -->
   <section class="card p-5">
     <div class="flex items-start justify-between gap-3">
       <div>
@@ -169,11 +190,6 @@
         <div class="t">현재 누계(합계)</div>
         <div class="v mono" id="omniCurrentTotal">-</div>
         <div class="s">3자 + WITH KMI + 기타</div>
-      </div>
-      <div class="kpi">
-        <div class="t">달성률(현재/예상)</div>
-        <div class="v mono" id="omniAch">-</div>
-        <div class="s">현재 합계 ÷ 예상 합계</div>
       </div>
     </div>
 
@@ -221,7 +237,12 @@
     <div class="mt-4 chart-equal" id="omniChartByOrg"></div>
 
     <div class="mt-3 muted text-xs font-semibold">
-      ※ 이 화면에서는 막대를 “총합”으로 보여주고, 하단 상세에서 구성(3자/with/기타)와 직원 기여도를 봅니다.
+      ※ ✅ 하단=3자 → 중단=WITH KMI → 상단=기타
+    </div>
+    <div class="legend mt-3">
+      <span><i class="dot dot-third"></i>3자</span>
+      <span><i class="dot dot-with"></i>WITH KMI</span>
+      <span><i class="dot dot-etc"></i>기타</span>
     </div>
   </section>
 
@@ -249,6 +270,14 @@
             <div class="v mono" id="orgTotalSales">-</div>
             <div class="s">3자 + WITH + 기타</div>
           </div>
+
+          <!-- ✅ 추가: 누적 검진자 수 -->
+          <div class="kpi">
+            <div class="t">누적 검진자 수</div>
+            <div class="v mono" id="orgExamCount">-</div>
+            <div class="s">수검자(더미/연동 예정)</div>
+          </div>
+
           <div class="kpi">
             <div class="t">3자 매출</div>
             <div class="v mono" id="orgThirdSales">-</div>
@@ -268,7 +297,7 @@
       </div>
     </div>
 
-    <!-- 3) 구성(스택) -->
+    <!-- 구성(스택) -->
     <div class="mt-4 p-4 rounded-2xl border border-slate-200 bg-slate-50">
       <div class="font-extrabold text-slate-900">매출 형태 구성 (3자 / WITH KMI / 기타)</div>
       <div class="stack mt-2">
@@ -283,7 +312,7 @@
       </div>
     </div>
 
-    <!-- 4) 직원별 기여도 -->
+    <!-- 직원별 기여도 -->
     <div class="mt-4 p-4 rounded-2xl border border-slate-200 bg-white">
       <div class="flex items-start justify-between gap-3">
         <div>
@@ -323,7 +352,7 @@
 
 <script>
 /* =========================================================
-   샘플(JSON) — 메인에서 쓰던 omni 구조를 그대로 사용
+   샘플(JSON)
    ========================================================= */
 const SECTION1_SAMPLE = {
   section1: {
@@ -349,10 +378,7 @@ const SECTION1_SAMPLE = {
   }
 };
 
-async function fetchSection1(){
-  // 실제 연동 시 여기만 API로 교체하면 됨
-  return SECTION1_SAMPLE.section1;
-}
+async function fetchSection1(){ return SECTION1_SAMPLE.section1; }
 
 /* =========================================================
    더미: 직원 풀 + 영업부별 기여 생성
@@ -380,7 +406,7 @@ function genOrgStaffContrib(orgList){
     const name = org.name;
     const totalTh = toThousandWon(org.otherSalesPrice) + toThousandWon(org.withkmiSalesPrice) + toThousandWon(org.etcSalesPrice);
 
-    const staffN = 3 + Math.floor(rnd()*3); // 3~5
+    const staffN = 3 + Math.floor(rnd()*3);
     const picks = STAFF_POOL.slice().sort(()=>rnd()-0.5).slice(0, staffN);
 
     let weights = picks.map(()=>0.8 + rnd()*1.2);
@@ -388,7 +414,7 @@ function genOrgStaffContrib(orgList){
     weights = weights.map(w=>w/wsum);
 
     let remSales = totalTh;
-    let remLead = Math.max(20, Math.round(totalTh/60)); // 더미 리드
+    let remLead = Math.max(20, Math.round(totalTh/60));
     const contrib = picks.map((p, i)=>{
       const sales = (i===picks.length-1) ? remSales : Math.round(totalTh*weights[i]);
       remSales -= sales;
@@ -403,7 +429,28 @@ function genOrgStaffContrib(orgList){
 }
 
 /* =========================================================
-   유틸 + 렌더
+   ✅ 추가: 영업부별 누적 검진자(더미) 생성
+   - 나중에 API에서 orgRow.examCount 같은 값이 내려오면 그걸 우선 사용
+   ========================================================= */
+function genOrgExamCounts(orgList){
+  const seedBase = 7777 + new Date().getFullYear()*100 + (new Date().getMonth()+1);
+  const rnd = makeSeededRand(seedBase);
+
+  const map = {};
+  orgList.forEach(org=>{
+    const name = org.name;
+    const totalTh = toThousandWon(org.otherSalesPrice) + toThousandWon(org.withkmiSalesPrice) + toThousandWon(org.etcSalesPrice);
+
+    // 매출이 많을수록 검진자도 대체로 많게(더미)
+    const base = Math.max(10, Math.round(totalTh / 80)); // 대략 스케일
+    const jitter = Math.round(base * (0.65 + rnd()*0.9)); // 0.65~1.55배
+    map[name] = jitter;
+  });
+  return map;
+}
+
+/* =========================================================
+   유틸
    ========================================================= */
 const $ = (id) => document.getElementById(id);
 function clamp(n,min,max){ return Math.max(min, Math.min(max,n)); }
@@ -412,49 +459,111 @@ function fmtTh(n){ return (Number(n)||0).toLocaleString("ko-KR") + "천원"; }
 function fmtNum(n){ return (Number(n)||0).toLocaleString("ko-KR"); }
 function pct(x){ return (x*100).toFixed(1) + "%"; }
 
-function setStack(elId, value, total){
-  const el = $(elId);
-  if (!el) return;
-  let p = total>0 ? (value/total)*100 : 0;
-  p = clamp(p, 0, 100);
-  if (value>0 && p<1) p = 1;
-  el.style.width = p + "%";
-}
-
 function badgeByShare(share){
   if (share >= 0.45) return { cls:"badge badge-bad", label:"핵심" };
   if (share >= 0.25) return { cls:"badge badge-warn", label:"주요" };
   return { cls:"badge badge-ok", label:"기여" };
 }
 
-/* ===== 본부/지사 차트 ===== */
+/* ✅ 3개 스택(가로) 표시 보정 */
+function applyStack3(ids, values, minPct=1.2){
+  const [idA,idB,idC] = ids;
+  const [a,b,c] = values.map(v=>Number(v)||0);
+  const total = a+b+c;
+
+  const elA = $(idA), elB = $(idB), elC = $(idC);
+  if (!elA || !elB || !elC) return;
+
+  if (total <= 0){
+    elA.style.width = "0%"; elB.style.width = "0%"; elC.style.width = "0%";
+    return;
+  }
+
+  let pA = (a/total)*100;
+  let pB = (b/total)*100;
+  let pC = (c/total)*100;
+
+  if (a>0 && pA < minPct) pA = minPct;
+  if (b>0 && pB < minPct) pB = minPct;
+  if (c>0 && pC < minPct) pC = minPct;
+
+  let sum = pA + pB + pC;
+  if (sum > 100){
+    const scale = 100 / sum;
+    pA *= scale; pB *= scale; pC *= scale;
+  }
+
+  pA = clamp(pA, 0, 100);
+  pB = clamp(pB, 0, 100);
+  pC = clamp(100 - pA - pB, 0, 100);
+
+  elA.style.width = pA.toFixed(4) + "%";
+  elB.style.width = pB.toFixed(4) + "%";
+  elC.style.width = pC.toFixed(4) + "%";
+}
+
+/* ===== 본부/지사 차트 스택 비율(세로) ===== */
+function stackPctsWithMin(third, withKmi, etc, minPct=1.6){
+  const total = (third||0) + (withKmi||0) + (etc||0);
+  if (total <= 0) return { pThird:0, pWith:0, pEtc:0 };
+
+  let pThird = (third/total)*100;
+  let pWith  = (withKmi/total)*100;
+  let pEtc   = (etc/total)*100;
+
+  if (third>0 && pThird < minPct) pThird = minPct;
+  if (withKmi>0 && pWith < minPct) pWith = minPct;
+  if (etc>0 && pEtc < minPct) pEtc = minPct;
+
+  const sum = pThird + pWith + pEtc;
+  const scale = sum>0 ? (100/sum) : 1;
+  pThird *= scale; pWith *= scale; pEtc *= scale;
+
+  const fixed3 = Math.max(0, pThird);
+  const fixedW = Math.max(0, pWith);
+  let fixedE   = Math.max(0, 100 - fixed3 - fixedW);
+  return { pThird:fixed3, pWith:fixedW, pEtc:fixedE };
+}
+
 function buildOmniByOrgBars(list){
   return (list||[]).map(r=>{
-    const total = toThousandWon(r.otherSalesPrice) + toThousandWon(r.withkmiSalesPrice) + toThousandWon(r.etcSalesPrice);
-    return { name:r.name, goal: total, actual: total };
+    const thirdTh = toThousandWon(r.otherSalesPrice);
+    const withTh  = toThousandWon(r.withkmiSalesPrice);
+    const etcTh   = toThousandWon(r.etcSalesPrice);
+    const totalTh = thirdTh + withTh + etcTh;
+    return { name:r.name, total: totalTh, third: thirdTh, with: withTh, etc: etcTh };
   });
 }
-function renderOverlayBarChart_EqualCols(data, wrapId){
+
+/* ✅ 하단=3자 / 중단=WITH / 상단=기타
+   - column + justify-end에서는 "마지막 DOM 요소가 바닥"
+   - 그래서 DOM은 (기타 → WITH → 3자) */
+function renderOrgStackedBars_EqualCols(data, wrapId){
   const wrap = $(wrapId);
   if (!wrap) return;
+
   wrap.classList.add("chart-equal");
   wrap.style.gridTemplateColumns = `repeat(${data.length}, minmax(0, 1fr))`;
   wrap.innerHTML = "";
-  const maxGoal = Math.max(...data.map(d=>d.goal||0), 1);
+
+  const maxTotal = Math.max(...data.map(d=>d.total||0), 1);
 
   data.forEach(d=>{
-    const goalH = (d.goal/maxGoal)*100;
-    const actualH = (d.actual/maxGoal)*100;
+    const totalH = (d.total/maxTotal)*100;
+    const { pThird, pWith, pEtc } = stackPctsWithMin(d.third, d.with, d.etc, 1.6);
 
     const col = document.createElement("div");
     col.className = "bar-col";
     col.innerHTML = `
-      <div class="top-num">${(d.goal||0).toLocaleString()}</div>
+      <div class="top-num">${(d.total||0).toLocaleString()}</div>
       <div class="bar-area">
-        <div class="bar-goal" style="height:${goalH}%"></div>
-        <div class="bar-actual" style="height:${actualH}%"></div>
+        <div class="bar-stack" style="height:${totalH}%">
+          <div class="segV segV-etc"   style="height:${pEtc}%;"></div>
+          <div class="segV segV-with"  style="height:${pWith}%;"></div>
+          <div class="segV segV-third" style="height:${pThird}%;"></div>
+        </div>
       </div>
-      <div class="bottom-num">${(d.actual||0).toLocaleString()}</div>
+      <div class="bottom-num">${(d.total||0).toLocaleString()}</div>
       <div class="bar-label" title="${d.name||"-"}">${d.name||"-"}</div>
     `;
     wrap.appendChild(col);
@@ -475,18 +584,13 @@ function renderOmniTotals(omni){
 
   $("omniExpectedTotal").textContent = fmtTh(expectedTotal);
   $("omniCurrentTotal").textContent  = fmtTh(currentTotal);
-  $("omniAch").textContent = expectedTotal>0 ? pct(currentTotal/expectedTotal) : "-";
 
-  setStack("expThird", eThird, expectedTotal);
-  setStack("expWith",  eWith,  expectedTotal);
-  setStack("expEtc",   eEtc,   expectedTotal);
+  applyStack3(["expThird","expWith","expEtc"], [eThird, eWith, eEtc], 1.2);
   $("expThirdTxt").textContent = fmtTh(eThird);
   $("expWithTxt").textContent  = fmtTh(eWith);
   $("expEtcTxt").textContent   = fmtTh(eEtc);
 
-  setStack("curThird", cThird, currentTotal);
-  setStack("curWith",  cWith,  currentTotal);
-  setStack("curEtc",   cEtc,   currentTotal);
+  applyStack3(["curThird","curWith","curEtc"], [cThird, cWith, cEtc], 1.2);
   $("curThirdTxt").textContent = fmtTh(cThird);
   $("curWithTxt").textContent  = fmtTh(cWith);
   $("curEtcTxt").textContent   = fmtTh(cEtc);
@@ -504,7 +608,7 @@ function setOrgOptions(orgNames){
   });
 }
 
-function renderOrgDetail(orgRow, staffMap){
+function renderOrgDetail(orgRow, staffMap, examMap){
   const name = orgRow.name;
   $("orgChip").textContent = name;
 
@@ -513,20 +617,23 @@ function renderOrgDetail(orgRow, staffMap){
   const etcTh   = toThousandWon(orgRow.etcSalesPrice);
   const totalTh = thirdTh + withTh + etcTh;
 
+  // ✅ 누적 검진자 수: (1) API 필드 우선 → (2) 더미 맵
+  const realExam = Number(orgRow.examCount ?? orgRow.totalExamCount ?? orgRow.cumulativeExamCount);
+  const examCount = Number.isFinite(realExam) ? realExam : Number(examMap?.[name] ?? 0);
+
   $("orgSubtitle").textContent = `${name} · 총 ${fmtTh(totalTh)} (3자 ${fmtTh(thirdTh)} / WITH ${fmtTh(withTh)} / 기타 ${fmtTh(etcTh)})`;
   $("orgTotalSales").textContent = fmtTh(totalTh);
   $("orgThirdSales").textContent = fmtTh(thirdTh);
   $("orgWithSales").textContent  = fmtTh(withTh);
   $("orgEtcSales").textContent   = fmtTh(etcTh);
 
-  setStack("orgSegThird", thirdTh, totalTh);
-  setStack("orgSegWith",  withTh,  totalTh);
-  setStack("orgSegEtc",   etcTh,   totalTh);
+  $("orgExamCount").textContent = examCount ? fmtNum(examCount) + "명" : "-";
+
+  applyStack3(["orgSegThird","orgSegWith","orgSegEtc"], [thirdTh, withTh, etcTh], 1.2);
   $("orgThirdTxt").textContent = fmtTh(thirdTh);
   $("orgWithTxt").textContent  = fmtTh(withTh);
   $("orgEtcTxt").textContent   = fmtTh(etcTh);
 
-  // 직원 기여도
   const tb = $("staffTbody");
   tb.innerHTML = "";
   const list = (staffMap[name]?.staffContrib || []).slice();
@@ -553,17 +660,13 @@ function renderOrgDetail(orgRow, staffMap){
 /* =========================================================
    init
    ========================================================= */
-const state = {
-  orgList: [],
-  staffMap: {},
-  selectedOrg: ""
-};
+const state = { orgList: [], staffMap: {}, examMap:{}, selectedOrg: "" };
 
 function bind(){
   $("orgSel").addEventListener("change", (e)=>{
     state.selectedOrg = e.target.value;
     const row = state.orgList.find(x=>x.name===state.selectedOrg);
-    if (row) renderOrgDetail(row, state.staffMap);
+    if (row) renderOrgDetail(row, state.staffMap, state.examMap);
   });
 }
 
@@ -577,15 +680,18 @@ function bind(){
   // 1) 상단 전체 KPI + 구성
   renderOmniTotals(omni);
 
-  // 2) 본부/지사 총합 차트
+  // 2) 본부/지사 차트(스택)
   const orgBars = buildOmniByOrgBars(orgList);
-  renderOverlayBarChart_EqualCols(orgBars, "omniChartByOrg");
+  renderOrgStackedBars_EqualCols(orgBars, "omniChartByOrg");
 
   // 3) 상세 더미(직원 기여)
   state.orgList = orgList;
   state.staffMap = genOrgStaffContrib(orgList);
 
-  // 4) 선택 UI
+  // ✅ 4) 누적 검진자(더미) 맵 생성
+  state.examMap = genOrgExamCounts(orgList);
+
+  // 5) 선택 UI
   const orgNames = orgList.map(o=>o.name);
   setOrgOptions(orgNames);
 
@@ -593,7 +699,7 @@ function bind(){
   $("orgSel").value = state.selectedOrg;
 
   const row = orgList.find(x=>x.name===state.selectedOrg);
-  if (row) renderOrgDetail(row, state.staffMap);
+  if (row) renderOrgDetail(row, state.staffMap, state.examMap);
 })();
 </script>
 
