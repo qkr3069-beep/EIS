@@ -65,6 +65,22 @@
     width:10px; height:10px; border-radius:999px; display:inline-block;
     border:1px solid #e5e7eb;
   }
+
+  /* ✅ 계약형태 뱃지 */
+  .pill{
+    display:inline-flex; align-items:center; gap:6px;
+    border:1px solid #e5e7eb;
+    border-radius:999px;
+    padding:4px 10px;
+    font-size:.78rem;
+    font-weight:900;
+    background:#fff;
+    white-space:nowrap;
+  }
+  .pill i{ width:8px; height:8px; border-radius:999px; display:inline-block; }
+  .pill-3p i{ background:#0ea5e9; }
+  .pill-with i{ background:#22c55e; }
+  .pill-etc i{ background:#a855f7; }
 </style>
 </head>
 
@@ -118,11 +134,14 @@
       <div class="kpiValue" id="kpiActiveAccounts">-</div>
       <div class="kpiSub">최근 접촉 + 진행 상태 기준</div>
     </div>
+
+    <!-- ✅ 변경: 수검률 -> 금년도 누적 수검자 수 -->
     <div class="kpiBox">
-      <div class="kpiLabel">수검률</div>
-      <div class="kpiValue" id="kpiExamRate">-</div>
-      <div class="kpiSub">완료/예약(샘플 로직)</div>
+      <div class="kpiLabel">금년도 누적 수검자 수</div>
+      <div class="kpiValue" id="kpiYtdExaminees">-</div>
+      <div class="kpiSub">내 담당 거래처 누적 합계</div>
     </div>
+
     <div class="kpiBox">
       <div class="kpiLabel">신규 거래처 수</div>
       <div class="kpiValue" id="kpiNewAccounts">-</div>
@@ -205,7 +224,7 @@
     </div>
   </section>
 
-  <!-- ✅ 3행: 거래처 현황 (방문일 기준으로 수정) -->
+  <!-- 거래처 현황 -->
   <section class="card p-5">
     <div class="flex items-start justify-between gap-3 flex-wrap">
       <div>
@@ -231,10 +250,10 @@
       <table>
         <thead>
           <tr>
-            <th style="min-width:220px;">거래처명</th>
+            <th style="min-width:240px;">거래처명</th>
+            <th style="min-width:140px;">계약 형태</th>
             <th class="num" style="min-width:160px;">금년도 누적 매출</th>
             <th class="num" style="min-width:160px;">금년도 누적 수검자</th>
-            <!-- ✅ 추가 -->
             <th style="min-width:140px;">첫 방문일</th>
             <th style="min-width:140px;">마지막 방문일</th>
           </tr>
@@ -246,7 +265,7 @@
     <div class="mt-3 muted small" id="scopeHint"></div>
   </section>
 
-  <!-- 4행: 거래처 소식 -->
+  <!-- 거래처 소식 -->
   <section class="card p-5">
     <div class="flex items-start justify-between gap-3 flex-wrap">
       <div>
@@ -308,10 +327,20 @@ function seededRand(i){
 }
 
 /** =========================
- *  거래처 100개 샘플 생성
- *  - 옴니케어 매출 구성(3자/with KMI/기타)
- *  - ✅ 첫 방문일 / 마지막 방문일 추가
+ *  샘플 데이터
  * ========================= */
+function pickContractType(omni3p, omniWith, omniEtc){
+  const maxV = Math.max(omni3p||0, omniWith||0, omniEtc||0);
+  if (maxV === (omni3p||0)) return "3자";
+  if (maxV === (omniWith||0)) return "WITH KMI";
+  return "기타";
+}
+function contractPillHTML(t){
+  if (t === "3자") return `<span class="pill pill-3p"><i></i>3자</span>`;
+  if (t === "WITH KMI") return `<span class="pill pill-with"><i></i>WITH KMI</span>`;
+  return `<span class="pill pill-etc"><i></i>기타</span>`;
+}
+
 function makeSampleAccounts(n=100){
   const owners = ["김영업","박영업","이영업","최영업"];
   const prefixes = ["메디컬","종합","헬스","케어","바이오","메디","건강","연구","검진","파트너"];
@@ -335,6 +364,7 @@ function makeSampleAccounts(n=100){
     const paidRate = 0.20 + r2*0.70;
     const paidToDate = Math.round(ytdRevenue * paidRate / 10) * 10; // (만원)
 
+    // ✅ 금년도 누적 수검자(거래처별)
     const ytdExaminees = Math.round( 20 + r3*980 );
 
     const lastTouchDays = Math.floor(r1*70);
@@ -351,7 +381,6 @@ function makeSampleAccounts(n=100){
     // omniRevenue를 3자/with KMI/기타로 분해(합계=omniRevenue)
     const p3 = 0.25 + r4*0.45;
     const pWith = 0.10 + r5*0.40;
-    const pSum = Math.min(0.95, p3 + pWith);
 
     let omniRev3p = Math.round(omniRevenue * p3 / 10) * 10;
     let omniRevWithKmi = Math.round(omniRevenue * pWith / 10) * 10;
@@ -361,10 +390,10 @@ function makeSampleAccounts(n=100){
       omniRevWithKmi = Math.max(0, omniRevenue - omniRev3p);
     }
 
-    // ✅ 방문일 생성
-    // 마지막 방문일: baseDate - lastTouchDays
+    const contractType = pickContractType(omniRev3p, omniRevWithKmi, omniRevEtc);
+
+    // 방문일
     const lastVisitDate = toYMD(addDays(baseDate, -lastTouchDays));
-    // 첫 방문일: 마지막 방문일보다 과거(최소 30일 ~ 최대 360일 이전)
     const firstGap = 30 + Math.floor(r6 * 330);
     const firstVisitDate = toYMD(addDays(new Date(lastVisitDate + "T00:00:00"), -firstGap));
 
@@ -384,10 +413,11 @@ function makeSampleAccounts(n=100){
       omniRevWithKmi,
       omniRevEtc,
       ytdRevenue,
-      ytdExaminees,
-      paidToDate,        // 남겨둠(다른 페이지에서 쓸 수도 있어서)
-      firstVisitDate,    // ✅ 추가
-      lastVisitDate      // ✅ 추가
+      ytdExaminees, // ✅ 핵심
+      paidToDate,
+      contractType,
+      firstVisitDate,
+      lastVisitDate
     });
   }
   return out;
@@ -410,10 +440,6 @@ function calcKPIs(){
   const total = list.length;
   const active = list.filter(isActive).length;
 
-  const booked = list.reduce((s,a)=> s + (a.examBooked || 0), 0);
-  const done   = list.reduce((s,a)=> s + (a.examDone || 0), 0);
-  const examRate = booked > 0 ? Math.round((done / booked) * 100) : 0;
-
   const 신규 = list.filter(a => a.createdYM === NOW_YM).length;
   const 해지 = list.filter(a => (a.churnYM === NOW_YM) || (a.status === "해지" && a.churnYM === NOW_YM)).length;
 
@@ -424,13 +450,23 @@ function calcKPIs(){
   const omniWith = list.reduce((s,a)=> s + (a.omniRevWithKmi || 0), 0);
   const omniEtc = list.reduce((s,a)=> s + (a.omniRevEtc || 0), 0);
 
-  return { total, active, examRate, 신규, 해지, booked, done, kmiRev, omniRev, omni3p, omniWith, omniEtc };
+  // ✅ 추가: 내 담당 거래처 "금년도 누적 수검자" 합계
+  const ytdExamineesTotal = list.reduce((s,a)=> s + (a.ytdExaminees || 0), 0);
+
+  // (참고용: 기존 수검률 계산은 제거했지만, 예약/완료 수는 매출 카드 보조문구에 사용)
+  const booked = list.reduce((s,a)=> s + (a.examBooked || 0), 0);
+  const done   = list.reduce((s,a)=> s + (a.examDone || 0), 0);
+
+  return {
+    total, active, 신규, 해지,
+    kmiRev, omniRev, omni3p, omniWith, omniEtc,
+    ytdExamineesTotal, booked, done
+  };
 }
 
 /** =========================
  *  거래처 표: "전체에서 검색" 후 TOP5 노출
- *  - 기존 AR(매출채권) 기준 정렬을 유지하고 싶으면 arOf를 유지하면 됨
- *  - 지금은 방문 흐름 화면이니까 "마지막 방문일 최신순" 기준 TOP5로 변경
+ *  - 마지막 방문일 최신순 TOP5
  * ========================= */
 function getTop5ByLastVisitFrom(list){
   const x = list.slice();
@@ -449,7 +485,7 @@ function renderAccountsTop5(){
 
   if (!list.length){
     const tr = document.createElement("tr");
-    tr.innerHTML = `<td colspan="5" class="muted" style="padding:14px;">표시할 거래처가 없습니다.</td>`;
+    tr.innerHTML = `<td colspan="6" class="muted" style="padding:14px;">표시할 거래처가 없습니다.</td>`;
     tbody.appendChild(tr);
     document.getElementById("scopeHint").textContent =
       q
@@ -465,8 +501,13 @@ function renderAccountsTop5(){
         <a class="link" href="#" onclick="alert('거래처 상세(예정)'); return false;">${a.name}</a>
         <div class="muted small mt-1">담당: ${a.owner} · 상태: ${a.status}</div>
       </td>
+
+      <td>${contractPillHTML(a.contractType)}</td>
+
       <td class="num">${fmt(toKRWThousand(a.ytdRevenue))} 천원</td>
-      <td class="num">${fmt(a.ytdExaminees)} 명</td>
+
+      <td class="num">${fmt(a.ytdExaminees || 0)} 명</td>
+
       <td>${a.firstVisitDate || "-"}</td>
       <td>${a.lastVisitDate || "-"}</td>
     `;
@@ -496,13 +537,11 @@ function toYMDFromStr(dateStr){
 }
 function buildAccountNewsRSS(){
   const base = scopedAccounts().slice();
-  // 방문 최신순으로 상위 8개
   base.sort((a,b)=> (b.lastVisitDate || "").localeCompare(a.lastVisitDate || ""));
   const top = base.slice(0,8).map(a => a.name.replace(/\s*센터\s*\d+\s*$/,"").trim());
 
   const terms = top.length ? top : ["검진센터","건강검진"];
   const q = terms.map(t => `"${t}"`).join(" OR ");
-
   return `https://news.google.com/rss/search?q=${encodeURIComponent(q)}&hl=ko&gl=KR&ceid=KR:ko`;
 }
 
@@ -586,8 +625,6 @@ function renderOmniBreakdown(k){
   document.getElementById("omniWithVal").textContent = `${fmt(toKRWThousand(vW))} 천원`;
   document.getElementById("omniEtcVal").textContent = `${fmt(toKRWThousand(vE))} 천원`;
 }
-
-/* 0%인데도 세그먼트가 완전 사라져 보이는 걸 방지(시각적 안정용) */
 function reopeningFixWidth(p){
   return p <= 0 ? 0 : p;
 }
@@ -603,7 +640,10 @@ function render(){
 
   document.getElementById("kpiTotalAccounts").textContent  = `${fmt(k.total)}`;
   document.getElementById("kpiActiveAccounts").textContent = `${fmt(k.active)}`;
-  document.getElementById("kpiExamRate").textContent       = `${fmt(k.examRate)}%`;
+
+  // ✅ 변경 반영: 금년도 누적 수검자 수(합계)
+  document.getElementById("kpiYtdExaminees").textContent = `${fmt(k.ytdExamineesTotal)}명`;
+
   document.getElementById("kpiNewAccounts").textContent    = `${fmt(k.신규)}`;
   document.getElementById("kpiChurnAccounts").textContent  = `${fmt(k.해지)}`;
 
