@@ -52,7 +52,7 @@
 
   input[type="date"]{ color:#0f172a; }
 
-  /* ✅ 매출 구성 그래프(스택 바) */
+  /* ✅ 구성 그래프(스택 바) 공통 */
   .stackWrap{
     border:1px solid #e5e7eb;
     border-radius:999px;
@@ -81,12 +81,31 @@
   .pill-3p i{ background:#0ea5e9; }
   .pill-with i{ background:#22c55e; }
   .pill-etc i{ background:#a855f7; }
+
+  /* ✅ 상태 뱃지(최근 방문 기준 2개월) */
+  .statusPill{
+    display:inline-flex; align-items:center; gap:6px;
+    border:1px solid #e5e7eb;
+    border-radius:999px;
+    padding:4px 10px;
+    font-size:.78rem;
+    font-weight:900;
+    background:#fff;
+    white-space:nowrap;
+  }
+  .statusPill i{ width:8px; height:8px; border-radius:999px; display:inline-block; }
+  .status-on i{ background:#0ea5e9; }    /* 활성 */
+  .status-off i{ background:#64748b; }   /* 비활성 */
+
+  /* ✅ KMI 매출 구성(종검/종검 외/국가) 전용 색상 */
+  .kmiA{ background:#f97316; }   /* 종검 */
+  .kmiB{ background:#f59e0b; }   /* 종검 외 */
+  .kmiC{ background:#eab308; }   /* 국가 */
 </style>
 </head>
 
 <body class="bg-slate-50">
 
-<!-- Header -->
 <header class="sticky top-0 z-20 bg-white/90 backdrop-blur border-b border-slate-200">
   <div class="max-w-[1440px] mx-auto px-2 py-3 flex items-center gap-3">
     <a href="https://qkr3069-beep.github.io/EIS/" aria-label="메인으로 이동">
@@ -98,20 +117,13 @@
       <div class="text-sm muted">마이페이지 · 영업자 개요</div>
     </div>
 
-    <a href="accounts_by_customer.html"
-       class="btn2"
-       aria-label="거래처별 정보"
-       title="거래처별 정보">
-      거래처별 정보
-    </a>
-
+    <a href="accounts_by_customer.html" class="btn2" aria-label="거래처별 정보" title="거래처별 정보">거래처별 정보</a>
     <button onclick="location.href='https://qkr3069-beep.github.io/EIS/'" class="btn2">메인</button>
   </div>
 </header>
 
 <main class="max-w-[1440px] mx-auto px-2 py-6 space-y-6">
 
-  <!-- 타이틀 -->
   <section class="card p-5">
     <div class="flex items-start justify-between gap-3 flex-wrap">
       <div>
@@ -122,20 +134,26 @@
     </div>
   </section>
 
-  <!-- 1행: 5개 KPI -->
+  <!-- KPI -->
   <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
     <div class="kpiBox">
       <div class="kpiLabel">담당 거래처 수</div>
       <div class="kpiValue" id="kpiTotalAccounts">-</div>
       <div class="kpiSub">내 명의(담당자 기준)</div>
     </div>
+
     <div class="kpiBox">
       <div class="kpiLabel">활성 거래처 수</div>
       <div class="kpiValue" id="kpiActiveAccounts">-</div>
-      <div class="kpiSub">최근 접촉 + 진행 상태 기준</div>
+      <div class="kpiSub">최근 방문일 2개월 이내</div>
     </div>
 
-    <!-- ✅ 변경: 수검률 -> 금년도 누적 수검자 수 -->
+    <div class="kpiBox">
+      <div class="kpiLabel">비활성 거래처 수</div>
+      <div class="kpiValue" id="kpiInactiveAccounts">-</div>
+      <div class="kpiSub">최근 방문일 2개월 초과</div>
+    </div>
+
     <div class="kpiBox">
       <div class="kpiLabel">금년도 누적 수검자 수</div>
       <div class="kpiValue" id="kpiYtdExaminees">-</div>
@@ -147,15 +165,11 @@
       <div class="kpiValue" id="kpiNewAccounts">-</div>
       <div class="kpiSub">이번달 신규 등록</div>
     </div>
-    <div class="kpiBox">
-      <div class="kpiLabel">해지 거래처 수</div>
-      <div class="kpiValue" id="kpiChurnAccounts">-</div>
-      <div class="kpiSub">이번달 해지/중단</div>
-    </div>
   </section>
 
-  <!-- 2행: 매출 2개 -->
+  <!-- 매출 2개 -->
   <section class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+    <!-- ✅ KMI 매출: 종검/종검 외/국가 구성 차트 추가 -->
     <div class="card p-5">
       <div class="flex items-start justify-between gap-3">
         <div>
@@ -164,12 +178,53 @@
         </div>
         <span class="chip">단위: 천원</span>
       </div>
+
       <div class="divider my-4"></div>
+
       <div class="text-3xl font-black text-slate-900" id="kpiKmiRevenue">-</div>
+
+      <!-- ✅ 구성 그래프 -->
+      <div class="mt-3">
+        <div class="stackWrap" aria-label="KMI 매출 구성 그래프">
+          <span id="kmiSegA" class="stackSeg kmiA" style="width:0%"></span>
+          <span id="kmiSegB" class="stackSeg kmiB" style="width:0%"></span>
+          <span id="kmiSegC" class="stackSeg kmiC" style="width:0%"></span>
+        </div>
+        <div class="flex items-center justify-between mt-2 muted small">
+          <span id="kmiPctA">종검 0%</span>
+          <span id="kmiPctB">종검 외 0%</span>
+          <span id="kmiPctC">국가 0%</span>
+        </div>
+      </div>
+
+      <div class="mt-3 space-y-1">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="legendDot" style="background:#f97316;"></span>
+            <span class="muted small">종검</span>
+          </div>
+          <div class="font-extrabold text-slate-900 small" id="kmiAVal">-</div>
+        </div>
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="legendDot" style="background:#f59e0b;"></span>
+            <span class="muted small">종검 외</span>
+          </div>
+          <div class="font-extrabold text-slate-900 small" id="kmiBVal">-</div>
+        </div>
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="legendDot" style="background:#eab308;"></span>
+            <span class="muted small">국가</span>
+          </div>
+          <div class="font-extrabold text-slate-900 small" id="kmiCVal">-</div>
+        </div>
+      </div>
+
       <div class="muted small mt-2" id="kpiKmiRevenueSub">-</div>
     </div>
 
-    <!-- 옴니케어 매출: 구성 + 그래프 -->
+    <!-- 옴니케어 매출 -->
     <div class="card p-5">
       <div class="flex items-start justify-between gap-3">
         <div>
@@ -251,6 +306,7 @@
         <thead>
           <tr>
             <th style="min-width:240px;">거래처명</th>
+            <th style="min-width:120px;">상태</th>
             <th style="min-width:140px;">계약 형태</th>
             <th class="num" style="min-width:160px;">금년도 누적 매출</th>
             <th class="num" style="min-width:160px;">금년도 누적 수검자</th>
@@ -325,6 +381,34 @@ function seededRand(i){
   const x = Math.sin(i * 999) * 10000;
   return x - Math.floor(x);
 }
+function addMonths(date, months){
+  const d = new Date(date);
+  d.setMonth(d.getMonth() + months);
+  return d;
+}
+function parseYMD(ymd){
+  if (!ymd) return null;
+  const [y,m,d] = ymd.split("-").map(Number);
+  if (!y || !m || !d) return null;
+  return new Date(y, m-1, d);
+}
+function isActiveByLastVisitYMD(lastVisitYMD){
+  const dt = parseYMD(lastVisitYMD);
+  if (!dt) return false;
+  const today = new Date();
+  const cutoff = addMonths(today, -2);
+  return dt >= cutoff;
+}
+function statusPillHTMLByLastVisit(lastVisitYMD){
+  const on = isActiveByLastVisitYMD(lastVisitYMD);
+  if (on) return `<span class="statusPill status-on"><i></i>활성</span>`;
+  return `<span class="statusPill status-off"><i></i>비활성</span>`;
+}
+function pct(part, total){
+  if (!total || total <= 0) return 0;
+  return Math.max(0, Math.round((part / total) * 100));
+}
+function fixWidth(p){ return p <= 0 ? 0 : p; }
 
 /** =========================
  *  샘플 데이터
@@ -356,18 +440,18 @@ function makeSampleAccounts(n=100){
     const r4 = seededRand(i+300);
     const r5 = seededRand(i+400);
     const r6 = seededRand(i+500);
+    const r7 = seededRand(i+700);
+    const r8 = seededRand(i+800);
 
     const owner = owners[Math.floor(r1*owners.length)];
     const name = `${cities[Math.floor(r2*cities.length)]}${prefixes[Math.floor(r3*prefixes.length)]}센터 ${String(i).padStart(3,"0")}`;
 
     const ytdRevenue = Math.round( (2000 + r1*48000) / 10 ) * 10; // (만원)
-    const paidRate = 0.20 + r2*0.70;
-    const paidToDate = Math.round(ytdRevenue * paidRate / 10) * 10; // (만원)
 
-    // ✅ 금년도 누적 수검자(거래처별)
     const ytdExaminees = Math.round( 20 + r3*980 );
 
     const lastTouchDays = Math.floor(r1*70);
+
     const statusPick = r2 < 0.08 ? "해지" : (r2 < 0.18 ? "휴면" : "진행");
     const createdYM = r3 < 0.15 ? NOW_YM : (r3 < 0.45 ? "2025-11" : "2025-10");
     const churnYM = statusPick==="해지" ? NOW_YM : null;
@@ -378,7 +462,7 @@ function makeSampleAccounts(n=100){
     const kmiRevenue = Math.round(ytdRevenue * (0.55 + r1*0.25)); // (만원)
     const omniRevenue = Math.max(0, ytdRevenue - kmiRevenue);     // (만원)
 
-    // omniRevenue를 3자/with KMI/기타로 분해(합계=omniRevenue)
+    // ✅ Omni 구성
     const p3 = 0.25 + r4*0.45;
     const pWith = 0.10 + r5*0.40;
 
@@ -391,6 +475,17 @@ function makeSampleAccounts(n=100){
     }
 
     const contractType = pickContractType(omniRev3p, omniRevWithKmi, omniRevEtc);
+
+    // ✅ KMI 매출을 종검/종검 외/국가로 분해 (합계 = kmiRevenue)
+    const pA = 0.35 + r7*0.40;   // 종검
+    const pB = 0.10 + r8*0.35;   // 종검 외
+    let kmiRevA = Math.round(kmiRevenue * pA / 10) * 10;
+    let kmiRevB = Math.round(kmiRevenue * pB / 10) * 10;
+    let kmiRevC = kmiRevenue - kmiRevA - kmiRevB; // 국가
+    if (kmiRevC < 0){
+      kmiRevC = 0;
+      kmiRevB = Math.max(0, kmiRevenue - kmiRevA);
+    }
 
     // 방문일
     const lastVisitDate = toYMD(addDays(baseDate, -lastTouchDays));
@@ -407,14 +502,17 @@ function makeSampleAccounts(n=100){
       lastTouchDays,
       examBooked,
       examDone,
+
       kmiRevenue,
+      kmiRevA, kmiRevB, kmiRevC, // ✅ 종검/종검 외/국가
+
       omniRevenue,
       omniRev3p,
       omniRevWithKmi,
       omniRevEtc,
+
       ytdRevenue,
-      ytdExaminees, // ✅ 핵심
-      paidToDate,
+      ytdExaminees,
       contractType,
       firstVisitDate,
       lastVisitDate
@@ -431,42 +529,94 @@ const ACCOUNTS = makeSampleAccounts(100);
 function scopedAccounts(){
   return ACCOUNTS.filter(a => a.owner === CURRENT_USER.name);
 }
-function isActive(a){
-  return a.status !== "해지" && (a.lastTouchDays ?? 9999) <= 30;
-}
 function calcKPIs(){
   const list = scopedAccounts();
 
   const total = list.length;
-  const active = list.filter(isActive).length;
+  const active = list.filter(a => isActiveByLastVisitYMD(a.lastVisitDate)).length;
+  const inactive = total - active;
 
   const 신규 = list.filter(a => a.createdYM === NOW_YM).length;
-  const 해지 = list.filter(a => (a.churnYM === NOW_YM) || (a.status === "해지" && a.churnYM === NOW_YM)).length;
 
   const kmiRev = list.reduce((s,a)=> s + (a.kmiRevenue || 0), 0);   // (만원)
   const omniRev = list.reduce((s,a)=> s + (a.omniRevenue || 0), 0); // (만원)
+
+  // ✅ KMI 구성 합계
+  const kmiA = list.reduce((s,a)=> s + (a.kmiRevA || 0), 0);
+  const kmiB = list.reduce((s,a)=> s + (a.kmiRevB || 0), 0);
+  const kmiC = list.reduce((s,a)=> s + (a.kmiRevC || 0), 0);
 
   const omni3p = list.reduce((s,a)=> s + (a.omniRev3p || 0), 0);
   const omniWith = list.reduce((s,a)=> s + (a.omniRevWithKmi || 0), 0);
   const omniEtc = list.reduce((s,a)=> s + (a.omniRevEtc || 0), 0);
 
-  // ✅ 추가: 내 담당 거래처 "금년도 누적 수검자" 합계
   const ytdExamineesTotal = list.reduce((s,a)=> s + (a.ytdExaminees || 0), 0);
 
-  // (참고용: 기존 수검률 계산은 제거했지만, 예약/완료 수는 매출 카드 보조문구에 사용)
   const booked = list.reduce((s,a)=> s + (a.examBooked || 0), 0);
   const done   = list.reduce((s,a)=> s + (a.examDone || 0), 0);
 
   return {
-    total, active, 신규, 해지,
-    kmiRev, omniRev, omni3p, omniWith, omniEtc,
+    total, active, inactive, 신규,
+    kmiRev, kmiA, kmiB, kmiC,
+    omniRev, omni3p, omniWith, omniEtc,
     ytdExamineesTotal, booked, done
   };
 }
 
 /** =========================
- *  거래처 표: "전체에서 검색" 후 TOP5 노출
- *  - 마지막 방문일 최신순 TOP5
+ *  구성 그래프 렌더(옴니)
+ * ========================= */
+function renderOmniBreakdown(k){
+  const total = k.omniRev || 0;
+  const v3 = k.omni3p || 0;
+  const vW = k.omniWith || 0;
+  const vE = Math.max(0, total - v3 - vW);
+
+  const p3 = pct(v3, total);
+  const pW = pct(vW, total);
+  const pE = Math.max(0, 100 - p3 - pW);
+
+  document.getElementById("seg3p").style.width = fixWidth(p3) + "%";
+  document.getElementById("segWith").style.width = fixWidth(pW) + "%";
+  document.getElementById("segEtc").style.width = fixWidth(pE) + "%";
+
+  document.getElementById("pct3p").textContent = `3자 ${p3}%`;
+  document.getElementById("pctWith").textContent = `WITH KMI ${pW}%`;
+  document.getElementById("pctEtc").textContent = `기타 ${pE}%`;
+
+  document.getElementById("omni3pVal").textContent = `${fmt(toKRWThousand(v3))} 천원`;
+  document.getElementById("omniWithVal").textContent = `${fmt(toKRWThousand(vW))} 천원`;
+  document.getElementById("omniEtcVal").textContent = `${fmt(toKRWThousand(vE))} 천원`;
+}
+
+/** =========================
+ *  ✅ 구성 그래프 렌더(KMI: 종검/종검 외/국가)
+ * ========================= */
+function renderKmiBreakdown(k){
+  const total = k.kmiRev || 0;
+  const a = k.kmiA || 0; // 종검
+  const b = k.kmiB || 0; // 종검 외
+  const c = Math.max(0, total - a - b); // 국가(보정)
+
+  const pA = pct(a, total);
+  const pB = pct(b, total);
+  const pC = Math.max(0, 100 - pA - pB);
+
+  document.getElementById("kmiSegA").style.width = fixWidth(pA) + "%";
+  document.getElementById("kmiSegB").style.width = fixWidth(pB) + "%";
+  document.getElementById("kmiSegC").style.width = fixWidth(pC) + "%";
+
+  document.getElementById("kmiPctA").textContent = `종검 ${pA}%`;
+  document.getElementById("kmiPctB").textContent = `종검 외 ${pB}%`;
+  document.getElementById("kmiPctC").textContent = `국가 ${pC}%`;
+
+  document.getElementById("kmiAVal").textContent = `${fmt(toKRWThousand(a))} 천원`;
+  document.getElementById("kmiBVal").textContent = `${fmt(toKRWThousand(b))} 천원`;
+  document.getElementById("kmiCVal").textContent = `${fmt(toKRWThousand(c))} 천원`;
+}
+
+/** =========================
+ *  거래처 표: TOP5
  * ========================= */
 function getTop5ByLastVisitFrom(list){
   const x = list.slice();
@@ -485,7 +635,7 @@ function renderAccountsTop5(){
 
   if (!list.length){
     const tr = document.createElement("tr");
-    tr.innerHTML = `<td colspan="6" class="muted" style="padding:14px;">표시할 거래처가 없습니다.</td>`;
+    tr.innerHTML = `<td colspan="7" class="muted" style="padding:14px;">표시할 거래처가 없습니다.</td>`;
     tbody.appendChild(tr);
     document.getElementById("scopeHint").textContent =
       q
@@ -499,8 +649,10 @@ function renderAccountsTop5(){
     tr.innerHTML = `
       <td style="font-weight:900;">
         <a class="link" href="#" onclick="alert('거래처 상세(예정)'); return false;">${a.name}</a>
-        <div class="muted small mt-1">담당: ${a.owner} · 상태: ${a.status}</div>
+        <div class="muted small mt-1">담당: ${a.owner}</div>
       </td>
+
+      <td>${statusPillHTMLByLastVisit(a.lastVisitDate)}</td>
 
       <td>${contractPillHTML(a.contractType)}</td>
 
@@ -544,7 +696,6 @@ function buildAccountNewsRSS(){
   const q = terms.map(t => `"${t}"`).join(" OR ");
   return `https://news.google.com/rss/search?q=${encodeURIComponent(q)}&hl=ko&gl=KR&ceid=KR:ko`;
 }
-
 function renderAccountNewsItems(items, selectedYMD){
   const wrap = document.getElementById("acctNewsList");
   const hint = document.getElementById("acctNewsHint");
@@ -575,7 +726,6 @@ function renderAccountNewsItems(items, selectedYMD){
     ? `조회일 ${selectedYMD} 기준 ${Math.min(5, byDate.length)}건 표시 (내 담당 거래처 키워드 기반)`
     : `조회일 ${selectedYMD}에 해당하는 기사가 부족하여 최신 기사로 대체 표시합니다. (내 담당 거래처 키워드 기반)`;
 }
-
 async function loadAccountNewsToMyPage(){
   const dateEl = document.getElementById("acctNewsDate");
   const selectedYMD = dateEl.value;
@@ -597,39 +747,6 @@ async function loadAccountNewsToMyPage(){
 }
 
 /** =========================
- *  옴니케어 구성 그래프 렌더
- * ========================= */
-function pct(part, total){
-  if (!total || total <= 0) return 0;
-  return Math.max(0, Math.round((part / total) * 100));
-}
-function renderOmniBreakdown(k){
-  const total = k.omniRev || 0;
-  const v3 = k.omni3p || 0;
-  const vW = k.omniWith || 0;
-  const vE = Math.max(0, total - v3 - vW);
-
-  const p3 = pct(v3, total);
-  const pW = pct(vW, total);
-  const pE = Math.max(0, 100 - p3 - pW);
-
-  document.getElementById("seg3p").style.width = reopeningFixWidth(p3) + "%";
-  document.getElementById("segWith").style.width = reopeningFixWidth(pW) + "%";
-  document.getElementById("segEtc").style.width = reopeningFixWidth(pE) + "%";
-
-  document.getElementById("pct3p").textContent = `3자 ${p3}%`;
-  document.getElementById("pctWith").textContent = `WITH KMI ${pW}%`;
-  document.getElementById("pctEtc").textContent = `기타 ${pE}%`;
-
-  document.getElementById("omni3pVal").textContent = `${fmt(toKRWThousand(v3))} 천원`;
-  document.getElementById("omniWithVal").textContent = `${fmt(toKRWThousand(vW))} 천원`;
-  document.getElementById("omniEtcVal").textContent = `${fmt(toKRWThousand(vE))} 천원`;
-}
-function reopeningFixWidth(p){
-  return p <= 0 ? 0 : p;
-}
-
-/** =========================
  *  렌더
  * ========================= */
 function render(){
@@ -640,12 +757,9 @@ function render(){
 
   document.getElementById("kpiTotalAccounts").textContent  = `${fmt(k.total)}`;
   document.getElementById("kpiActiveAccounts").textContent = `${fmt(k.active)}`;
-
-  // ✅ 변경 반영: 금년도 누적 수검자 수(합계)
+  document.getElementById("kpiInactiveAccounts").textContent = `${fmt(k.inactive)}`;
   document.getElementById("kpiYtdExaminees").textContent = `${fmt(k.ytdExamineesTotal)}명`;
-
   document.getElementById("kpiNewAccounts").textContent    = `${fmt(k.신규)}`;
-  document.getElementById("kpiChurnAccounts").textContent  = `${fmt(k.해지)}`;
 
   document.getElementById("kpiKmiRevenue").textContent     = `${fmt(toKRWThousand(k.kmiRev))} 천원`;
   document.getElementById("kpiOmniRevenue").textContent    = `${fmt(toKRWThousand(k.omniRev))} 천원`;
@@ -655,6 +769,7 @@ function render(){
   document.getElementById("kpiOmniRevenueSub").textContent =
     `내 담당 거래처 ${fmt(k.total)}곳 합산 · 구성(3자/WITH KMI/기타) 포함(샘플)`;
 
+  renderKmiBreakdown(k);
   renderOmniBreakdown(k);
   renderAccountsTop5();
 
