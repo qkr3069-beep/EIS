@@ -28,6 +28,7 @@
     gap:10px;
   }
   @media (min-width: 768px){
+    /* ✅ 6칸 유지: 마지막 '담당자 정보'를 2칸 span 해서 빈공간 제거 */
     .kpiGrid{ grid-template-columns: repeat(6, minmax(0,1fr)); }
   }
   .kpiBox{
@@ -36,6 +37,28 @@
   .kpiLabel{ color:#64748b; font-size:.82rem; font-weight:800; }
   .kpiValue{ font-size:1.25rem; font-weight:900; color:#0f172a; margin-top:6px; }
   .kpiSub{ color:#64748b; font-size:.78rem; margin-top:6px; }
+
+  /* ✅ 담당자 정보(큰 칸) */
+  .kpiSpan2{ grid-column: span 2 / span 2; }
+  @media (max-width: 767px){
+    .kpiSpan2{ grid-column: span 2 / span 2; } /* 모바일 2열이므로 전체폭 느낌 */
+  }
+  .mgrWrap{ margin-top:6px; display:flex; flex-direction:column; gap:6px; }
+  .mgrRow{ display:flex; gap:8px; align-items:flex-start; flex-wrap:wrap; }
+  .mgrTag{
+    display:inline-flex; align-items:center;
+    border:1px solid #e5e7eb; border-radius:999px;
+    padding:.18rem .55rem; font-size:.78rem; font-weight:900;
+    color:#334155; background:#f8fafc;
+    white-space:nowrap;
+  }
+  .mgrVal{
+    font-weight:900; color:#0f172a;
+    font-size:1.02rem;
+    word-break:break-word;
+  }
+  .mgrVal a{ color:#0f172a; text-decoration:none; }
+  .mgrVal a:hover{ text-decoration:underline; }
 
   /* ===== 재무현황 2x2 + 세로막대 ===== */
   .finGrid{
@@ -209,7 +232,8 @@
         <div class="kpiBox">
           <div class="kpiLabel">금년도 누적 매출</div>
           <div class="kpiValue" id="kpiRevenue">-</div>
-          <div class="kpiSub">단위: 만원</div>
+          <!-- ✅ 단위 변경: 만원 → 천원 -->
+          <div class="kpiSub">단위: 천원</div>
         </div>
 
         <div class="kpiBox">
@@ -219,27 +243,24 @@
         </div>
 
         <div class="kpiBox">
-          <div class="kpiLabel">세금계산서 발행일(최근)</div>
-          <div class="kpiValue" id="kpiTaxDate">-</div>
-          <div class="kpiSub">최근 발행 기준</div>
+          <div class="kpiLabel">계약 시작일</div>
+          <div class="kpiValue" id="kpiContractStart">-</div>
+          <div class="kpiSub">계약 기준</div>
         </div>
 
         <div class="kpiBox">
-          <div class="kpiLabel">예정 입금일</div>
-          <div class="kpiValue" id="kpiDepositDate">-</div>
-          <div class="kpiSub">예정(샘플)</div>
+          <div class="kpiLabel">계약 만료일</div>
+          <div class="kpiValue" id="kpiContractEnd">-</div>
+          <div class="kpiSub">계약 기준</div>
         </div>
 
-        <div class="kpiBox">
-          <div class="kpiLabel">누적 입금액</div>
-          <div class="kpiValue" id="kpiPaid">-</div>
-          <div class="kpiSub">단위: 만원</div>
-        </div>
-
-        <div class="kpiBox">
-          <div class="kpiLabel">매출채권</div>
-          <div class="kpiValue" id="kpiAR">-</div>
-          <div class="kpiSub">미수금(샘플)</div>
+        <!-- ✅ 담당자 정보: 2칸(span 2)로 확장하여 빈공간 제거 -->
+        <div class="kpiBox kpiSpan2">
+          <div class="kpiLabel">담당자 정보</div>
+          <div class="mgrWrap" id="kpiManager">
+            <div class="muted small">-</div>
+          </div>
+          <div class="kpiSub">이름 · 이메일 · 연락처</div>
         </div>
       </div>
     </section>
@@ -306,22 +327,28 @@
 const DART_API_KEY = "0a6ff600d96e942a5aa483fd66ddc538e943dccd";
 
 /* ===== 샘플 DB(삼성전자) =====
-   ✅ corpCode: DART corp_code (8자리) 추가
+   ✅ 담당자: name/email/phone
 */
 const CUSTOMER_DB = [
   {
     name: "삼성전자",
-    corpCode: "00126380", // ✅ DART corp_code (삼성전자)
+    corpCode: "00126380",
     status: {
-      ytdRevenue: 38000,         // 만원(샘플)
+      ytdRevenue: 38000,         // (샘플) 값은 그대로, 화면 단위만 천원으로 표기
       ytdExaminees: 420,         // 명
+      contractStartDate: "2025-01-01",
+      contractEndDate: "2025-12-31",
+      manager: { name:"김담당", email:"manager@samsung.com", phone:"010-1234-5678" },
+
+      // 남겨둬도 무방(화면에서 미사용)
       taxInvoiceDate: "2025-12-08",
       expectedDepositDate: "2026-01-05",
-      paidToDate: 25000,         // 만원
+      paidToDate: 25000,
     },
     finance: {
       years: [2023, 2024],
-      unit: "억원(샘플)",
+      /* ✅ 단위 변경: 억원(샘플) → 천원(샘플) */
+      unit: "천원(샘플)",
       revenue: [2580, 2800],
       op:      [ 120,  180],
       net:     [  95,  150],
@@ -468,7 +495,6 @@ function renderDartFilings(items){
   }
 
   items.forEach(it=>{
-    // 원문 링크: rcpNo 사용
     const dartUrl = `https://dart.fss.or.kr/dsaf001/main.do?rcpNo=${it.rcept_no}`;
 
     const div = document.createElement("div");
@@ -487,14 +513,12 @@ async function loadDartFilings(corpCode, corpName){
   const wrap = document.getElementById("filingsList");
   wrap.innerHTML = `<div class="muted small">불러오는 중…</div>`;
 
-  // 더보기는 DART 사이트 검색으로 보내도 되고, 별도 페이지로 보내도 됨
   document.getElementById("filingsSub").textContent = `조회 기업: ${corpName} (corp_code: ${corpCode})`;
 
   try{
     const list = await fetchDartList(corpCode, 5);
     renderDartFilings(list);
   }catch(err){
-    // CORS/네트워크/호출제한 등
     wrap.innerHTML = `
       <div class="item">
         <div class="itemTitle">공시 불러오기 실패</div>
@@ -512,6 +536,33 @@ async function loadDartFilings(corpCode, corpName){
   }
 }
 
+/* ===== 담당자 정보 렌더 ===== */
+function renderManagerBox(mgr){
+  const box = document.getElementById("kpiManager");
+  if (!mgr){
+    box.innerHTML = `<div class="muted small">-</div>`;
+    return;
+  }
+  const name = mgr.name || "-";
+  const email = mgr.email || "-";
+  const phone = mgr.phone || "-";
+
+  box.innerHTML = `
+    <div class="mgrRow">
+      <span class="mgrTag">이름</span>
+      <span class="mgrVal">${name}</span>
+    </div>
+    <div class="mgrRow">
+      <span class="mgrTag">이메일</span>
+      <span class="mgrVal">${email === "-" ? "-" : `<a href="mailto:${email}">${email}</a>`}</span>
+    </div>
+    <div class="mgrRow">
+      <span class="mgrTag">연락처</span>
+      <span class="mgrVal">${phone === "-" ? "-" : `<a href="tel:${phone.replace(/[^0-9+]/g,'')}">${phone}</a>`}</span>
+    </div>
+  `;
+}
+
 /* ===== 검색 ===== */
 function findCustomerByQuery(q){
   const qq = (q || "").trim().toLowerCase();
@@ -527,15 +578,17 @@ async function loadCustomer(c){
 
   // 거래 현황
   const s = c.status;
-  const ar = Math.max(0, (s.ytdRevenue||0) - (s.paidToDate||0));
-
   document.getElementById("statusSub").textContent = `거래처: ${c.name} · (샘플) 올해 누적 기준`;
-  document.getElementById("kpiRevenue").textContent = `${fmt(s.ytdRevenue)} 만원`;
+
+  /* ✅ 단위 변경: 만원 → 천원 (표시 텍스트만 변경, 값은 그대로) */
+  document.getElementById("kpiRevenue").textContent = `${fmt(s.ytdRevenue)} 천원`;
+
   document.getElementById("kpiExaminees").textContent = `${fmt(s.ytdExaminees)} 명`;
-  document.getElementById("kpiTaxDate").textContent = s.taxInvoiceDate || "-";
-  document.getElementById("kpiDepositDate").textContent = s.expectedDepositDate || "-";
-  document.getElementById("kpiPaid").textContent = `${fmt(s.paidToDate)} 만원`;
-  document.getElementById("kpiAR").textContent = `${fmt(ar)} 만원`;
+  document.getElementById("kpiContractStart").textContent = s.contractStartDate || "-";
+  document.getElementById("kpiContractEnd").textContent = s.contractEndDate || "-";
+
+  // 담당자
+  renderManagerBox(s.manager);
 
   // 재무 2x2
   const f = c.finance;
@@ -552,7 +605,7 @@ async function loadCustomer(c){
 
   await loadKeywordNews(c.name, 5);
 
-  // ✅ DART: corp_code로 최근 공시 5건
+  // DART
   if (c.corpCode){
     await loadDartFilings(c.corpCode, c.name);
   }else{
