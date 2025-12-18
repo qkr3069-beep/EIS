@@ -42,6 +42,23 @@
   .pill-indigo{ color:#312e81; border-color:#c7d2fe; background:#eef2ff; }
   .pill-slate{ color:#334155; border-color:#e2e8f0; background:#f8fafc; }
 
+  /* ✅ 상태 뱃지(최근 방문 2개월 기준) */
+  .statusPill{
+    display:inline-flex; align-items:center; gap:6px;
+    border:1px solid #e5e7eb;
+    border-radius:999px;
+    padding:.2rem .55rem;
+    font-size:.78rem;
+    font-weight:900;
+    background:#fff;
+    white-space:nowrap;
+  }
+  .statusPill i{ width:8px; height:8px; border-radius:999px; display:inline-block; }
+  .status-on{ color:#0f172a; border-color:#bae6fd; background:#f0f9ff; }
+  .status-on i{ background:#0ea5e9; }
+  .status-off{ color:#334155; border-color:#e2e8f0; background:#f8fafc; }
+  .status-off i{ background:#64748b; }
+
   .iconBtn{
     display:inline-flex; align-items:center; justify-content:center;
     width:36px; height:36px; border-radius:12px;
@@ -163,7 +180,7 @@
     </div>
 
     <div class="mt-3 hintBox small">
-      ✅ 계약 형태(3자/withKMI/기타), 검진 구분(종검/종검 외/국가), 방문일(최초/최근) 컬럼이 포함됩니다.
+      ✅ 계약 형태(3자/withKMI/기타), 검진 구분(종검/종검 외/국가), 방문일(최초/최근), 상태(최근 방문 2개월 기준) 컬럼이 포함됩니다.
     </div>
   </section>
 
@@ -175,7 +192,6 @@
         <div class="muted small" id="scopeHint">-</div>
       </div>
 
-      <!-- CSV + 노출 수량 -->
       <div class="flex items-center gap-2">
         <select id="showCountSel" class="select">
           <option value="10">10개 노출</option>
@@ -194,6 +210,8 @@
         <thead>
           <tr>
             <th style="min-width:240px;">거래처명</th>
+            <!-- ✅ 추가: 상태 컬럼 -->
+            <th style="min-width:110px;">상태</th>
             <th style="min-width:120px;">계약 형태</th>
             <th class="num" style="min-width:150px;">금년도 누적 매출</th>
             <th class="num" style="min-width:140px;">금년도 누적 수검자</th>
@@ -241,9 +259,35 @@ function addDays(base, days){
   d.setDate(d.getDate()+days);
   return d;
 }
+function addMonths(date, months){
+  const d = new Date(date);
+  d.setMonth(d.getMonth() + months);
+  return d;
+}
 function seededRand(i){
   const x = Math.sin(i * 999) * 10000;
   return x - Math.floor(x);
+}
+
+/** ✅ 상태 판정: 마지막 방문일이 "오늘 기준 2개월 이내"면 활성 */
+function isActiveByLastVisitYMD(lastVisitYMD){
+  const dt = parseDateYMD(lastVisitYMD);
+  if (!dt) return false;
+  const today = new Date();
+  const cutoff = addMonths(today, -2);
+  return dt >= cutoff;
+}
+function statusPillHTML(lastVisitYMD){
+  const on = isActiveByLastVisitYMD(lastVisitYMD);
+  if (on) return `<span class="statusPill status-on"><i></i>활성</span>`;
+  return `<span class="statusPill status-off"><i></i>비활성</span>`;
+}
+
+/** ✅ 거래처명 클릭 시 accounts_by_customer로 이동 + 검색어 전달 */
+function goAccountDetail(accountName){
+  const q = encodeURIComponent(accountName || "");
+  // accounts_by_customer.html에서 URL 파라미터 q를 읽어 검색창에 반영하면 됨
+  location.href = `accounts_by_customer.html?q=${q}`;
 }
 
 /** =========================
@@ -268,11 +312,9 @@ function makeSampleAccounts(n=100){
     const owner = owners[Math.floor(r1*owners.length)];
     const name = `${cities[Math.floor(r2*cities.length)]}${prefixes[Math.floor(r3*prefixes.length)]}센터 ${String(i).padStart(3,"0")}`;
 
-    // ✅ 매출(천원) — 기존 "만원" 로직을 10배로 변환
-    // 기존: 2,000~50,000(만원) → 이제: 20,000~500,000(천원)
+    // 매출(천원)
     const ytdRevenue = Math.round( (20000 + r1*480000) / 10 ) * 10;
 
-    // 누적 수검자
     const ytdExaminees = Math.round( 20 + r3*980 );
 
     // 검진 구분(합=누적수검자)
@@ -280,12 +322,10 @@ function makeSampleAccounts(n=100){
     const 국가 = Math.max(0, Math.round(ytdExaminees * (0.10 + r4*0.30)));
     const 종검외 = Math.max(0, ytdExaminees - 종검 - 국가);
 
-    // 계약 형태
     const contractType = contractTypes[
       r2 < 0.45 ? 0 : (r2 < 0.80 ? 1 : 2)
     ];
 
-    // 방문일
     const firstVisit = addDays(base, -(30 + Math.floor(r3*320)));
     const lastVisit  = addDays(base, -(Math.floor(r1*45)));
     const fv = firstVisit.getTime() <= lastVisit.getTime() ? firstVisit : addDays(lastVisit, -Math.floor(20 + r2*80));
@@ -295,7 +335,7 @@ function makeSampleAccounts(n=100){
       name,
       owner,
       contractType,
-      ytdRevenue,                 // ✅ 천원
+      ytdRevenue,
       ytdExaminees,
       examSplit: { 종검, 종검외, 국가 },
       firstVisitDate: toYMD(fv),
@@ -365,8 +405,6 @@ function examSplitPills(split){
 
 /** =========================
  *  렌더
- *  - 노출 수량(10/25/50/100)만큼 상위 N개 표시
- *  - CSV도 동일 N개만 다운로드
  * ========================= */
 function getShowCount(){
   const v = parseInt(document.getElementById("showCountSel").value, 10);
@@ -383,17 +421,22 @@ function render(){
   tbody.innerHTML = "";
   if (!shown.length){
     const tr = document.createElement("tr");
-    tr.innerHTML = `<td colspan="7" class="muted" style="padding:14px;">표시할 거래처가 없습니다.</td>`;
+    tr.innerHTML = `<td colspan="8" class="muted" style="padding:14px;">표시할 거래처가 없습니다.</td>`;
     tbody.appendChild(tr);
   }else{
     shown.forEach(a=>{
       const tr = document.createElement("tr");
       tr.innerHTML = `
         <td style="font-weight:900;">
-          <a class="link" href="#" onclick="alert('거래처 상세(예정)'); return false;">${a.name}</a>
+          <a class="link" href="accounts_by_customer.html?q=${encodeURIComponent(a.name)}">${a.name}</a>
           <div class="muted small mt-1">담당: ${a.owner}</div>
         </td>
+
+        <!-- ✅ 상태 -->
+        <td>${statusPillHTML(a.lastVisitDate)}</td>
+
         <td>${contractPill(a.contractType)}</td>
+
         <td class="num">${fmt(a.ytdRevenue)} 천원</td>
         <td class="num">${fmt(a.ytdExaminees)} 명</td>
         <td>${examSplitPills(a.examSplit)}</td>
@@ -425,7 +468,6 @@ function render(){
 
 /** =========================
  *  CSV Export (현재 노출 수량만)
- *  - ✅ 매출 단위: 천원
  * ========================= */
 function downloadCSV(){
   const { list } = getFilteredList();
@@ -433,14 +475,15 @@ function downloadCSV(){
   const shown = list.slice(0, showCount);
 
   const header = [
-    "거래처명","계약 형태","금년도 누적 매출(천원)","금년도 누적 수검자(명)",
+    "거래처명","상태","계약 형태","금년도 누적 매출(천원)","금년도 누적 수검자(명)",
     "종검(명)","종검 외(명)","국가(명)","첫 방문일","마지막 방문일"
   ];
 
   const rows = shown.map(a => ([
     a.name,
+    isActiveByLastVisitYMD(a.lastVisitDate) ? "활성" : "비활성",
     a.contractType,
-    a.ytdRevenue ?? 0,          // ✅ 천원
+    a.ytdRevenue ?? 0,
     a.ytdExaminees ?? 0,
     a.examSplit?.종검 ?? 0,
     a.examSplit?.종검외 ?? 0,
