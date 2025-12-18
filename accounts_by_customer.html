@@ -232,7 +232,6 @@
         <div class="kpiBox">
           <div class="kpiLabel">금년도 누적 매출</div>
           <div class="kpiValue" id="kpiRevenue">-</div>
-          <!-- ✅ 단위 변경: 만원 → 천원 -->
           <div class="kpiSub">단위: 천원</div>
         </div>
 
@@ -242,16 +241,17 @@
           <div class="kpiSub">단위: 명</div>
         </div>
 
+        <!-- ✅ 계약 시작/만료 → 최초/최근 방문일로 변경 -->
         <div class="kpiBox">
-          <div class="kpiLabel">계약 시작일</div>
-          <div class="kpiValue" id="kpiContractStart">-</div>
-          <div class="kpiSub">계약 기준</div>
+          <div class="kpiLabel">최초 방문일</div>
+          <div class="kpiValue" id="kpiFirstVisit">-</div>
+          <div class="kpiSub">접속/방문 기준(샘플)</div>
         </div>
 
         <div class="kpiBox">
-          <div class="kpiLabel">계약 만료일</div>
-          <div class="kpiValue" id="kpiContractEnd">-</div>
-          <div class="kpiSub">계약 기준</div>
+          <div class="kpiLabel">최근 방문일</div>
+          <div class="kpiValue" id="kpiLastVisit">-</div>
+          <div class="kpiSub">접속/방문 기준(샘플)</div>
         </div>
 
         <!-- ✅ 담당자 정보: 2칸(span 2)로 확장하여 빈공간 제거 -->
@@ -327,6 +327,7 @@
 const DART_API_KEY = "0a6ff600d96e942a5aa483fd66ddc538e943dccd";
 
 /* ===== 샘플 DB(삼성전자) =====
+   ✅ 방문일: firstVisitDate / lastVisitDate
    ✅ 담당자: name/email/phone
 */
 const CUSTOMER_DB = [
@@ -334,10 +335,13 @@ const CUSTOMER_DB = [
     name: "삼성전자",
     corpCode: "00126380",
     status: {
-      ytdRevenue: 38000,         // (샘플) 값은 그대로, 화면 단위만 천원으로 표기
+      ytdRevenue: 38000,         // (샘플) 값은 그대로, 화면 단위만 천원 표기
       ytdExaminees: 420,         // 명
-      contractStartDate: "2025-01-01",
-      contractEndDate: "2025-12-31",
+
+      /* ✅ 계약 시작/만료 대신 방문일로 변경 */
+      firstVisitDate: "2025-01-10",
+      lastVisitDate: "2025-12-14",
+
       manager: { name:"김담당", email:"manager@samsung.com", phone:"010-1234-5678" },
 
       // 남겨둬도 무방(화면에서 미사용)
@@ -347,7 +351,6 @@ const CUSTOMER_DB = [
     },
     finance: {
       years: [2023, 2024],
-      /* ✅ 단위 변경: 억원(샘플) → 천원(샘플) */
       unit: "천원(샘플)",
       revenue: [2580, 2800],
       op:      [ 120,  180],
@@ -580,12 +583,12 @@ async function loadCustomer(c){
   const s = c.status;
   document.getElementById("statusSub").textContent = `거래처: ${c.name} · (샘플) 올해 누적 기준`;
 
-  /* ✅ 단위 변경: 만원 → 천원 (표시 텍스트만 변경, 값은 그대로) */
   document.getElementById("kpiRevenue").textContent = `${fmt(s.ytdRevenue)} 천원`;
-
   document.getElementById("kpiExaminees").textContent = `${fmt(s.ytdExaminees)} 명`;
-  document.getElementById("kpiContractStart").textContent = s.contractStartDate || "-";
-  document.getElementById("kpiContractEnd").textContent = s.contractEndDate || "-";
+
+  /* ✅ 방문일 세팅 */
+  document.getElementById("kpiFirstVisit").textContent = s.firstVisitDate || "-";
+  document.getElementById("kpiLastVisit").textContent  = s.lastVisitDate || "-";
 
   // 담당자
   renderManagerBox(s.manager);
