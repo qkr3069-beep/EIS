@@ -147,8 +147,8 @@
         <select id="sortSel" class="select w-full">
           <option value="REV_DESC">정렬: 누적 매출 높은 순</option>
           <option value="EXAM_DESC">정렬: 누적 수검자 높은 순</option>
-          <option value="LASTVISIT_DESC">정렬: 최근 방문일 최신 순</option>
-          <option value="FIRSTVISIT_ASC">정렬: 최초 방문일 오래된 순</option>
+          <option value="LASTVISIT_DESC">정렬: 마지막 방문일 최신 순</option>
+          <option value="FIRSTVISIT_ASC">정렬: 첫 방문일 오래된 순</option>
           <option value="NAME_ASC">정렬: 거래처명 A→Z</option>
         </select>
       </div>
@@ -198,8 +198,8 @@
             <th class="num" style="min-width:150px;">금년도 누적 매출</th>
             <th class="num" style="min-width:140px;">금년도 누적 수검자</th>
             <th style="min-width:220px;">검진 구분</th>
-            <th style="min-width:140px;">최초 방문일</th>
-            <th style="min-width:140px;">최근 방문일</th>
+            <th style="min-width:140px;">첫 방문일</th>
+            <th style="min-width:140px;">마지막 방문일</th>
           </tr>
         </thead>
         <tbody id="tbody"></tbody>
@@ -434,7 +434,7 @@ function downloadCSV(){
 
   const header = [
     "거래처명","계약 형태","금년도 누적 매출(천원)","금년도 누적 수검자(명)",
-    "종검(명)","종검 외(명)","국가(명)","최초 방문일","최근 방문일"
+    "종검(명)","종검 외(명)","국가(명)","첫 방문일","마지막 방문일"
   ];
 
   const rows = shown.map(a => ([
