@@ -42,7 +42,6 @@
   .pill-indigo{ color:#312e81; border-color:#c7d2fe; background:#eef2ff; }
   .pill-slate{ color:#334155; border-color:#e2e8f0; background:#f8fafc; }
 
-  /* ✅ 상태 뱃지(최근 방문 2개월 기준) */
   .statusPill{
     display:inline-flex; align-items:center; gap:6px;
     border:1px solid #e5e7eb;
@@ -97,8 +96,8 @@
       <div class="font-semibold text-slate-900">OmniCare Intelligence Hub</div>
       <div class="text-sm muted">거래처 현황 · 전체보기 (영업자)</div>
     </div>
-    <button onclick="location.href='mypage_sales.html'" class="btn2">마이페이지</button>
     <button onclick="location.href='https://qkr3069-beep.github.io/EIS/'" class="btn2">메인</button>
+    <button onclick="location.href='mypage_sales.html'" class="btn2">마이페이지</button>
   </div>
 </header>
 
@@ -119,26 +118,36 @@
 
     <div class="divider my-4"></div>
 
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-      <div class="kpiBox">
+    <!-- ✅ 변경: 내 담당 거래처 폭 축소 + 총누적매출/총누적수검자 동일 폭 -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3">
+      <div class="kpiBox lg:col-span-2">
         <div class="kpiLabel">내 담당 거래처</div>
         <div class="kpiValue" id="kpiTotal">-</div>
-        <div class="kpiSub">검색 적용 전 전체</div>
+        <div class="kpiSub">검색과 무관 · 내 담당 전체</div>
       </div>
-      <div class="kpiBox">
-        <div class="kpiLabel">현재 목록 건수</div>
-        <div class="kpiValue" id="kpiFiltered">-</div>
-        <div class="kpiSub">검색 적용 후</div>
+
+      <div class="kpiBox lg:col-span-2">
+        <div class="kpiLabel">활성 거래처 수</div>
+        <div class="kpiValue" id="kpiActive">-</div>
+        <div class="kpiSub">마지막 방문일 2개월 이내</div>
       </div>
-      <div class="kpiBox">
+
+      <div class="kpiBox lg:col-span-2">
+        <div class="kpiLabel">비활성 거래처 수</div>
+        <div class="kpiValue" id="kpiInactive">-</div>
+        <div class="kpiSub">마지막 방문일 2개월 초과</div>
+      </div>
+
+      <div class="kpiBox lg:col-span-3">
         <div class="kpiLabel">총 누적 매출</div>
         <div class="kpiValue" id="kpiRevSum">-</div>
-        <div class="kpiSub">현재 목록 합계(천원)</div>
+        <div class="kpiSub">검색과 무관 · 내 담당 합계(천원)</div>
       </div>
-      <div class="kpiBox">
+
+      <div class="kpiBox lg:col-span-3">
         <div class="kpiLabel">총 누적 수검자 수</div>
         <div class="kpiValue" id="kpiExamSum">-</div>
-        <div class="kpiSub">현재 목록 합계(명)</div>
+        <div class="kpiSub">검색과 무관 · 내 담당 합계(명)</div>
       </div>
     </div>
   </section>
@@ -148,7 +157,7 @@
     <div class="flex items-start justify-between gap-3 flex-wrap">
       <div>
         <div class="text-lg font-extrabold text-slate-900">거래처 현황 전체보기</div>
-        <div class="muted small">검색/정렬은 전체에 적용됩니다.</div>
+        <div class="muted small">검색/정렬은 아래 “목록”에만 적용됩니다. (개요 KPI는 고정)</div>
       </div>
       <span class="chip">Accounts</span>
     </div>
@@ -210,7 +219,6 @@
         <thead>
           <tr>
             <th style="min-width:240px;">거래처명</th>
-            <!-- ✅ 추가: 상태 컬럼 -->
             <th style="min-width:110px;">상태</th>
             <th style="min-width:120px;">계약 형태</th>
             <th class="num" style="min-width:150px;">금년도 누적 매출</th>
@@ -269,7 +277,7 @@ function seededRand(i){
   return x - Math.floor(x);
 }
 
-/** ✅ 상태 판정: 마지막 방문일이 "오늘 기준 2개월 이내"면 활성 */
+/** 상태 판정: 마지막 방문일이 "오늘 기준 2개월 이내"면 활성 */
 function isActiveByLastVisitYMD(lastVisitYMD){
   const dt = parseDateYMD(lastVisitYMD);
   if (!dt) return false;
@@ -283,16 +291,8 @@ function statusPillHTML(lastVisitYMD){
   return `<span class="statusPill status-off"><i></i>비활성</span>`;
 }
 
-/** ✅ 거래처명 클릭 시 accounts_by_customer로 이동 + 검색어 전달 */
-function goAccountDetail(accountName){
-  const q = encodeURIComponent(accountName || "");
-  // accounts_by_customer.html에서 URL 파라미터 q를 읽어 검색창에 반영하면 됨
-  location.href = `accounts_by_customer.html?q=${q}`;
-}
-
 /** =========================
- *  샘플 거래처 생성
- *  - ✅ 매출 단위: "천원"
+ *  샘플 거래처 생성 (천원)
  * ========================= */
 function makeSampleAccounts(n=100){
   const owners = ["김영업","박영업","이영업","최영업"];
@@ -315,6 +315,7 @@ function makeSampleAccounts(n=100){
     // 매출(천원)
     const ytdRevenue = Math.round( (20000 + r1*480000) / 10 ) * 10;
 
+    // 누적 수검자
     const ytdExaminees = Math.round( 20 + r3*980 );
 
     // 검진 구분(합=누적수검자)
@@ -322,10 +323,12 @@ function makeSampleAccounts(n=100){
     const 국가 = Math.max(0, Math.round(ytdExaminees * (0.10 + r4*0.30)));
     const 종검외 = Math.max(0, ytdExaminees - 종검 - 국가);
 
+    // 계약 형태
     const contractType = contractTypes[
       r2 < 0.45 ? 0 : (r2 < 0.80 ? 1 : 2)
     ];
 
+    // 방문일
     const firstVisit = addDays(base, -(30 + Math.floor(r3*320)));
     const lastVisit  = addDays(base, -(Math.floor(r1*45)));
     const fv = firstVisit.getTime() <= lastVisit.getTime() ? firstVisit : addDays(lastVisit, -Math.floor(20 + r2*80));
@@ -354,7 +357,7 @@ function scopedAccounts(){
 }
 
 /** =========================
- *  필터/정렬
+ *  필터/정렬 (목록 전용)
  * ========================= */
 function getFilteredList(){
   const all = scopedAccounts();
@@ -404,16 +407,39 @@ function examSplitPills(split){
 }
 
 /** =========================
- *  렌더
+ *  개요 KPI (항상 "내 담당 전체" 기준 / 검색 무관)
+ * ========================= */
+function renderSummaryFixed(){
+  const all = scopedAccounts();
+  const total = all.length;
+
+  const active = all.filter(a => isActiveByLastVisitYMD(a.lastVisitDate)).length;
+  const inactive = Math.max(0, total - active);
+
+  const revSum = all.reduce((s,a)=> s + (a.ytdRevenue||0), 0);
+  const examSum = all.reduce((s,a)=> s + (a.ytdExaminees||0), 0);
+
+  document.getElementById("kpiTotal").textContent = `${fmt(total)}`;
+  document.getElementById("kpiActive").textContent = `${fmt(active)}`;
+  document.getElementById("kpiInactive").textContent = `${fmt(inactive)}`;
+  document.getElementById("kpiRevSum").textContent = `${fmt(revSum)} 천원`;
+  document.getElementById("kpiExamSum").textContent = `${fmt(examSum)} 명`;
+
+  document.getElementById("userLine").textContent = `${CURRENT_USER.name} · ${CURRENT_USER.team} · ${NOW_YM} 기준`;
+  document.getElementById("countChip").textContent = `내 담당 ${fmt(total)}곳`;
+}
+
+/** =========================
+ *  목록 렌더 (검색/정렬/노출수 반영)
  * ========================= */
 function getShowCount(){
   const v = parseInt(document.getElementById("showCountSel").value, 10);
   return Number.isFinite(v) ? v : 25;
 }
 
-function render(){
+function renderList(){
   const tbody = document.getElementById("tbody");
-  const { all, list, q } = getFilteredList();
+  const { list, q } = getFilteredList();
   const showCount = getShowCount();
 
   const shown = list.slice(0, showCount);
@@ -431,12 +457,8 @@ function render(){
           <a class="link" href="accounts_by_customer.html?q=${encodeURIComponent(a.name)}">${a.name}</a>
           <div class="muted small mt-1">담당: ${a.owner}</div>
         </td>
-
-        <!-- ✅ 상태 -->
         <td>${statusPillHTML(a.lastVisitDate)}</td>
-
         <td>${contractPill(a.contractType)}</td>
-
         <td class="num">${fmt(a.ytdRevenue)} 천원</td>
         <td class="num">${fmt(a.ytdExaminees)} 명</td>
         <td>${examSplitPills(a.examSplit)}</td>
@@ -446,18 +468,6 @@ function render(){
       tbody.appendChild(tr);
     });
   }
-
-  // KPI (검색 반영: 전체 list 기준)
-  const revSum = list.reduce((s,a)=> s + (a.ytdRevenue||0), 0);
-  const examSum = list.reduce((s,a)=> s + (a.ytdExaminees||0), 0);
-
-  document.getElementById("kpiTotal").textContent = `${fmt(all.length)}`;
-  document.getElementById("kpiFiltered").textContent = `${fmt(list.length)}`;
-  document.getElementById("kpiRevSum").textContent = `${fmt(revSum)} 천원`;
-  document.getElementById("kpiExamSum").textContent = `${fmt(examSum)} 명`;
-
-  document.getElementById("userLine").textContent = `${CURRENT_USER.name} · ${CURRENT_USER.team} · ${NOW_YM} 기준`;
-  document.getElementById("countChip").textContent = `내 담당 ${fmt(all.length)}곳`;
 
   document.getElementById("scopeHint").textContent =
     q ? `현재 필터 · 검색: “${q}”` : "현재 필터 없음 · 내 담당 전체";
@@ -513,9 +523,9 @@ function downloadCSV(){
 /** =========================
  *  이벤트
  * ========================= */
-document.getElementById("q").addEventListener("input", render);
-document.getElementById("sortSel").addEventListener("change", render);
-document.getElementById("showCountSel").addEventListener("change", render);
+document.getElementById("q").addEventListener("input", renderList);
+document.getElementById("sortSel").addEventListener("change", renderList);
+document.getElementById("showCountSel").addEventListener("change", renderList);
 document.getElementById("exportBtn").addEventListener("click", downloadCSV);
 
 document.getElementById("scrollTopBtn").addEventListener("click", ()=>{
@@ -523,7 +533,8 @@ document.getElementById("scrollTopBtn").addEventListener("click", ()=>{
 });
 
 /** 초기 렌더 */
-render();
+renderSummaryFixed(); // ✅ 개요는 고정
+renderList();         // ✅ 목록만 검색/정렬로 갱신
 </script>
 
 </body>
