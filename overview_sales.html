@@ -7,6 +7,7 @@
 
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/variable/pretendardvariable.css" />
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
 <style>
   html,body{ font-family:"Pretendard Variable", system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
@@ -48,7 +49,6 @@
   .kpi .v{ font-size:1.15rem; font-weight:900; color:#0f172a; margin-top:2px; }
   .kpi .s{ font-size:.78rem; color:var(--muted); margin-top:2px; font-weight:800; }
 
-  /* ✅ 영업부 상세: 상단 선택 + 하단 KPI 그리드 */
   .kpiGrid{
     display:grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -58,7 +58,6 @@
     .kpiGrid{ grid-template-columns: repeat(5, minmax(0, 1fr)); }
   }
 
-  /* ===== 균등 차트 (본부/지사) ===== */
   .chart-equal{
     display:grid;
     gap:12px;
@@ -83,10 +82,10 @@
     background:transparent;
   }
   .segV{ width:100%; }
-  .segV-third{ background:#93c5fd; } /* 3자 */
-  .segV-with { background:#fca5a5; } /* WITH KMI */
+  .segV-third{ background:#93c5fd; }
+  .segV-with { background:#fca5a5; }
   .segV-etc  {
-    background:#22c55e !important; /* 기타 */
+    background:#22c55e !important;
     box-shadow: inset 0 0 0 1px rgba(15,23,42,.18);
   }
 
@@ -97,7 +96,6 @@
     max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
   }
 
-  /* ===== 스택 바 (구성) ===== */
   .stack{
     width:100%;
     border:1px solid var(--divider);
@@ -123,7 +121,6 @@
   .dot-with{ background:#fca5a5; }
   .dot-etc{ background:#22c55e; }
 
-  /* ===== table ===== */
   .table-wrap{ overflow:auto; border-radius:14px; border:1px solid var(--divider); }
   table{ width:100%; border-collapse:separate; border-spacing:0; }
   th, td{ padding:12px 12px; border-bottom:1px solid var(--divider); }
@@ -157,6 +154,34 @@
 
   .secTitle{ font-weight:900; color:#0f172a; font-size:1.05rem; }
   .secSub{ font-size:.85rem; color:var(--muted); font-weight:900; margin-top:2px; }
+
+  .miniUpload{
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .miniUpload .miniBtn{
+    border:1px solid var(--divider);
+    border-radius:999px;
+    padding:.25rem .6rem;
+    font-size:.78rem;
+    font-weight:900;
+    background:#fff;
+    color:#0f172a;
+    cursor:pointer;
+    user-select:none;
+  }
+  .miniUpload .miniBtn:hover{ background:#f8fafc; }
+  .miniUpload input[type="file"]{ display:none; }
+  .miniPill{
+    border:1px solid #e2e8f0;
+    background:#f8fafc;
+    color:#334155;
+    border-radius:999px;
+    padding:.25rem .6rem;
+    font-size:.72rem;
+    font-weight:900;
+  }
 </style>
 </head>
 
@@ -180,7 +205,7 @@
 
 <main class="max-w-[1440px] mx-auto px-2 py-6 space-y-6">
 
-  <!-- 1) 상단: 옴니케어 전체 누계 매출/예상 -->
+  <!-- 1) 상단: 전체 누계 -->
   <section class="card p-5">
     <div class="flex items-start justify-between gap-3">
       <div>
@@ -241,7 +266,15 @@
         <div class="font-extrabold text-slate-900 text-lg">본부/지사별 매출(총합)</div>
         <div class="muted text-sm font-semibold">각 영업부 총합(3자+WITH+기타) · 단위: 천원</div>
       </div>
-      <span class="chip">ORG</span>
+
+      <div class="flex items-center gap-2">
+        <span class="chip">ORG</span>
+        <div class="miniUpload" title="엑셀 수동 업로드(.xlsx/.xls)">
+          <label class="miniBtn" for="excelFileInputMini">엑셀 업로드</label>
+          <input id="excelFileInputMini" type="file" accept=".xlsx,.xls" />
+          <span class="miniPill" id="excelMiniStatus">자동 로드</span>
+        </div>
+      </div>
     </div>
 
     <div class="mt-4 chart-equal" id="omniChartByOrg"></div>
@@ -254,6 +287,8 @@
       <span><i class="dot dot-with"></i>WITH KMI</span>
       <span><i class="dot dot-etc"></i>기타</span>
     </div>
+
+    <div class="mt-3 text-xs muted font-semibold" id="excelHint">-</div>
   </section>
 
   <!-- 3) 영업부 선택 + 상세 -->
@@ -268,46 +303,43 @@
 
     <div class="divider my-4"></div>
 
-    <!-- ✅ (1) 본부/지사 선택을 위로 -->
     <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
       <div class="text-xs muted font-extrabold">본부/지사 선택</div>
       <select id="orgSel" class="input mt-2"></select>
 
-      <!-- ✅ (2) 아래 행에 KPI 숫자 5개 정렬 -->
       <div class="mt-3 kpiGrid">
         <div class="kpi">
           <div class="t">선택 영업부 총 매출</div>
           <div class="v mono" id="orgTotalSales">-</div>
-          <div class="s">3자 + WITH + 기타</div>
+          <div class="s">3자 + WITH + 기타 (현재 기준)</div>
         </div>
 
         <div class="kpi">
           <div class="t">누적 검진자 수</div>
           <div class="v mono" id="orgExamCount">-</div>
-          <div class="s">직원 기여 검진자 합계</div>
+          <div class="s">엑셀에 없으면 “-”</div>
         </div>
 
         <div class="kpi">
           <div class="t">3자 매출</div>
           <div class="v mono" id="orgThirdSales">-</div>
-          <div class="s">otherSalesPrice</div>
+          <div class="s">현재 3자 합</div>
         </div>
 
         <div class="kpi">
           <div class="t">WITH KMI 매출</div>
           <div class="v mono" id="orgWithSales">-</div>
-          <div class="s">withkmiSalesPrice</div>
+          <div class="s">현재 withKMI 합</div>
         </div>
 
         <div class="kpi">
           <div class="t">기타 매출</div>
           <div class="v mono" id="orgEtcSales">-</div>
-          <div class="s">etcSalesPrice</div>
+          <div class="s">엑셀에 없으면 0</div>
         </div>
       </div>
     </div>
 
-    <!-- 구성(스택) -->
     <div class="mt-4 p-4 rounded-2xl border border-slate-200 bg-slate-50">
       <div class="font-extrabold text-slate-900">매출 형태 구성 (3자 / WITH KMI / 기타)</div>
       <div class="stack mt-2">
@@ -322,12 +354,11 @@
       </div>
     </div>
 
-    <!-- 직원별 기여도 -->
     <div class="mt-4 p-4 rounded-2xl border border-slate-200 bg-white">
       <div class="flex items-start justify-between gap-3">
         <div>
           <div class="font-extrabold text-slate-900">직원별 기여도</div>
-          <div class="muted text-sm font-semibold mt-1">기여 매출(천원) 기준 · 더미</div>
+          <div class="muted text-sm font-semibold mt-1">기여 매출(천원) 기준 · (현재 기준)</div>
         </div>
         <span class="chip">STAFF</span>
       </div>
@@ -340,9 +371,10 @@
             <tr>
               <th>직원</th>
               <th>팀</th>
-              <th class="right">기여 매출(천원)</th>
-              <th class="right">기여 검진자(명)</th>
-              <th class="right">기여율</th>
+              <th class="right">3자(현재/천원)</th>
+              <th class="right">withKMI(현재/천원)</th>
+              <th class="right">기여 매출(현재/천원)</th>
+              <th class="right">기여율(현재)</th>
               <th>평가</th>
             </tr>
           </thead>
@@ -355,125 +387,40 @@
   </section>
 
   <footer class="text-center muted text-sm py-6 font-semibold">
-    ※ 본 페이지는 샘플 화면(더미)입니다. 실제 서비스에서는 DB/권한/집계 로직/감사로그가 추가됩니다.
+    ※ 본 페이지는 엑셀 기반 집계 데모입니다.
   </footer>
-
 </main>
 
 <script>
 /* =========================================================
-   샘플(JSON)
+   ✅ 설정
    ========================================================= */
-const SECTION1_SAMPLE = {
-  section1: {
-    omniSalesSummary: {
-      expectedTotalSalesPrice: null,
-      expectedOtherServiceUsingSalesPrice: 5228986318,
-      expectedWithkmiServiceUsingSalesPrice: 1771490000,
-      expectedEtcSalesPrice: 590500000,
-      otherServiceUsingSalesPrice: 4894059272,
-      withkmiServiceUsingSalesPrice: 1719822727,
-      etcSalesPrice: 304500000,
-      totalSalesPrice: null
-    },
-    omniSalesByRegionList: [
-      {"name":"1본부","otherSalesPrice":1676746818,"withkmiSalesPrice":394306363,"etcSalesPrice":0},
-      {"name":"2본부","otherSalesPrice":1896188000,"withkmiSalesPrice":522207272,"etcSalesPrice":0},
-      {"name":"수원지사","otherSalesPrice":459350909,"withkmiSalesPrice":27586363,"etcSalesPrice":0},
-      {"name":"대구지사","otherSalesPrice":119692727,"withkmiSalesPrice":321623181,"etcSalesPrice":28500000},
-      {"name":"부산지사","otherSalesPrice":533028636,"withkmiSalesPrice":287047272,"etcSalesPrice":5636363},
-      {"name":"광주지사","otherSalesPrice":205712181,"withkmiSalesPrice":166275000,"etcSalesPrice":36363636},
-      {"name":"제휴사업","otherSalesPrice":1554545,"withkmiSalesPrice":572727,"etcSalesPrice":124500000}
-    ]
-  }
-};
-
-async function fetchSection1(){ return SECTION1_SAMPLE.section1; }
-
-/* =========================================================
-   더미: 직원 풀 + 영업부별 기여 생성
-   ========================================================= */
-const STAFF_POOL = [
-  { name:"김민수", team:"영업1팀" },
-  { name:"박지현", team:"영업1팀" },
-  { name:"이도윤", team:"영업2팀" },
-  { name:"최서연", team:"영업2팀" },
-  { name:"정하준", team:"전략영업" },
-  { name:"윤예린", team:"영업지원" }
-];
-
-function makeSeededRand(seed=1){
-  let s = seed >>> 0;
-  return () => { s = (1664525 * s + 1013904223) >>> 0; return (s / 0xFFFFFFFF); };
-}
-
-function genOrgExamCounts(orgList){
-  const seedBase = 7777 + new Date().getFullYear()*100 + (new Date().getMonth()+1);
-  const rnd = makeSeededRand(seedBase);
-
-  const map = {};
-  orgList.forEach(org=>{
-    const name = org.name;
-    const totalTh = toThousandWon(org.otherSalesPrice) + toThousandWon(org.withkmiSalesPrice) + toThousandWon(org.etcSalesPrice);
-
-    const base = Math.max(10, Math.round(totalTh / 80));
-    const jitter = Math.round(base * (0.65 + rnd()*0.9));
-    map[name] = jitter;
-  });
-  return map;
-}
-
-function genOrgStaffContrib(orgList, orgExamMap){
-  const seedBase = new Date().getFullYear()*10000 + (new Date().getMonth()+1)*100 + new Date().getDate();
-  const rnd = makeSeededRand(seedBase);
-
-  const map = {};
-  orgList.forEach(org=>{
-    const name = org.name;
-
-    const totalSalesTh = toThousandWon(org.otherSalesPrice) + toThousandWon(org.withkmiSalesPrice) + toThousandWon(org.etcSalesPrice);
-    const orgExamCount = Number(orgExamMap?.[name] ?? 0);
-
-    const staffN = 3 + Math.floor(rnd()*3);
-    const picks = STAFF_POOL.slice().sort(()=>rnd()-0.5).slice(0, staffN);
-
-    let weights = picks.map(()=>0.8 + rnd()*1.2);
-    const wsum = weights.reduce((s,x)=>s+x,0);
-    weights = weights.map(w=>w/wsum);
-
-    let remSales = totalSalesTh;
-    let remExam = orgExamCount;
-
-    const contrib = picks.map((p, i)=>{
-      const sales = (i===picks.length-1) ? remSales : Math.round(totalSalesTh*weights[i]);
-      remSales -= sales;
-
-      const examCnt = (i===picks.length-1) ? remExam : Math.round(orgExamCount*weights[i]);
-      remExam -= examCnt;
-
-      return { name:p.name, team:p.team, salesTh:sales, examCnt:examCnt, share: totalSalesTh>0 ? sales/totalSalesTh : 0 };
-    }).sort((a,b)=>b.salesTh-a.salesTh);
-
-    map[name] = { org:name, totalSalesTh, orgExamCount, staffContrib:contrib };
-  });
-  return map;
-}
+const EXCEL_FILE_NAME = "EIS_사원별 매출_샘플.xlsx"; // 같은 폴더에 있어야 함
+const WON_TO_TH = 1000;
 
 /* =========================================================
    유틸
    ========================================================= */
-const $ = (id) => document.getElementById(id);
+const $ = (id)=>document.getElementById(id);
+
+function safeSetText(id, text){
+  const el = $(id);
+  if (!el) return;
+  el.textContent = text;
+}
 function clamp(n,min,max){ return Math.max(min, Math.min(max,n)); }
-function toThousandWon(v){ return Math.round((Number(v)||0)/1000); }
-function fmtTh(n){ return (Number(n)||0).toLocaleString("ko-KR") + "천원"; }
 function fmtNum(n){ return (Number(n)||0).toLocaleString("ko-KR"); }
+function fmtTh(n){ return fmtNum(n) + "천원"; }
 function pct(x){ return (x*100).toFixed(1) + "%"; }
 
-function badgeByShare(share){
-  if (share >= 0.45) return { cls:"badge badge-bad", label:"핵심" };
-  if (share >= 0.25) return { cls:"badge badge-warn", label:"주요" };
-  return { cls:"badge badge-ok", label:"기여" };
+function parseMoney(v){
+  if (v == null) return 0;
+  if (typeof v === "number") return v;
+  const s = String(v).trim().replaceAll(",","");
+  const num = Number(s);
+  return Number.isFinite(num) ? num : 0;
 }
+function toThousandWon(v){ return Math.round(parseMoney(v) / WON_TO_TH); }
 
 function applyStack3(ids, values, minPct=1.2){
   const [idA,idB,idC] = ids;
@@ -484,32 +431,36 @@ function applyStack3(ids, values, minPct=1.2){
   if (!elA || !elB || !elC) return;
 
   if (total <= 0){
-    elA.style.width = "0%"; elB.style.width = "0%"; elC.style.width = "0%";
+    elA.style.width="0%"; elB.style.width="0%"; elC.style.width="0%";
     return;
   }
 
-  let pA = (a/total)*100, pB = (b/total)*100, pC = (c/total)*100;
+  let pA=(a/total)*100, pB=(b/total)*100, pC=(c/total)*100;
+  if (a>0 && pA<minPct) pA=minPct;
+  if (b>0 && pB<minPct) pB=minPct;
+  if (c>0 && pC<minPct) pC=minPct;
 
-  if (a>0 && pA < minPct) pA = minPct;
-  if (b>0 && pB < minPct) pB = minPct;
-  if (c>0 && pC < minPct) pC = minPct;
-
-  const sum = pA + pB + pC;
-  if (sum > 100){
-    const scale = 100 / sum;
-    pA *= scale; pB *= scale; pC *= scale;
+  const sum=pA+pB+pC;
+  if (sum>100){
+    const scale=100/sum;
+    pA*=scale; pB*=scale; pC*=scale;
   }
+  pA=clamp(pA,0,100);
+  pB=clamp(pB,0,100);
+  pC=clamp(100-pA-pB,0,100);
 
-  pA = clamp(pA, 0, 100);
-  pB = clamp(pB, 0, 100);
-  pC = clamp(100 - pA - pB, 0, 100);
-
-  elA.style.width = pA.toFixed(4) + "%";
-  elB.style.width = pB.toFixed(4) + "%";
-  elC.style.width = pC.toFixed(4) + "%";
+  elA.style.width=pA.toFixed(4)+"%";
+  elB.style.width=pB.toFixed(4)+"%";
+  elC.style.width=pC.toFixed(4)+"%";
 }
 
-/* ===== 본부/지사 차트 스택 비율(세로) ===== */
+function badgeByShare(share){
+  if (share >= 0.45) return { cls:"badge badge-bad", label:"핵심" };
+  if (share >= 0.25) return { cls:"badge badge-warn", label:"주요" };
+  return { cls:"badge badge-ok", label:"기여" };
+}
+
+/* ===== 차트용 ===== */
 function stackPctsWithMin(third, withKmi, etc, minPct=1.6){
   const total = (third||0) + (withKmi||0) + (etc||0);
   if (total <= 0) return { pThird:0, pWith:0, pEtc:0 };
@@ -532,16 +483,6 @@ function stackPctsWithMin(third, withKmi, etc, minPct=1.6){
   return { pThird:fixed3, pWith:fixedW, pEtc:fixedE };
 }
 
-function buildOmniByOrgBars(list){
-  return (list||[]).map(r=>{
-    const thirdTh = toThousandWon(r.otherSalesPrice);
-    const withTh  = toThousandWon(r.withkmiSalesPrice);
-    const etcTh   = toThousandWon(r.etcSalesPrice);
-    const totalTh = thirdTh + withTh + etcTh;
-    return { name:r.name, total: totalTh, third: thirdTh, with: withTh, etc: etcTh };
-  });
-}
-
 function renderOrgStackedBars_EqualCols(data, wrapId){
   const wrap = $(wrapId);
   if (!wrap) return;
@@ -559,7 +500,7 @@ function renderOrgStackedBars_EqualCols(data, wrapId){
     const col = document.createElement("div");
     col.className = "bar-col";
     col.innerHTML = `
-      <div class="top-num">${(d.total||0).toLocaleString()}</div>
+      <div class="top-num">${fmtNum(d.total||0)}</div>
       <div class="bar-area">
         <div class="bar-stack" style="height:${totalH}%">
           <div class="segV segV-etc"   style="height:${pEtc}%;"></div>
@@ -567,42 +508,177 @@ function renderOrgStackedBars_EqualCols(data, wrapId){
           <div class="segV segV-third" style="height:${pThird}%;"></div>
         </div>
       </div>
-      <div class="bottom-num">${(d.total||0).toLocaleString()}</div>
+      <div class="bottom-num">${fmtNum(d.total||0)}</div>
       <div class="bar-label" title="${d.name||"-"}">${d.name||"-"}</div>
     `;
     wrap.appendChild(col);
   });
 }
 
-/* ===== 상단 전체 KPI + 구성 ===== */
-function renderOmniTotals(omni){
-  const eThird = toThousandWon(omni.expectedOtherServiceUsingSalesPrice);
-  const eWith  = toThousandWon(omni.expectedWithkmiServiceUsingSalesPrice);
-  const eEtc   = toThousandWon(omni.expectedEtcSalesPrice);
-  const expectedTotal = eThird + eWith + eEtc;
-
-  const cThird = toThousandWon(omni.otherServiceUsingSalesPrice);
-  const cWith  = toThousandWon(omni.withkmiServiceUsingSalesPrice);
-  const cEtc   = toThousandWon(omni.etcSalesPrice);
-  const currentTotal = cThird + cWith + cEtc;
-
-  $("omniExpectedTotal").textContent = fmtTh(expectedTotal);
-  $("omniCurrentTotal").textContent  = fmtTh(currentTotal);
-
-  applyStack3(["expThird","expWith","expEtc"], [eThird, eWith, eEtc], 1.2);
-  $("expThirdTxt").textContent = fmtTh(eThird);
-  $("expWithTxt").textContent  = fmtTh(eWith);
-  $("expEtcTxt").textContent   = fmtTh(eEtc);
-
-  applyStack3(["curThird","curWith","curEtc"], [cThird, cWith, cEtc], 1.2);
-  $("curThirdTxt").textContent = fmtTh(cThird);
-  $("curWithTxt").textContent  = fmtTh(cWith);
-  $("curEtcTxt").textContent   = fmtTh(cEtc);
+/* =========================================================
+   ✅ 엑셀 읽기: 헤더 가진 시트 자동 탐지
+   ========================================================= */
+const REQUIRED_HEADERS = ["직원","부서","팀","3자(현재)","withKMI(현재)","3자(예상)","withKMI(예상)"];
+function normalizeKey(k){ return String(k||"").trim().replace(/\s+/g,""); }
+function rowKeys(rowObj){ return Object.keys(rowObj||{}).map(normalizeKey); }
+function hasRequiredHeaders(keys){
+  const set = new Set(keys);
+  return REQUIRED_HEADERS.every(h => set.has(normalizeKey(h)));
+}
+function pickSheetByHeaders(workbook){
+  const names = workbook.SheetNames || [];
+  for (const name of names){
+    const sheet = workbook.Sheets[name];
+    if (!sheet) continue;
+    const rows = XLSX.utils.sheet_to_json(sheet, { defval:"" });
+    if (!rows || rows.length === 0) continue;
+    const keys = rowKeys(rows[0]);
+    if (hasRequiredHeaders(keys)){
+      return { name, sheet, rows };
+    }
+  }
+  return null;
 }
 
-/* ===== 영업부 상세 ===== */
+/* =========================================================
+   ✅ 모델 생성 (현재/예상)
+   ========================================================= */
+function buildModelFromRows(rows){
+  const staffByOrg = {};
+  const orgAgg = {};
+
+  let curThird=0, curWith=0, curEtc=0;
+  let expThird=0, expWith=0, expEtc=0;
+
+  for (const r of rows){
+    const emp  = String(r["직원"] ?? "").trim();
+    const org  = String(r["부서"] ?? "").trim();
+    const team = String(r["팀"] ?? "").trim();
+    if (!org) continue;
+
+    // ✅ 현재
+    const curThirdTh = toThousandWon(r["3자(현재)"]);
+    const curWithTh  = toThousandWon(r["withKMI(현재)"]);
+    const curEtcTh   = 0;
+
+    // ✅ 예상
+    const expThirdTh = toThousandWon(r["3자(예상)"]);
+    const expWithTh  = toThousandWon(r["withKMI(예상)"]);
+    const expEtcTh   = 0;
+
+    const curSalesTh = curThirdTh + curWithTh + curEtcTh;
+    const expSalesTh = expThirdTh + expWithTh + expEtcTh;
+
+    curThird += curThirdTh; curWith += curWithTh; curEtc += curEtcTh;
+    expThird += expThirdTh; expWith += expWithTh; expEtc += expEtcTh;
+
+    if (!orgAgg[org]) {
+      orgAgg[org] = {
+        curThirdTh:0, curWithTh:0, curEtcTh:0, curTotalTh:0,
+        expThirdTh:0, expWithTh:0, expEtcTh:0, expTotalTh:0
+      };
+    }
+
+    orgAgg[org].curThirdTh += curThirdTh;
+    orgAgg[org].curWithTh  += curWithTh;
+    orgAgg[org].curEtcTh   += curEtcTh;
+    orgAgg[org].curTotalTh += curSalesTh;
+
+    orgAgg[org].expThirdTh += expThirdTh;
+    orgAgg[org].expWithTh  += expWithTh;
+    orgAgg[org].expEtcTh   += expEtcTh;
+    orgAgg[org].expTotalTh += expSalesTh;
+
+    if (!staffByOrg[org]) staffByOrg[org] = [];
+    staffByOrg[org].push({
+      name: emp || "(이름없음)",
+      team: team || "-",
+
+      // 현재
+      curThirdTh, curWithTh, curEtcTh,
+      curSalesTh,
+      curShare: 0,
+
+      // 예상
+      expThirdTh, expWithTh, expEtcTh,
+      expSalesTh,
+      expShare: 0
+    });
+  }
+
+  // 기여율 계산(현재/예상 각각)
+  for (const org of Object.keys(staffByOrg)){
+    const list = staffByOrg[org];
+
+    const curSum = list.reduce((s,x)=>s + (x.curSalesTh||0), 0);
+    list.forEach(x => x.curShare = curSum>0 ? x.curSalesTh/curSum : 0);
+
+    const expSum = list.reduce((s,x)=>s + (x.expSalesTh||0), 0);
+    list.forEach(x => x.expShare = expSum>0 ? x.expSalesTh/expSum : 0);
+
+    // 기본 정렬: 현재 기준
+    list.sort((a,b)=> (b.curSalesTh||0) - (a.curSalesTh||0));
+  }
+
+  const orgList = Object.keys(orgAgg)
+    .map(name => ({ name, ...orgAgg[name] }))
+    .sort((a,b)=> (b.curTotalTh||0) - (a.curTotalTh||0));
+
+  return {
+    totals: {
+      curThirdTh: curThird,
+      curWithTh:  curWith,
+      curEtcTh:   curEtc,
+      curTotalTh: curThird + curWith + curEtc,
+
+      expThirdTh: expThird,
+      expWithTh:  expWith,
+      expEtcTh:   expEtc,
+      expTotalTh: expThird + expWith + expEtc
+    },
+    orgList,
+    staffByOrg
+  };
+}
+
+/* =========================================================
+   ✅ 렌더
+   ========================================================= */
+function renderTopTotals(model){
+  const t = model.totals;
+
+  // 합계
+  safeSetText("omniCurrentTotal",  fmtTh(t.curTotalTh));
+  safeSetText("omniExpectedTotal", fmtTh(t.expTotalTh));
+
+  // 예상 구성
+  applyStack3(["expThird","expWith","expEtc"], [t.expThirdTh, t.expWithTh, t.expEtcTh], 1.2);
+  safeSetText("expThirdTxt", fmtTh(t.expThirdTh));
+  safeSetText("expWithTxt",  fmtTh(t.expWithTh));
+  safeSetText("expEtcTxt",   fmtTh(t.expEtcTh));
+
+  // 현재 구성
+  applyStack3(["curThird","curWith","curEtc"], [t.curThirdTh, t.curWithTh, t.curEtcTh], 1.2);
+  safeSetText("curThirdTxt", fmtTh(t.curThirdTh));
+  safeSetText("curWithTxt",  fmtTh(t.curWithTh));
+  safeSetText("curEtcTxt",   fmtTh(t.curEtcTh));
+}
+
+function renderOrgChart_Current(model){
+  // ✅ ORG 차트는 "현재" 기준
+  const bars = (model.orgList||[]).map(o=>({
+    name: o.name,
+    total: o.curTotalTh,
+    third: o.curThirdTh,
+    with:  o.curWithTh,
+    etc:   o.curEtcTh
+  }));
+  renderOrgStackedBars_EqualCols(bars, "omniChartByOrg");
+}
+
 function setOrgOptions(orgNames){
   const sel = $("orgSel");
+  if (!sel) return;
   sel.innerHTML = "";
   orgNames.forEach(n=>{
     const opt = document.createElement("option");
@@ -612,90 +688,157 @@ function setOrgOptions(orgNames){
   });
 }
 
-function renderOrgDetail(orgRow, staffMap){
-  const name = orgRow.name;
-  $("orgChip").textContent = name;
+function renderOrgDetail_Current(orgName, model){
+  safeSetText("orgChip", orgName);
 
-  const thirdTh = toThousandWon(orgRow.otherSalesPrice);
-  const withTh  = toThousandWon(orgRow.withkmiSalesPrice);
-  const etcTh   = toThousandWon(orgRow.etcSalesPrice);
-  const totalTh = thirdTh + withTh + etcTh;
+  const agg = (model.orgList||[]).find(x=>x.name===orgName);
+  const thirdTh = agg?.curThirdTh || 0;
+  const withTh  = agg?.curWithTh  || 0;
+  const etcTh   = agg?.curEtcTh   || 0;
+  const totalTh = agg?.curTotalTh || 0;
 
-  $("orgSubtitle").textContent = `${name} · 총 ${fmtTh(totalTh)} (3자 ${fmtTh(thirdTh)} / WITH ${fmtTh(withTh)} / 기타 ${fmtTh(etcTh)})`;
-  $("orgTotalSales").textContent = fmtTh(totalTh);
-  $("orgThirdSales").textContent = fmtTh(thirdTh);
-  $("orgWithSales").textContent  = fmtTh(withTh);
-  $("orgEtcSales").textContent   = fmtTh(etcTh);
+  safeSetText("orgSubtitle", `${orgName} · 총 ${fmtTh(totalTh)} (3자 ${fmtTh(thirdTh)} / WITH ${fmtTh(withTh)} / 기타 ${fmtTh(etcTh)})`);
+  safeSetText("orgTotalSales", fmtTh(totalTh));
+  safeSetText("orgThirdSales", fmtTh(thirdTh));
+  safeSetText("orgWithSales",  fmtTh(withTh));
+  safeSetText("orgEtcSales",   fmtTh(etcTh));
+
+  // 검진자 수 컬럼이 없으니 "-"
+  safeSetText("orgExamCount", "-");
 
   applyStack3(["orgSegThird","orgSegWith","orgSegEtc"], [thirdTh, withTh, etcTh], 1.2);
-  $("orgThirdTxt").textContent = fmtTh(thirdTh);
-  $("orgWithTxt").textContent  = fmtTh(withTh);
-  $("orgEtcTxt").textContent   = fmtTh(etcTh);
+  safeSetText("orgThirdTxt", fmtTh(thirdTh));
+  safeSetText("orgWithTxt",  fmtTh(withTh));
+  safeSetText("orgEtcTxt",   fmtTh(etcTh));
 
-  const list = (staffMap[name]?.staffContrib || []).slice();
-  const sumExam = list.reduce((s,x)=>s+(Number(x.examCnt)||0), 0);
-  $("orgExamCount").textContent = sumExam ? (fmtNum(sumExam) + "명") : "-";
-
+  // 직원별 (현재 기준)
+  const list = (model.staffByOrg[orgName] || []).slice();
   const tb = $("staffTbody");
-  tb.innerHTML = "";
+  if (tb) tb.innerHTML = "";
 
   list.forEach(s=>{
-    const b = badgeByShare(s.share);
+    const share = s.curShare || 0;
+    const b = badgeByShare(share);
+
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td class="font-extrabold text-slate-900">${s.name}</td>
       <td class="muted font-semibold">${s.team}</td>
-      <td class="right mono font-extrabold">${fmtNum(s.salesTh)}</td>
-      <td class="right mono font-extrabold">${fmtNum(s.examCnt)}</td>
-      <td class="right mono font-extrabold">${pct(s.share)}</td>
+      <td class="right mono font-extrabold">${fmtNum(s.curThirdTh)}</td>
+      <td class="right mono font-extrabold">${fmtNum(s.curWithTh)}</td>
+      <td class="right mono font-extrabold">${fmtNum(s.curSalesTh)}</td>
+      <td class="right mono font-extrabold">${pct(share)}</td>
       <td><span class="${b.cls}">${b.label}</span></td>
     `;
-    tb.appendChild(tr);
+    tb && tb.appendChild(tr);
   });
 
   const top = list[0];
-  $("staffFoot").textContent = top
-    ? `Top 기여자: ${top.name} (${top.team}) · 기여매출 ${fmtNum(top.salesTh)}천원 · 기여율 ${pct(top.share)} · 기여 검진자 ${fmtNum(top.examCnt)}명 (합계 ${fmtNum(sumExam)}명)`
-    : "기여 데이터 없음";
+  safeSetText("staffFoot",
+    top
+      ? `Top 기여자: ${top.name} (${top.team}) · 기여매출 ${fmtNum(top.curSalesTh)}천원 · 기여율 ${pct(top.curShare||0)}`
+      : "기여 데이터 없음"
+  );
+}
+
+/* =========================================================
+   ✅ 엑셀 로드 (자동 fetch + 수동 업로드)
+   ========================================================= */
+async function loadWorkbookFromFetch(){
+  const url = encodeURI(EXCEL_FILE_NAME) + "?t=" + Date.now();
+  safeSetText("excelHint", `엑셀: ${EXCEL_FILE_NAME} · 요청: ${url}`);
+  const res = await fetch(url, { cache:"no-store" });
+  if (!res.ok) throw new Error(`fetch 실패: HTTP ${res.status} (${res.statusText})`);
+  const buf = await res.arrayBuffer();
+  return XLSX.read(buf, { type:"array" });
+}
+
+async function loadWorkbookFromFile(file){
+  const buf = await file.arrayBuffer();
+  return XLSX.read(buf, { type:"array" });
+}
+
+function setMiniStatus(text, ok=true){
+  const el = $("excelMiniStatus");
+  if (!el) return;
+  el.textContent = text;
+  el.style.borderColor = ok ? "#cbd5e1" : "#fecaca";
+  el.style.background = ok ? "#f8fafc" : "#fef2f2";
+  el.style.color = ok ? "#334155" : "#991b1b";
+}
+
+function applyModel(model, sourceLabel, sheetName){
+  // 상단 / 차트 / 셀렉트 / 상세
+  renderTopTotals(model);
+  renderOrgChart_Current(model);
+
+  const orgNames = (model.orgList||[]).map(o=>o.name);
+  setOrgOptions(orgNames);
+
+  const sel = $("orgSel");
+  if (sel){
+    sel.onchange = (e)=> renderOrgDetail_Current(e.target.value, model);
+    sel.value = orgNames[0] || "";
+  }
+  if (orgNames[0]) renderOrgDetail_Current(orgNames[0], model);
+
+  setMiniStatus(sourceLabel, true);
+  safeSetText("excelHint", `${sourceLabel} · 시트: ${sheetName} · ORG/상세는 현재 기준(상단은 현재+예상)`);
+}
+
+async function applyWorkbook(wb, sourceLabel){
+  const picked = pickSheetByHeaders(wb);
+  if (!picked){
+    const names = (wb.SheetNames||[]).join(", ");
+    throw new Error(`필수 헤더 시트를 찾지 못했습니다.\n필요: ${REQUIRED_HEADERS.join(", ")}\n현재 시트: ${names}`);
+  }
+
+  console.log("[Excel] source:", sourceLabel);
+  console.log("[Excel] sheet used:", picked.name);
+  console.log("[Excel] rows:", picked.rows.length);
+
+  const model = buildModelFromRows(picked.rows);
+  applyModel(model, sourceLabel, picked.name);
+}
+
+async function loadExcelAuto(){
+  try{
+    setMiniStatus("자동 로딩…", true);
+    const wb = await loadWorkbookFromFetch();
+    await applyWorkbook(wb, "자동 로드");
+  }catch(err){
+    console.warn("[Excel] auto load failed:", err);
+    setMiniStatus("자동 실패(업로드)", false);
+    safeSetText("excelHint", `자동 로드 실패: ${String(err?.message||err)} · 우측 상단에서 업로드로 대체하세요.`);
+  }
 }
 
 /* =========================================================
    init
    ========================================================= */
-const state = { orgList: [], staffMap: {}, examMap:{}, selectedOrg: "" };
+(function init(){
+  const inpMini = $("excelFileInputMini");
+  if (inpMini){
+    inpMini.onchange = async (e)=>{
+      const file = e.target.files?.[0];
+      if (!file) return;
+      try{
+        setMiniStatus("업로드 로딩…", true);
+        safeSetText("excelHint", `업로드 파일: ${file.name}`);
+        const wb = await loadWorkbookFromFile(file);
+        await applyWorkbook(wb, "업로드 적용");
+        setMiniStatus("업로드 적용", true);
+      }catch(err){
+        console.error("[Excel] upload failed:", err);
+        setMiniStatus("업로드 실패", false);
+        safeSetText("excelHint", `업로드 실패: ${String(err?.message||err)}`);
+      }finally{
+        inpMini.value = "";
+      }
+    };
+  }
 
-function bind(){
-  $("orgSel").addEventListener("change", (e)=>{
-    state.selectedOrg = e.target.value;
-    const row = state.orgList.find(x=>x.name===state.selectedOrg);
-    if (row) renderOrgDetail(row, state.staffMap);
-  });
-}
-
-(async function init(){
-  bind();
-
-  const s1 = await fetchSection1();
-  const omni = s1.omniSalesSummary;
-  const orgList = (s1.omniSalesByRegionList || []).slice();
-
-  renderOmniTotals(omni);
-
-  const orgBars = buildOmniByOrgBars(orgList);
-  renderOrgStackedBars_EqualCols(orgBars, "omniChartByOrg");
-
-  state.examMap = genOrgExamCounts(orgList);
-  state.orgList = orgList;
-  state.staffMap = genOrgStaffContrib(orgList, state.examMap);
-
-  const orgNames = orgList.map(o=>o.name);
-  setOrgOptions(orgNames);
-
-  state.selectedOrg = orgNames[0] || "";
-  $("orgSel").value = state.selectedOrg;
-
-  const row = orgList.find(x=>x.name===state.selectedOrg);
-  if (row) renderOrgDetail(row, state.staffMap);
+  loadExcelAuto();
 })();
 </script>
 
