@@ -126,6 +126,20 @@
     padding:.35rem .7rem; background:#fff; font-size:.85rem;
     color:#334155; font-weight:800;
   }
+
+  /* ===== 회의록 완료 스타일 ===== */
+  tr.meetingDone td{
+    background:#f0fdf4;
+  }
+  tr.meetingDone td .meetingTitle,
+  tr.meetingDone td .meetingTask{
+    color:#166534;
+  }
+  tr.meetingDone td .meetingTitle{
+    text-decoration: line-through;
+    text-decoration-thickness: 2px;
+    text-decoration-color: rgba(22,101,52,.35);
+  }
 </style>
 </head>
 
@@ -138,7 +152,7 @@
     </a>
     <div class="flex-1">
       <div class="font-semibold text-slate-900">관리자 페이지</div>
-      <div class="text-sm muted">부서별 개요 · 직원별 현황 · 선택 직원 거래처</div>
+      <div class="text-sm muted">관리자 회의록 · 부서별 개요 · 직원별 현황 · 선택 직원 거래처</div>
     </div>
     <button onclick="location.href='index.html'" class="btn2">메인</button>
     <button onclick="location.href='mypage_sales.html'" class="btn2">마이페이지</button>
@@ -146,6 +160,37 @@
 </header>
 
 <main class="max-w-[1440px] mx-auto px-2 py-6 space-y-6">
+
+  <!-- ✅✅ NEW: 관리자 회의록 (페이지 최상단) -->
+  <section class="card p-5">
+    <div class="flex items-start justify-between gap-3">
+      <div>
+        <div class="font-extrabold text-slate-900 text-lg">관리자 회의록</div>
+        <div class="muted small">안건별 진행/완료 여부를 체크하여 관리합니다. (체크 상태는 브라우저에 저장됩니다)</div>
+      </div>
+      <span class="chip">MINUTES</span>
+    </div>
+
+    <div class="divider my-4"></div>
+
+    <div class="overflow-auto rounded-2xl border border-slate-200">
+      <table>
+        <thead>
+          <tr>
+            <th style="min-width:90px;">완료</th>
+            <th style="min-width:140px;">등록일</th>
+            <th style="min-width:240px;">안건</th>
+            <th style="min-width:420px;">완료 업무</th>
+          </tr>
+        </thead>
+        <tbody id="meetingTbody"></tbody>
+      </table>
+    </div>
+
+    <div class="mt-3 muted small">
+      * 체크하면 완료 처리되며, 완료된 안건은 연한 초록 배경 및 취소선으로 표시됩니다.
+    </div>
+  </section>
 
   <!-- 상단: 팀 필터 + KPI(1줄 5개) + 매출구성 -->
   <section class="card p-5">
@@ -304,6 +349,70 @@
 <script>
 /* ================== 단위 설정 ================== */
 const MONEY_MULTIPLIER = 1000; // 백만원 → 천원
+
+/* ================== ✅ 관리자 회의록 데이터(샘플) ==================
+   - “페이지에 업로드 되는 단어는 너가 적절하게 수정” 요청 반영: 실무형 문구로 구성
+*/
+const MEETING_ITEMS = [
+  { id:"m_20251209_01", date:"2025-12-09", title:"영업 KPI 정의 확정", task:"매출·수검자·활성 거래처 지표 정의서 확정 및 공지" },
+  { id:"m_20251205_02", date:"2025-12-05", title:"EIS 권한(직급별) 설계", task:"대표/부서장/팀장/매니저 열람 범위 표 작성 → 페이지 권한 분리 적용" },
+  { id:"m_20251201_03", date:"2025-12-01", title:"거래처 활성 기준 합의", task:"최근 방문일 기준 2개월 이내=활성, 초과=비활성 정책 반영" },
+  { id:"m_20251127_04", date:"2025-11-27", title:"관리자 페이지 개선안 반영", task:"회의록·부서 KPI·직원 체크 합산 구조 QA 완료" },
+  { id:"m_20251120_05", date:"2025-11-20", title:"데이터 적재/업로드 정책 정리", task:"엑셀 업로드 주기·파일명 규칙·권한자 지정 운영 룰 문서화" }
+];
+
+const MEETING_LS_KEY = "omnicare_eis_admin_meeting_state_v1";
+
+function loadMeetingState(){
+  try{ return JSON.parse(localStorage.getItem(MEETING_LS_KEY) || "{}"); }
+  catch(e){ return {}; }
+}
+function saveMeetingState(state){
+  localStorage.setItem(MEETING_LS_KEY, JSON.stringify(state || {}));
+}
+function renderMeetings(){
+  const tb = document.getElementById("meetingTbody");
+  if (!tb) return;
+  const state = loadMeetingState();
+  tb.innerHTML = "";
+
+  MEETING_ITEMS.forEach(item=>{
+    const done = !!state[item.id];
+    const tr = document.createElement("tr");
+    if (done) tr.classList.add("meetingDone");
+
+    tr.innerHTML = `
+      <td>
+        <label class="inline-flex items-center gap-2 font-bold">
+          <input type="checkbox"
+            class="w-4 h-4 accent-emerald-600"
+            data-meeting="${item.id}"
+            ${done ? "checked" : ""} />
+          <span class="muted small">${done ? "완료" : "진행"}</span>
+        </label>
+      </td>
+      <td class="font-bold">${item.date}</td>
+      <td class="font-extrabold meetingTitle">${item.title}</td>
+      <td class="meetingTask">${item.task}</td>
+    `;
+
+    tr.querySelector("input[type='checkbox']").addEventListener("change", (e)=>{
+      const id = e.target.getAttribute("data-meeting");
+      const st = loadMeetingState();
+      st[id] = e.target.checked;
+      saveMeetingState(st);
+      renderMeetings();
+    });
+
+    tb.appendChild(tr);
+  });
+
+  if (MEETING_ITEMS.length === 0){
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td colspan="4" class="muted">회의록 안건이 없습니다.</td>`;
+    tb.appendChild(tr);
+  }
+}
 
 /* ================== 샘플 데이터 ================== */
 const ACCOUNTS = [
@@ -532,7 +641,6 @@ function renderDeptKpis(){
   const team = document.getElementById("deptSelect").value;
   const a = calcDeptAgg(team);
 
-  // ✅ 5개 KPI를 한 줄에 넣기 위해 “타이틀/값/설명”을 더 컴팩트하게
   document.getElementById("deptKpis").innerHTML = `
     <div class="kpi">
       <div class="muted small font-semibold">인원</div>
@@ -827,6 +935,7 @@ function renderAll(){
 }
 
 /* ================== 초기 실행 ================== */
+renderMeetings();               // ✅ 회의록 먼저 렌더
 STAFF = buildStaffFromAccounts();
 initDeptSelect();
 initStaffTeamFilter();
