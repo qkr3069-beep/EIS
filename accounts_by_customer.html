@@ -28,7 +28,6 @@
     gap:10px;
   }
   @media (min-width: 768px){
-    /* ✅ 6칸 유지: 마지막 '담당자 정보'를 2칸 span 해서 빈공간 제거 */
     .kpiGrid{ grid-template-columns: repeat(6, minmax(0,1fr)); }
   }
   .kpiBox{
@@ -38,10 +37,9 @@
   .kpiValue{ font-size:1.25rem; font-weight:900; color:#0f172a; margin-top:6px; }
   .kpiSub{ color:#64748b; font-size:.78rem; margin-top:6px; }
 
-  /* ✅ 담당자 정보(큰 칸) */
   .kpiSpan2{ grid-column: span 2 / span 2; }
   @media (max-width: 767px){
-    .kpiSpan2{ grid-column: span 2 / span 2; } /* 모바일 2열이므로 전체폭 느낌 */
+    .kpiSpan2{ grid-column: span 2 / span 2; }
   }
   .mgrWrap{ margin-top:6px; display:flex; flex-direction:column; gap:6px; }
   .mgrRow{ display:flex; gap:8px; align-items:flex-start; flex-wrap:wrap; }
@@ -241,7 +239,6 @@
           <div class="kpiSub">단위: 명</div>
         </div>
 
-        <!-- ✅ 계약 시작/만료 → 첫/마지막 방문일로 변경 -->
         <div class="kpiBox">
           <div class="kpiLabel">첫 방문일</div>
           <div class="kpiValue" id="kpiFirstVisit">-</div>
@@ -254,7 +251,6 @@
           <div class="kpiSub">접속/방문 기준(샘플)</div>
         </div>
 
-        <!-- ✅ 담당자 정보: 2칸(span 2)로 확장하여 빈공간 제거 -->
         <div class="kpiBox kpiSpan2">
           <div class="kpiLabel">담당자 정보</div>
           <div class="mgrWrap" id="kpiManager">
@@ -321,30 +317,24 @@
 </main>
 
 <script>
-/* =======================
-   ✅ DART API KEY (사용자 제공)
-======================= */
-const DART_API_KEY = "0a6ff600d96e942a5aa483fd66ddc538e943dccd";
+/* =========================================================
+   ✅ Cloudflare Worker API Base
+   - 로컬/깃허브에서도 항상 worker 도메인으로 호출하도록 고정
+   - (원하면 나중에 상대경로로 바꿔도 됨)
+========================================================= */
+const API_BASE = "https://accounts-by-customer.qkr3069.workers.dev";
 
-/* ===== 샘플 DB(삼성전자) =====
-   ✅ 방문일: firstVisitDate / lastVisitDate
-   ✅ 담당자: name/email/phone
-*/
+/* ===== 샘플 DB(삼성전자) ===== */
 const CUSTOMER_DB = [
   {
     name: "삼성전자",
-    corpCode: "00126380",
+    corpCode: "00126380", // 있으면 이걸 우선 사용
     status: {
-      ytdRevenue: 38000,         // (샘플) 값은 그대로, 화면 단위만 천원 표기
-      ytdExaminees: 420,         // 명
-
-      /* ✅ 계약 시작/만료 대신 방문일로 변경 */
+      ytdRevenue: 38000,
+      ytdExaminees: 420,
       firstVisitDate: "2025-01-10",
       lastVisitDate: "2025-12-14",
-
       manager: { name:"김담당", email:"manager@samsung.com", phone:"010-1234-5678" },
-
-      // 남겨둬도 무방(화면에서 미사용)
       taxInvoiceDate: "2025-12-08",
       expectedDepositDate: "2026-01-05",
       paidToDate: 25000,
@@ -469,23 +459,93 @@ async function loadKeywordNews(keyword, limit=5){
   });
 }
 
-/* =======================
-   ✅ DART: 최근 공시 5건 불러오기(list.json)
-======================= */
-async function fetchDartList(corpCode, pageCount=5){
-  const url = new URL("https://opendart.fss.or.kr/api/list.json");
-  url.searchParams.set("crtfc_key", DART_API_KEY);
-  url.searchParams.set("corp_code", corpCode);
-  url.searchParams.set("page_no", "1");
-  url.searchParams.set("page_count", String(pageCount));
+/* =========================================================
+   ✅ DART 연동 (Cloudflare Worker 프록시 사용)
+   1) corp_code 있으면 바로 /dart/list
+   2) 없으면 /dart/corp/find?name= 로 corp_code 찾고 /dart/list
+   - 조회 기간: 최근 1년 자동
+========================================================= */
+function ymdNow(){
+  const t = new Date();
+  const y = t.getFullYear();
+  const m = String(t.getMonth()+1).padStart(2,"0");
+  const d = String(t.getDate()).padStart(2,"0");
+  return `${y}${m}${d}`;
+}
+function ymdOneYearAgo(){
+  const t = new Date();
+  t.setFullYear(t.getFullYear()-1);
+  const y = t.getFullYear();
+  const m = String(t.getMonth()+1).padStart(2,"0");
+  const d = String(t.getDate()).padStart(2,"0");
+  return `${y}${m}${d}`;
+}
 
-  const res = await fetch(url.toString());
-  const data = await res.json();
-
-  if (data.status !== "000") {
-    throw new Error(`${data.status} ${data.message}`);
+async function apiGet(path, params={}){
+  const url = new URL(API_BASE + path);
+  Object.entries(params).forEach(([k,v])=>{
+    if (v !== undefined && v !== null && String(v).trim() !== "") url.searchParams.set(k, String(v));
+  });
+  const res = await fetch(url.toString(), { method:"GET" });
+  const ct = res.headers.get("content-type") || "";
+  if (!res.ok){
+    const txt = await res.text().catch(()=> "");
+    throw new Error(`HTTP ${res.status} ${res.statusText} ${txt ? `· ${txt.slice(0,120)}` : ""}`);
   }
-  return data.list || [];
+  if (ct.includes("application/json")) return res.json();
+  // 혹시 worker가 text로 주는 경우 대비
+  const txt = await res.text();
+  try { return JSON.parse(txt); } catch { return { raw: txt }; }
+}
+
+/* corp_code 찾기: /dart/corp/find?name=삼성전자 */
+async function resolveCorpCodeByName(corpName){
+  const data = await apiGet("/dart/corp/find", { name: corpName });
+
+  // Worker 구현에 따라 키가 다를 수 있어 최대한 유연하게 처리
+  // 기대: { ok:true, corp_code:"00126380" } 또는 { corpCode:"00126380" } 또는 { result:[{corp_code:"..."}] }
+  if (data?.corp_code) return data.corp_code;
+  if (data?.corpCode) return data.corpCode;
+
+  if (Array.isArray(data?.result) && data.result[0]?.corp_code) return data.result[0].corp_code;
+  if (Array.isArray(data?.list) && data.list[0]?.corp_code) return data.list[0].corp_code;
+
+  // 혹시 원문이 들어오는 경우
+  if (typeof data?.raw === "string"){
+    const m = data.raw.match(/"corp_code"\s*:\s*"(\d{8})"/);
+    if (m) return m[1];
+  }
+
+  return null;
+}
+
+/* 공시 리스트 가져오기: /dart/list?corp_code=...&page_count=5&bgn_de=...&end_de=... */
+async function fetchDartListViaWorker(corpCode, pageCount=5){
+  const data = await apiGet("/dart/list", {
+    corp_code: corpCode,
+    page_count: pageCount,
+    bgn_de: ymdOneYearAgo(),
+    end_de: ymdNow()
+  });
+
+  // 기대: DART 원 응답 형태 {status, message, list:[...]} 또는 worker 래핑
+  // 유연 처리
+  if (data?.status && data.status !== "000"){
+    // 013도 여기로 옴
+    return { status: data.status, message: data.message || "조회 실패", list: [] };
+  }
+  if (Array.isArray(data?.list)) return { status: "000", message: "OK", list: data.list };
+
+  // worker가 { bodyPreview: "..." }처럼 주는 경우 대비
+  if (typeof data?.bodyPreview === "string"){
+    try{
+      const parsed = JSON.parse(data.bodyPreview);
+      if (parsed?.status && parsed.status !== "000") return { status: parsed.status, message: parsed.message || "", list: [] };
+      if (Array.isArray(parsed?.list)) return { status:"000", message:"OK", list: parsed.list };
+    }catch{}
+  }
+
+  return { status:"999", message:"응답 파싱 실패", list: [] };
 }
 
 function renderDartFilings(items){
@@ -512,15 +572,44 @@ function renderDartFilings(items){
   });
 }
 
-async function loadDartFilings(corpCode, corpName){
+/* ✅ 최종: 기업명 + (선택)corpCode 로 DART 로드 */
+async function loadDartFilingsByCustomerName(corpName, corpCodeHint){
   const wrap = document.getElementById("filingsList");
   wrap.innerHTML = `<div class="muted small">불러오는 중…</div>`;
-
-  document.getElementById("filingsSub").textContent = `조회 기업: ${corpName} (corp_code: ${corpCode})`;
+  document.getElementById("filingsSub").textContent = `조회 기업: ${corpName}`;
 
   try{
-    const list = await fetchDartList(corpCode, 5);
-    renderDartFilings(list);
+    let corpCode = (corpCodeHint || "").trim();
+
+    // corp_code 없으면 corpName으로 찾기
+    if (!corpCode){
+      const resolved = await resolveCorpCodeByName(corpName);
+      if (!resolved) throw new Error("corp_code를 찾지 못했습니다.");
+      corpCode = resolved;
+    }
+
+    // 공시 리스트
+    const out = await fetchDartListViaWorker(corpCode, 5);
+
+    if (out.status !== "000"){
+      // 013 포함
+      wrap.innerHTML = `
+        <div class="item">
+          <div class="itemTitle">최근 공시가 없습니다.</div>
+          <div class="itemMeta">사유: ${out.status} · ${out.message || ""}</div>
+        </div>
+        <div class="item">
+          <a class="link itemTitle" href="https://dart.fss.or.kr/" target="_blank" rel="noopener">DART에서 직접 검색하기</a>
+          <div class="itemMeta">키워드: ${corpName}</div>
+        </div>
+      `;
+      document.getElementById("filingsSub").textContent = `조회 기업: ${corpName} · corp_code: ${corpCode}`;
+      return;
+    }
+
+    document.getElementById("filingsSub").textContent = `조회 기업: ${corpName} · corp_code: ${corpCode}`;
+    renderDartFilings(out.list);
+
   }catch(err){
     wrap.innerHTML = `
       <div class="item">
@@ -532,8 +621,8 @@ async function loadDartFilings(corpCode, corpName){
         <div class="itemMeta">키워드: ${corpName}</div>
       </div>
       <div class="item">
-        <div class="itemTitle">팁</div>
-        <div class="itemMeta">GitHub Pages 환경에서 CORS로 막히면 “프록시(서버리스)” 방식으로 연결하면 해결됩니다.</div>
+        <div class="itemTitle">확인 포인트</div>
+        <div class="itemMeta">Worker(/dart/corp/find, /dart/list)가 정상 동작하는지 먼저 확인해주세요.</div>
       </div>
     `;
   }
@@ -586,7 +675,6 @@ async function loadCustomer(c){
   document.getElementById("kpiRevenue").textContent = `${fmt(s.ytdRevenue)} 천원`;
   document.getElementById("kpiExaminees").textContent = `${fmt(s.ytdExaminees)} 명`;
 
-  /* ✅ 방문일 세팅 */
   document.getElementById("kpiFirstVisit").textContent = s.firstVisitDate || "-";
   document.getElementById("kpiLastVisit").textContent  = s.lastVisitDate || "-";
 
@@ -598,7 +686,7 @@ async function loadCustomer(c){
   document.getElementById("financeYears").textContent = `${f.years[0]} vs ${f.years[1]}`;
   renderFinance2x2(f);
 
-  // 뉴스/공시
+  // 뉴스
   const today = new Date();
   const y = today.getFullYear(), m = String(today.getMonth()+1).padStart(2,"0"), d = String(today.getDate()).padStart(2,"0");
   document.getElementById("newsSub").textContent = `조회일: ${y}-${m}-${d}`;
@@ -608,17 +696,8 @@ async function loadCustomer(c){
 
   await loadKeywordNews(c.name, 5);
 
-  // DART
-  if (c.corpCode){
-    await loadDartFilings(c.corpCode, c.name);
-  }else{
-    document.getElementById("filingsList").innerHTML = `
-      <div class="item">
-        <div class="itemTitle">corp_code가 없어 공시를 불러올 수 없습니다.</div>
-        <div class="itemMeta">해당 거래처에 corpCode(8자리)를 추가해 주세요.</div>
-      </div>
-    `;
-  }
+  // ✅ DART: 기업명 기준으로 corp_code 자동/힌트 사용해서 공시 로드
+  await loadDartFilingsByCustomerName(c.name, c.corpCode);
 }
 
 async function applySearch(){
