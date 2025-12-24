@@ -155,6 +155,11 @@
     border-radius:16px;
     padding:16px;
   }
+
+  .toast{
+    border:1px solid #e5e7eb; background:#fff; border-radius:14px;
+    padding:10px 12px; font-size:.85rem; color:#0f172a;
+  }
 </style>
 </head>
 
@@ -185,11 +190,6 @@
       <div>
         <div class="text-lg font-extrabold text-slate-900">거래처별 정보</div>
         <div class="muted small">거래처명을 검색하면 “거래 현황 + 재무(2개년도) + 뉴스 + 공시”가 노출됩니다.</div>
-        <div class="muted small mt-1" id="sheetStatus">고객 목록: 불러오는 중…</div>
-        <div class="muted small mt-1">
-          * 시트(<span class="font-extrabold text-slate-900">omnicare_customer</span>) 컬럼:
-          A=name, B=corp_code(숫자여도 OK), (선택) C=corp_code_8
-        </div>
       </div>
       <span class="chip">accounts_by_customer</span>
     </div>
@@ -199,11 +199,26 @@
     <div class="flex items-center gap-2 flex-wrap">
       <input id="q"
              class="border border-slate-200 rounded-xl px-3 py-2 bg-white w-[320px]"
-             placeholder="거래처 검색 (예: 삼성전자)" />
+             placeholder="거래처 검색 (예: 삼성전자, GC케어)" />
       <button class="btnDark" onclick="applySearch()">조회</button>
 
       <div class="ml-auto muted small">
         선택: <span id="selectedName" class="font-extrabold text-slate-900">-</span>
+      </div>
+    </div>
+
+    <div class="mt-3 grid grid-cols-1 md:grid-cols-3 gap-2">
+      <div class="toast">
+        <div class="font-extrabold">구글시트 연동</div>
+        <div class="muted small" id="sheetStatus">로딩 중…</div>
+      </div>
+      <div class="toast">
+        <div class="font-extrabold">검색 데이터</div>
+        <div class="muted small">omnicare_customer 시트 (A: name, B: corp_code)</div>
+      </div>
+      <div class="toast">
+        <div class="font-extrabold">DART 연동</div>
+        <div class="muted small">공시(/dart/list) + 재무(/dart/fin)</div>
       </div>
     </div>
   </section>
@@ -212,7 +227,7 @@
   <section id="emptyState" class="hintBox">
     <div class="font-extrabold text-slate-900">거래처를 검색해주세요.</div>
     <div class="muted small mt-1">
-      예: <span class="font-extrabold text-slate-900">삼성전자</span> / <span class="font-extrabold text-slate-900">GC케어</span> / <span class="font-extrabold text-slate-900">LG전자</span>
+      예: <span class="font-extrabold text-slate-900">삼성전자</span>, <span class="font-extrabold text-slate-900">GC케어</span>
     </div>
   </section>
 
@@ -235,13 +250,13 @@
         <div class="kpiBox">
           <div class="kpiLabel">금년도 누적 매출</div>
           <div class="kpiValue" id="kpiRevenue">-</div>
-          <div class="kpiSub">단위: 천원</div>
+          <div class="kpiSub">단위: 천원(샘플)</div>
         </div>
 
         <div class="kpiBox">
           <div class="kpiLabel">금년도 누적 수검자</div>
           <div class="kpiValue" id="kpiExaminees">-</div>
-          <div class="kpiSub">단위: 명</div>
+          <div class="kpiSub">단위: 명(샘플)</div>
         </div>
 
         <div class="kpiBox">
@@ -271,7 +286,9 @@
       <div class="flex items-start justify-between gap-3 flex-wrap">
         <div>
           <div class="text-lg font-extrabold text-slate-900">재무현황 (거래처)</div>
-          <div class="muted small">전년 공시 기반(샘플) · <span id="financeYears">-</span> 비교</div>
+          <div class="muted small">
+            DART 기반(별도재무제표 OFS) · <span id="financeYears">-</span> 비교
+          </div>
         </div>
         <span class="chip">FINANCE</span>
       </div>
@@ -280,8 +297,8 @@
 
       <div id="finGrid" class="finGrid"></div>
 
-      <div class="mt-3 muted small">
-        * 실제 서비스에서는 DART/공시 DB 연동 후 자동 업데이트
+      <div class="mt-3 muted small" id="financeNote">
+        * 정기보고서(사업보고서) 기반 자동화: /dart/fin (현재 regular 경로)
       </div>
     </section>
 
@@ -323,55 +340,39 @@
 
 <script>
 /* =========================================================
-   ✅ Cloudflare Worker API Base (DART 프록시)
+   ✅ Cloudflare Worker API Base
 ========================================================= */
 const API_BASE = "https://accounts-by-customer.qkr3069.workers.dev";
 
 /* =========================================================
    ✅ Google Sheet (omnicare_customer)
    - A: name
-   - B: corp_code (숫자여도 OK)  ← 8자리 보정(padStart) 처리
-   - (선택) C: corp_code_8 (TEXT(B,"00000000") 결과)
+   - B: corp_code (8자리)
 ========================================================= */
-const SHEET_ID = "1kKsPK5Kxplgoutz4pkS8QqXTdC7Ai1jeaeaOJsZVgnI";
+const SHEET_ID   = "1kKsPK5Kxplgoutz4pkS8QqXTdC7Ai1jeaeaOJsZVgnI";
 const SHEET_NAME = "omnicare_customer";
-const SHEET_RANGE = "A:C"; // A=name, B=corp_code, C=corp_code_8(선택)
 
-/* ===== 샘플 DB(초기 1개) =====
-   - 시트가 성공적으로 로드되면 CUSTOMER_DB에 자동으로 추가/갱신됨
-*/
-const CUSTOMER_DB = [
-  {
-    name: "삼성전자",
-    corpCode: "00126380",
-    status: {
-      ytdRevenue: 38000,
-      ytdExaminees: 420,
-      firstVisitDate: "2025-01-10",
-      lastVisitDate: "2025-12-14",
-      manager: { name:"김담당", email:"manager@samsung.com", phone:"010-1234-5678" },
-      taxInvoiceDate: "2025-12-08",
-      expectedDepositDate: "2026-01-05",
-      paidToDate: 25000,
-    },
-    finance: {
-      years: [2023, 2024],
-      unit: "천원(샘플)",
-      revenue: [2580, 2800],
-      op:      [ 120,  180],
-      net:     [  95,  150],
-      capital: [  90,   90]
-    },
-    more: {
-      news: "customer_news_all.html?c=삼성전자",
-      filings: "customer_filings_all.html?c=삼성전자"
-    }
-  }
-];
+/* ===== 고객 DB (구글시트 로딩 후 채움) ===== */
+let CUSTOMER_DB = [];   // [{ name, corpCode, status(샘플), more(샘플) }, ... ]
+
+/* ===== 샘플 status (거래 현황은 지금은 샘플 유지) ===== */
+function defaultStatusSample(){
+  const now = new Date();
+  const y = now.getFullYear();
+  return {
+    ytdRevenue: 0,
+    ytdExaminees: 0,
+    firstVisitDate: `${y}-01-01`,
+    lastVisitDate: `${y}-12-31`,
+    manager: { name:"-", email:"-", phone:"-" }
+  };
+}
 
 const fmt = (n) => (n ?? 0).toLocaleString("ko-KR");
 
-/* ===== 2x2 재무 렌더 ===== */
+/* =========================================================
+   ✅ Finance 2x2 Render (기존 그대로)
+========================================================= */
 function renderFinance2x2(fin){
   const wrap = document.getElementById("finGrid");
   wrap.innerHTML = "";
@@ -387,9 +388,9 @@ function renderFinance2x2(fin){
   ];
 
   metrics.forEach(m=>{
-    const maxV = Math.max(m.vals[0], m.vals[1], 1);
-    const h1 = Math.round((m.vals[0]/maxV)*100);
-    const h2 = Math.round((m.vals[1]/maxV)*100);
+    const maxV = Math.max(m.vals?.[0] ?? 0, m.vals?.[1] ?? 0, 1);
+    const h1 = Math.round(((m.vals?.[0] ?? 0)/maxV)*100);
+    const h2 = Math.round(((m.vals?.[1] ?? 0)/maxV)*100);
 
     const card = document.createElement("div");
     card.className = "finCard";
@@ -401,7 +402,7 @@ function renderFinance2x2(fin){
 
       <div class="barsArea">
         <div class="vbarCol">
-          <div class="valTag">${fmt(m.vals[0])}</div>
+          <div class="valTag">${fmt(m.vals?.[0] ?? 0)}</div>
           <div class="vbarWrap">
             <div class="vbar y1" style="height:${h1}%"></div>
           </div>
@@ -409,7 +410,7 @@ function renderFinance2x2(fin){
         </div>
 
         <div class="vbarCol">
-          <div class="valTag">${fmt(m.vals[1])}</div>
+          <div class="valTag">${fmt(m.vals?.[1] ?? 0)}</div>
           <div class="vbarWrap">
             <div class="vbar y2" style="height:${h2}%"></div>
           </div>
@@ -420,7 +421,7 @@ function renderFinance2x2(fin){
       <div class="finFoot">
         ${years[0]} → ${years[1]} 변화:
         <span style="color:#0f172a; font-weight:900;">
-          ${m.vals[1]-m.vals[0] >= 0 ? "+" : ""}${fmt(m.vals[1]-m.vals[0])}
+          ${(m.vals?.[1] ?? 0)-(m.vals?.[0] ?? 0) >= 0 ? "+" : ""}${fmt((m.vals?.[1] ?? 0)-(m.vals?.[0] ?? 0))}
         </span>
       </div>
     `;
@@ -428,7 +429,9 @@ function renderFinance2x2(fin){
   });
 }
 
-/* ===== 뉴스 RSS ===== */
+/* =========================================================
+   ✅ News RSS (기존 유지)
+========================================================= */
 async function fetchRSS2JSON(rssUrl){
   const r = await fetch("https://api.rss2json.com/v1/api.json?rss_url=" + encodeURIComponent(rssUrl));
   return r.json();
@@ -475,10 +478,7 @@ async function loadKeywordNews(keyword, limit=5){
 }
 
 /* =========================================================
-   ✅ DART 연동 (Cloudflare Worker 프록시 사용)
-   - corp_code가 있으면 바로 /dart/list
-   - corp_code 없으면 /dart/corp/find로 찾으려 하지만,
-     운영 안정성을 위해 시트에서 corp_code를 채우는 것을 권장
+   ✅ DART 공시 (corp_code 기반 /dart/list)
 ========================================================= */
 function ymdNow(){
   const t = new Date();
@@ -505,32 +505,13 @@ async function apiGet(path, params={}){
   const ct = res.headers.get("content-type") || "";
   if (!res.ok){
     const txt = await res.text().catch(()=> "");
-    throw new Error(`HTTP ${res.status} ${res.statusText} ${txt ? `· ${txt.slice(0,120)}` : ""}`);
+    throw new Error(`HTTP ${res.status} ${res.statusText} ${txt ? `· ${txt.slice(0,160)}` : ""}`);
   }
   if (ct.includes("application/json")) return res.json();
   const txt = await res.text();
   try { return JSON.parse(txt); } catch { return { raw: txt }; }
 }
 
-/* (선택) corp_code 찾기: /dart/corp/find?name= */
-async function resolveCorpCodeByName(corpName){
-  const data = await apiGet("/dart/corp/find", { name: corpName });
-
-  if (data?.corp_code) return data.corp_code;
-  if (data?.corpCode) return data.corpCode;
-
-  if (Array.isArray(data?.result) && data.result[0]?.corp_code) return data.result[0].corp_code;
-  if (Array.isArray(data?.list) && data.list[0]?.corp_code) return data.list[0].corp_code;
-
-  if (typeof data?.raw === "string"){
-    const m = data.raw.match(/"corp_code"\s*:\s*"(\d{8})"/);
-    if (m) return m[1];
-  }
-
-  return null;
-}
-
-/* 공시 리스트: /dart/list */
 async function fetchDartListViaWorker(corpCode, pageCount=5){
   const data = await apiGet("/dart/list", {
     corp_code: corpCode,
@@ -539,19 +520,11 @@ async function fetchDartListViaWorker(corpCode, pageCount=5){
     end_de: ymdNow()
   });
 
+  // DART 원 응답 형태 {status, message, list:[...]}
   if (data?.status && data.status !== "000"){
     return { status: data.status, message: data.message || "조회 실패", list: [] };
   }
   if (Array.isArray(data?.list)) return { status: "000", message: "OK", list: data.list };
-
-  if (typeof data?.bodyPreview === "string"){
-    try{
-      const parsed = JSON.parse(data.bodyPreview);
-      if (parsed?.status && parsed.status !== "000") return { status: parsed.status, message: parsed.message || "", list: [] };
-      if (Array.isArray(parsed?.list)) return { status:"000", message:"OK", list: parsed.list };
-    }catch{}
-  }
-
   return { status:"999", message:"응답 파싱 실패", list: [] };
 }
 
@@ -569,34 +542,30 @@ function renderDartFilings(items){
     const div = document.createElement("div");
     div.className = "item";
     div.innerHTML = `
-      <a class="link itemTitle" href="${dartUrl}" target="_blank" rel="noopener">
-        ${it.report_nm}
-      </a>
+      <a class="link itemTitle" href="${dartUrl}" target="_blank" rel="noopener">${it.report_nm}</a>
       <div class="itemMeta">${it.rcept_dt} · ${it.corp_name || ""}</div>
     `;
     wrap.appendChild(div);
   });
 }
 
-async function loadDartFilingsByCustomerName(corpName, corpCodeHint){
+async function loadDartFilingsByCorpCode(corpName, corpCode){
   const wrap = document.getElementById("filingsList");
   wrap.innerHTML = `<div class="muted small">불러오는 중…</div>`;
   document.getElementById("filingsSub").textContent = `조회 기업: ${corpName}`;
 
+  if (!corpCode){
+    wrap.innerHTML = `
+      <div class="item">
+        <div class="itemTitle">corp_code가 없어 공시 조회가 불가합니다.</div>
+        <div class="itemMeta">구글시트에 corp_code(8자리)를 채워주세요.</div>
+      </div>
+    `;
+    return;
+  }
+
   try{
-    let corpCode = (corpCodeHint || "").trim();
-
-    if (!corpCode){
-      const resolved = await resolveCorpCodeByName(corpName);
-      if (!resolved) throw new Error("corp_code를 찾지 못했습니다. (시트에 corp_code를 입력해주세요)");
-      corpCode = resolved;
-    }
-
-    // 최종 안전: 숫자면 8자리 패딩
-    if (/^\d+$/.test(corpCode)) corpCode = corpCode.padStart(8, "0");
-
     const out = await fetchDartListViaWorker(corpCode, 5);
-
     if (out.status !== "000"){
       wrap.innerHTML = `
         <div class="item">
@@ -625,120 +594,66 @@ async function loadDartFilingsByCustomerName(corpName, corpCodeHint){
         <a class="link itemTitle" href="https://dart.fss.or.kr/" target="_blank" rel="noopener">DART에서 직접 검색하기</a>
         <div class="itemMeta">키워드: ${corpName}</div>
       </div>
-      <div class="item">
-        <div class="itemTitle">확인 포인트</div>
-        <div class="itemMeta">시트의 corp_code를 8자리로 채우면 가장 안정적으로 동작합니다. (예: 00126380)</div>
-      </div>
     `;
   }
 }
 
 /* =========================================================
-   ✅ Google Sheet 로딩: name + corp_code 함께 읽기
-   - C(선택)corp_code_8이 있으면 그걸 우선 사용
-   - 없으면 B(corp_code)를 문자열화 후 8자리 padStart
+   ✅ Finance: Worker /dart/fin 연동
 ========================================================= */
-function parseGvizJSON(text){
-  const m = text.match(/google\.visualization\.Query\.setResponse\(([\s\S]*?)\);?/);
-  if (!m) throw new Error("GVIZ 응답 파싱 실패");
-  return JSON.parse(m[1]);
+function twoYearsForFinance(){
+  const cur = new Date().getFullYear();
+  return [cur - 2, cur - 1]; // 예: 2023,2024 (현재연도 기준 -2, -1)
 }
 
-async function fetchCustomersFromSheet(){
-  const url =
-    `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq` +
-    `?tqx=out:json&sheet=${encodeURIComponent(SHEET_NAME)}&range=${encodeURIComponent(SHEET_RANGE)}`;
+async function loadFinanceFromWorker(corpCode){
+  const [y1, y2] = twoYearsForFinance();
+  document.getElementById("financeYears").textContent = `${y1} vs ${y2}`;
+  document.getElementById("finGrid").innerHTML = `<div class="muted small">재무 불러오는 중…</div>`;
 
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`시트 로드 실패: HTTP ${res.status}`);
-  const txt = await res.text();
-  const json = parseGvizJSON(txt);
-
-  const rows = json?.table?.rows || [];
-  const out = [];
-
-  for (const r of rows){
-    const name = (r?.c?.[0]?.v ?? "").toString().trim();
-    if (!name || name.toLowerCase() === "name") continue;
-
-    // C열(우선): corp_code_8
-    let corp = (r?.c?.[2]?.v ?? "").toString().trim();
-
-    // C가 없으면 B열(숫자/문자)
-    if (!corp){
-      const b = r?.c?.[1]?.v;
-      if (b !== null && b !== undefined && b !== ""){
-        corp = String(b).trim();
-      }
-    }
-
-    // 숫자만이면 8자리 패딩 (앞 0 복원)
-    if (/^\d+$/.test(corp)) corp = corp.padStart(8, "0");
-
-    out.push({ name, corpCode: corp });
+  if (!corpCode){
+    document.getElementById("financeNote").textContent = "* corp_code가 없어 재무 조회가 불가합니다.";
+    // 빈값 렌더
+    renderFinance2x2({ years:[y1,y2], unit:"천원", revenue:[0,0], op:[0,0], net:[0,0], capital:[0,0] });
+    return;
   }
 
-  const map = new Map();
-  out.forEach(x => map.set(x.name, x)); // 중복이면 뒤 값 우선
-  return Array.from(map.values());
-}
+  const finRes = await apiGet("/dart/fin", {
+    corp_code: corpCode,
+    years: `${y1},${y2}`,
+    fs_div: "OFS"
+  });
 
-function makeCustomerSkeleton(name, corpCode=""){
-  return {
-    name,
-    corpCode: (corpCode || "").trim(),
-    status: {
-      ytdRevenue: 0,
-      ytdExaminees: 0,
-      firstVisitDate: "-",
-      lastVisitDate: "-",
-      manager: { name:"-", email:"-", phone:"-" },
-      taxInvoiceDate: "-",
-      expectedDepositDate: "-",
-      paidToDate: 0,
-    },
-    finance: {
-      years: [2023, 2024],
-      unit: "천원(샘플)",
-      revenue: [0, 0],
-      op:      [0, 0],
-      net:     [0, 0],
-      capital: [0, 0]
-    },
-    more: {
-      news: `customer_news_all.html?c=${encodeURIComponent(name)}`,
-      filings: `customer_filings_all.html?c=${encodeURIComponent(name)}`
-    }
+  if (!finRes?.ok || !finRes?.items) {
+    throw new Error("재무 API 응답이 비정상입니다.");
+  }
+
+  // Worker는 '원' 단위로 줌. 화면은 '천원'으로 보기 좋게 변환.
+  const toThousandWon = (v) => (typeof v === "number" ? Math.round(v / 1000) : 0);
+
+  const f = {
+    years: finRes.years || [y1, y2],
+    unit: "천원",
+    revenue: (finRes.items.revenue || []).map(toThousandWon),
+    op:      (finRes.items.op || []).map(toThousandWon),
+    net:     (finRes.items.net || []).map(toThousandWon),
+    capital: (finRes.items.capital || []).map(toThousandWon),
   };
+
+  // NOTE 문구 갱신
+  const p1 = finRes?.perYear?.[String(y1)];
+  const p2 = finRes?.perYear?.[String(y2)];
+  const s1 = p1?.ok ? "OK" : (p1?.dart_status || p1?.error || "FAIL");
+  const s2 = p2?.ok ? "OK" : (p2?.dart_status || p2?.error || "FAIL");
+  document.getElementById("financeNote").textContent =
+    `* /dart/fin(별도 OFS) · ${y1}: ${s1} · ${y2}: ${s2} (정기보고서 기반)`;
+
+  renderFinance2x2(f);
 }
 
-async function hydrateCustomerDBFromSheet(){
-  const statusEl = document.getElementById("sheetStatus");
-  try{
-    statusEl.textContent = "고객 목록: Google Sheet에서 불러오는 중…";
-
-    const customers = await fetchCustomersFromSheet();
-    const byName = new Map(CUSTOMER_DB.map(x => [x.name, x]));
-
-    customers.forEach(c => {
-      if (byName.has(c.name)){
-        const old = byName.get(c.name);
-        if (c.corpCode) old.corpCode = c.corpCode; // 시트 값을 우선
-      } else {
-        CUSTOMER_DB.push(makeCustomerSkeleton(c.name, c.corpCode));
-      }
-    });
-
-    statusEl.innerHTML = `고객 목록: <span class="font-extrabold text-slate-900">${CUSTOMER_DB.length.toLocaleString("ko-KR")}개</span> (Sheet 연동 완료)`;
-  }catch(e){
-    console.error("시트 연동 실패:", e);
-    statusEl.innerHTML =
-      `고객 목록: <span class="font-extrabold text-slate-900">${CUSTOMER_DB.length.toLocaleString("ko-KR")}개</span> ` +
-      `(Sheet 연동 실패 → 샘플만 사용) · <span style="color:#ef4444;font-weight:900;">${String(e.message || e).slice(0,120)}</span>`;
-  }
-}
-
-/* ===== 담당자 정보 렌더 ===== */
+/* =========================================================
+   ✅ 담당자 정보 렌더(샘플)
+========================================================= */
 function renderManagerBox(mgr){
   const box = document.getElementById("kpiManager");
   if (!mgr){
@@ -765,11 +680,92 @@ function renderManagerBox(mgr){
   `;
 }
 
-/* ===== 검색 ===== */
+/* =========================================================
+   ✅ Google Sheet 로딩: name + corp_code
+   - gviz JSON 포맷 파싱
+========================================================= */
+function gvizUrl(){
+  // gviz는 CORS 이슈가 상대적으로 적고, 공개 시트면 잘 동작
+  // A:B 전체 (name, corp_code)
+  return `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(SHEET_NAME)}&range=A:B`;
+}
+
+function parseGviz(text){
+  // gviz는 JSON 앞뒤에 자바스크립트 래퍼가 붙음
+  const m = text.match(/google\.visualization\.Query\.setResponse\(([\s\S]*?)\);\s*$/);
+  if (!m) throw new Error("GVIZ 포맷 파싱 실패(공개/권한 확인 필요)");
+  return JSON.parse(m[1]);
+}
+
+function normalizeCorpCode(v){
+  const s = (v ?? "").toString().trim();
+  const digits = s.replace(/\D/g, "");
+  if (!digits) return "";
+  return digits.padStart(8, "0").slice(-8);
+}
+
+async function loadCustomersFromSheet(){
+  const el = document.getElementById("sheetStatus");
+  try{
+    const res = await fetch(gvizUrl(), { method:"GET" });
+    const text = await res.text();
+    const json = parseGviz(text);
+
+    const rows = json?.table?.rows || [];
+    const out = [];
+
+    for (const r of rows){
+      const c0 = r?.c?.[0]?.v;
+      const c1 = r?.c?.[1]?.v;
+      const name = (c0 ?? "").toString().trim();
+      const corpCode = normalizeCorpCode(c1);
+
+      if (!name) continue;
+
+      out.push({
+        name,
+        corpCode,
+        status: defaultStatusSample(),
+        more: {
+          news: `customer_news_all.html?c=${encodeURIComponent(name)}`,
+          filings: `customer_filings_all.html?c=${encodeURIComponent(name)}`
+        }
+      });
+    }
+
+    if (!out.length) throw new Error("시트에서 읽은 거래처가 0건입니다. A열(name) 채워졌는지 확인!");
+
+    CUSTOMER_DB = out;
+    el.textContent = `연동완료 · ${out.length}개 거래처 로딩됨`;
+  }catch(err){
+    console.warn("시트 연동 실패:", err);
+    el.textContent = `연동 실패 · ${String(err.message || err)}`;
+
+    // 최소 fallback: 삼성전자만이라도 남겨서 테스트 가능하게
+    CUSTOMER_DB = [{
+      name: "삼성전자",
+      corpCode: "00126380",
+      status: {
+        ytdRevenue: 38000,
+        ytdExaminees: 420,
+        firstVisitDate: "2025-01-10",
+        lastVisitDate: "2025-12-14",
+        manager: { name:"김담당", email:"manager@samsung.com", phone:"010-1234-5678" },
+      },
+      more: {
+        news: "customer_news_all.html?c=삼성전자",
+        filings: "customer_filings_all.html?c=삼성전자"
+      }
+    }];
+  }
+}
+
+/* =========================================================
+   ✅ 검색 + 로딩
+========================================================= */
 function findCustomerByQuery(q){
   const qq = (q || "").trim().toLowerCase();
   if (!qq) return null;
-  // 부분일치도 허용
   return CUSTOMER_DB.find(c => c.name.toLowerCase() === qq || c.name.toLowerCase().includes(qq)) || null;
 }
 
@@ -779,26 +775,24 @@ async function loadCustomer(c){
 
   document.getElementById("selectedName").textContent = c.name;
 
-  // 거래 현황 (샘플)
-  const s = c.status || {};
+  // 거래 현황(샘플)
+  const s = c.status || defaultStatusSample();
   document.getElementById("statusSub").textContent = `거래처: ${c.name} · (샘플) 올해 누적 기준`;
-
-  document.getElementById("kpiRevenue").textContent = `${fmt(s.ytdRevenue || 0)} 천원`;
-  document.getElementById("kpiExaminees").textContent = `${fmt(s.ytdExaminees || 0)} 명`;
-
+  document.getElementById("kpiRevenue").textContent = `${fmt(s.ytdRevenue)} 천원`;
+  document.getElementById("kpiExaminees").textContent = `${fmt(s.ytdExaminees)} 명`;
   document.getElementById("kpiFirstVisit").textContent = s.firstVisitDate || "-";
   document.getElementById("kpiLastVisit").textContent  = s.lastVisitDate || "-";
-
-  // 담당자 (샘플)
   renderManagerBox(s.manager);
 
-  // 재무 2x2 (샘플)
-  const f = c.finance || {
-    years:[2023,2024], unit:"천원(샘플)",
-    revenue:[0,0], op:[0,0], net:[0,0], capital:[0,0]
-  };
-  document.getElementById("financeYears").textContent = `${f.years[0]} vs ${f.years[1]}`;
-  renderFinance2x2(f);
+  // ✅ 재무(실데이터): /dart/fin 연동
+  try{
+    await loadFinanceFromWorker(c.corpCode);
+  }catch(err){
+    console.warn("재무 연동 실패:", err);
+    document.getElementById("financeNote").textContent = `* 재무 연동 실패: ${String(err.message || err)}`;
+    const [y1,y2] = twoYearsForFinance();
+    renderFinance2x2({ years:[y1,y2], unit:"천원", revenue:[0,0], op:[0,0], net:[0,0], capital:[0,0] });
+  }
 
   // 뉴스
   const today = new Date();
@@ -810,8 +804,8 @@ async function loadCustomer(c){
 
   await loadKeywordNews(c.name, 5);
 
-  // ✅ DART: 시트 corp_code를 우선 사용
-  await loadDartFilingsByCustomerName(c.name, c.corpCode);
+  // 공시(DART): corp_code로 바로
+  await loadDartFilingsByCorpCode(c.name, c.corpCode);
 }
 
 async function applySearch(){
@@ -824,14 +818,14 @@ async function applySearch(){
     document.getElementById("emptyState").classList.remove("hidden");
     document.getElementById("emptyState").innerHTML = `
       <div class="font-extrabold text-slate-900">검색 결과가 없습니다.</div>
-      <div class="muted small mt-1">시트에 입력된 거래처명을 확인해주세요.</div>
+      <div class="muted small mt-1">구글시트(omnicare_customer)에 등록된 이름과 동일하게 입력해주세요.</div>
     `;
     return;
   }
 
   document.getElementById("emptyState").innerHTML = `
     <div class="font-extrabold text-slate-900">거래처를 검색해주세요.</div>
-    <div class="muted small mt-1">예: <span class="font-extrabold text-slate-900">삼성전자</span> / <span class="font-extrabold text-slate-900">GC케어</span></div>
+    <div class="muted small mt-1">예: <span class="font-extrabold text-slate-900">삼성전자</span>, <span class="font-extrabold text-slate-900">GC케어</span></div>
   `;
 
   await loadCustomer(c);
@@ -842,10 +836,10 @@ document.getElementById("q").addEventListener("keydown", (e)=>{
 });
 
 /* =========================================================
-   ✅ 초기 실행: 시트 → CUSTOMER_DB 확장
+   ✅ 초기화: 시트 로딩
 ========================================================= */
 (async function init(){
-  await hydrateCustomerDBFromSheet();
+  await loadCustomersFromSheet();
 })();
 </script>
 </body>
