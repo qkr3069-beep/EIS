@@ -185,7 +185,11 @@
       <div>
         <div class="text-lg font-extrabold text-slate-900">거래처별 정보</div>
         <div class="muted small">거래처명을 검색하면 “거래 현황 + 재무(2개년도) + 뉴스 + 공시”가 노출됩니다.</div>
-        <div class="muted small mt-1" id="sheetStatus">고객 목록: 로딩 전</div>
+        <div class="muted small mt-1" id="sheetStatus">고객 목록: 불러오는 중…</div>
+        <div class="muted small mt-1">
+          * 시트(<span class="font-extrabold text-slate-900">omnicare_customer</span>) 컬럼:
+          A=name, B=corp_code(숫자여도 OK), (선택) C=corp_code_8
+        </div>
       </div>
       <span class="chip">accounts_by_customer</span>
     </div>
@@ -208,10 +212,7 @@
   <section id="emptyState" class="hintBox">
     <div class="font-extrabold text-slate-900">거래처를 검색해주세요.</div>
     <div class="muted small mt-1">
-      예: <span class="font-extrabold text-slate-900">삼성전자</span>
-    </div>
-    <div class="muted small mt-2">
-      * 고객 목록은 Google Sheet(<span class="font-extrabold text-slate-900">omnicare_customer</span> 시트 A열 name)에서 자동으로 불러옵니다.
+      예: <span class="font-extrabold text-slate-900">삼성전자</span> / <span class="font-extrabold text-slate-900">GC케어</span> / <span class="font-extrabold text-slate-900">LG전자</span>
     </div>
   </section>
 
@@ -280,7 +281,7 @@
       <div id="finGrid" class="finGrid"></div>
 
       <div class="mt-3 muted small">
-        * 현재는 샘플값입니다. (나중에 Sheet 컬럼 확장/DB 연동으로 실제값 채울 수 있음)
+        * 실제 서비스에서는 DART/공시 DB 연동 후 자동 업데이트
       </div>
     </section>
 
@@ -322,52 +323,27 @@
 
 <script>
 /* =========================================================
-   ✅ Cloudflare Worker API Base
+   ✅ Cloudflare Worker API Base (DART 프록시)
 ========================================================= */
 const API_BASE = "https://accounts-by-customer.qkr3069.workers.dev";
 
 /* =========================================================
-   ✅ Google Sheet 연동
-   - Sheet: omnicare_customer
-   - A1: name
-   - Range: A:A
-   ⚠️ 시트 공유: "링크가 있는 사용자 보기" 필수
+   ✅ Google Sheet (omnicare_customer)
+   - A: name
+   - B: corp_code (숫자여도 OK)  ← 8자리 보정(padStart) 처리
+   - (선택) C: corp_code_8 (TEXT(B,"00000000") 결과)
 ========================================================= */
 const SHEET_ID = "1kKsPK5Kxplgoutz4pkS8QqXTdC7Ai1jeaeaOJsZVgnI";
 const SHEET_NAME = "omnicare_customer";
+const SHEET_RANGE = "A:C"; // A=name, B=corp_code, C=corp_code_8(선택)
 
-function parseGvizJSON(text){
-  const start = text.indexOf("{");
-  const end = text.lastIndexOf("}");
-  if (start === -1 || end === -1) throw new Error("GVIZ 응답 파싱 실패");
-  return JSON.parse(text.slice(start, end + 1));
-}
-
-async function fetchCustomerNamesFromSheet(){
-  const url =
-    `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq` +
-    `?tqx=out:json&sheet=${encodeURIComponent(SHEET_NAME)}&range=A:A`;
-
-  const res = await fetch(url, { method: "GET" });
-  if (!res.ok) throw new Error(`시트 로드 실패: HTTP ${res.status}`);
-  const txt = await res.text();
-  const json = parseGvizJSON(txt);
-
-  const rows = json?.table?.rows || [];
-  const names = rows
-    .map(r => r?.c?.[0]?.v)
-    .filter(v => typeof v === "string")
-    .map(v => v.trim())
-    .filter(v => v && v.toLowerCase() !== "name");
-
-  return Array.from(new Set(names));
-}
-
-/* ===== 샘플 DB(삼성전자) + 시트에서 동적 병합 ===== */
+/* ===== 샘플 DB(초기 1개) =====
+   - 시트가 성공적으로 로드되면 CUSTOMER_DB에 자동으로 추가/갱신됨
+*/
 const CUSTOMER_DB = [
   {
     name: "삼성전자",
-    corpCode: "00126380", // 있으면 이걸 우선 사용
+    corpCode: "00126380",
     status: {
       ytdRevenue: 38000,
       ytdExaminees: 420,
@@ -392,53 +368,6 @@ const CUSTOMER_DB = [
     }
   }
 ];
-
-function makeCustomerSkeleton(name){
-  return {
-    name,
-    corpCode: "",
-    status: {
-      ytdRevenue: 0,
-      ytdExaminees: 0,
-      firstVisitDate: "-",
-      lastVisitDate: "-",
-      manager: { name:"-", email:"-", phone:"-" },
-      taxInvoiceDate: "-",
-      expectedDepositDate: "-",
-      paidToDate: 0,
-    },
-    finance: {
-      years: [2023, 2024],
-      unit: "천원(샘플)",
-      revenue: [0, 0],
-      op:      [0, 0],
-      net:     [0, 0],
-      capital: [0, 0]
-    },
-    more: {
-      news: `customer_news_all.html?c=${encodeURIComponent(name)}`,
-      filings: `customer_filings_all.html?c=${encodeURIComponent(name)}`
-    }
-  };
-}
-
-async function hydrateCustomerDBFromSheet(){
-  const statusEl = document.getElementById("sheetStatus");
-  try{
-    statusEl.textContent = "고객 목록: Google Sheet에서 불러오는 중…";
-
-    const sheetNames = await fetchCustomerNamesFromSheet();
-    const existing = new Set(CUSTOMER_DB.map(x => x.name));
-    sheetNames.forEach(n => {
-      if (!existing.has(n)) CUSTOMER_DB.push(makeCustomerSkeleton(n));
-    });
-
-    statusEl.innerHTML = `고객 목록: <span class="font-extrabold text-slate-900">${CUSTOMER_DB.length.toLocaleString("ko-KR")}개</span> (Sheet 연동 완료)`;
-  }catch(e){
-    console.warn("시트 연동 실패(샘플 DB만 사용):", e);
-    statusEl.innerHTML = `고객 목록: <span class="font-extrabold text-slate-900">${CUSTOMER_DB.length.toLocaleString("ko-KR")}개</span> (Sheet 연동 실패 → 샘플만 사용)`;
-  }
-}
 
 const fmt = (n) => (n ?? 0).toLocaleString("ko-KR");
 
@@ -547,9 +476,9 @@ async function loadKeywordNews(keyword, limit=5){
 
 /* =========================================================
    ✅ DART 연동 (Cloudflare Worker 프록시 사용)
-   - corp_code 있으면 바로 /dart/list
-   - 없으면 /dart/corp/find?name= 로 corp_code 찾기(있다면)
-   - 없거나 미구현이면 /dart/company로 폴백 시도(선택)
+   - corp_code가 있으면 바로 /dart/list
+   - corp_code 없으면 /dart/corp/find로 찾으려 하지만,
+     운영 안정성을 위해 시트에서 corp_code를 채우는 것을 권장
 ========================================================= */
 function ymdNow(){
   const t = new Date();
@@ -576,34 +505,32 @@ async function apiGet(path, params={}){
   const ct = res.headers.get("content-type") || "";
   if (!res.ok){
     const txt = await res.text().catch(()=> "");
-    throw new Error(`HTTP ${res.status} ${res.statusText} ${txt ? `· ${txt.slice(0,160)}` : ""}`);
+    throw new Error(`HTTP ${res.status} ${res.statusText} ${txt ? `· ${txt.slice(0,120)}` : ""}`);
   }
   if (ct.includes("application/json")) return res.json();
   const txt = await res.text();
   try { return JSON.parse(txt); } catch { return { raw: txt }; }
 }
 
-/* corp_code 찾기: /dart/corp/find?name=삼성전자 (Worker에 구현돼있다면 사용) */
+/* (선택) corp_code 찾기: /dart/corp/find?name= */
 async function resolveCorpCodeByName(corpName){
-  try{
-    const data = await apiGet("/dart/corp/find", { name: corpName });
+  const data = await apiGet("/dart/corp/find", { name: corpName });
 
-    if (data?.corp_code) return data.corp_code;
-    if (data?.corpCode) return data.corpCode;
+  if (data?.corp_code) return data.corp_code;
+  if (data?.corpCode) return data.corpCode;
 
-    if (Array.isArray(data?.result) && data.result[0]?.corp_code) return data.result[0].corp_code;
-    if (Array.isArray(data?.list) && data.list[0]?.corp_code) return data.list[0].corp_code;
+  if (Array.isArray(data?.result) && data.result[0]?.corp_code) return data.result[0].corp_code;
+  if (Array.isArray(data?.list) && data.list[0]?.corp_code) return data.list[0].corp_code;
 
-    if (typeof data?.raw === "string"){
-      const m = data.raw.match(/"corp_code"\s*:\s*"(\d{8})"/);
-      if (m) return m[1];
-    }
-  }catch(e){
-    // 미구현/오류면 null 반환
+  if (typeof data?.raw === "string"){
+    const m = data.raw.match(/"corp_code"\s*:\s*"(\d{8})"/);
+    if (m) return m[1];
   }
+
   return null;
 }
 
+/* 공시 리스트: /dart/list */
 async function fetchDartListViaWorker(corpCode, pageCount=5){
   const data = await apiGet("/dart/list", {
     corp_code: corpCode,
@@ -659,29 +586,15 @@ async function loadDartFilingsByCustomerName(corpName, corpCodeHint){
   try{
     let corpCode = (corpCodeHint || "").trim();
 
-    // corp_code 없으면 name으로 찾기(가능한 경우)
     if (!corpCode){
       const resolved = await resolveCorpCodeByName(corpName);
-      if (resolved) corpCode = resolved;
+      if (!resolved) throw new Error("corp_code를 찾지 못했습니다. (시트에 corp_code를 입력해주세요)");
+      corpCode = resolved;
     }
 
-    // 그래도 없으면 안내(하지만 뉴스는 계속 동작)
-    if (!corpCode){
-      wrap.innerHTML = `
-        <div class="item">
-          <div class="itemTitle">corp_code를 찾지 못했습니다.</div>
-          <div class="itemMeta">현재 Worker에 /dart/corp/find 라우트가 없을 수 있습니다.</div>
-        </div>
-        <div class="item">
-          <a class="link itemTitle" href="https://dart.fss.or.kr/" target="_blank" rel="noopener">DART에서 직접 검색하기</a>
-          <div class="itemMeta">키워드: ${corpName}</div>
-        </div>
-      `;
-      document.getElementById("filingsSub").textContent = `조회 기업: ${corpName} · corp_code: -`;
-      return;
-    }
+    // 최종 안전: 숫자면 8자리 패딩
+    if (/^\d+$/.test(corpCode)) corpCode = corpCode.padStart(8, "0");
 
-    // 공시 리스트
     const out = await fetchDartListViaWorker(corpCode, 5);
 
     if (out.status !== "000"){
@@ -714,9 +627,114 @@ async function loadDartFilingsByCustomerName(corpName, corpCodeHint){
       </div>
       <div class="item">
         <div class="itemTitle">확인 포인트</div>
-        <div class="itemMeta">Worker(/dart/list)는 정상인지, 또는 /dart/corp/find 라우트가 구현돼 있는지 확인해주세요.</div>
+        <div class="itemMeta">시트의 corp_code를 8자리로 채우면 가장 안정적으로 동작합니다. (예: 00126380)</div>
       </div>
     `;
+  }
+}
+
+/* =========================================================
+   ✅ Google Sheet 로딩: name + corp_code 함께 읽기
+   - C(선택)corp_code_8이 있으면 그걸 우선 사용
+   - 없으면 B(corp_code)를 문자열화 후 8자리 padStart
+========================================================= */
+function parseGvizJSON(text){
+  const m = text.match(/google\.visualization\.Query\.setResponse\(([\s\S]*?)\);?/);
+  if (!m) throw new Error("GVIZ 응답 파싱 실패");
+  return JSON.parse(m[1]);
+}
+
+async function fetchCustomersFromSheet(){
+  const url =
+    `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq` +
+    `?tqx=out:json&sheet=${encodeURIComponent(SHEET_NAME)}&range=${encodeURIComponent(SHEET_RANGE)}`;
+
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`시트 로드 실패: HTTP ${res.status}`);
+  const txt = await res.text();
+  const json = parseGvizJSON(txt);
+
+  const rows = json?.table?.rows || [];
+  const out = [];
+
+  for (const r of rows){
+    const name = (r?.c?.[0]?.v ?? "").toString().trim();
+    if (!name || name.toLowerCase() === "name") continue;
+
+    // C열(우선): corp_code_8
+    let corp = (r?.c?.[2]?.v ?? "").toString().trim();
+
+    // C가 없으면 B열(숫자/문자)
+    if (!corp){
+      const b = r?.c?.[1]?.v;
+      if (b !== null && b !== undefined && b !== ""){
+        corp = String(b).trim();
+      }
+    }
+
+    // 숫자만이면 8자리 패딩 (앞 0 복원)
+    if (/^\d+$/.test(corp)) corp = corp.padStart(8, "0");
+
+    out.push({ name, corpCode: corp });
+  }
+
+  const map = new Map();
+  out.forEach(x => map.set(x.name, x)); // 중복이면 뒤 값 우선
+  return Array.from(map.values());
+}
+
+function makeCustomerSkeleton(name, corpCode=""){
+  return {
+    name,
+    corpCode: (corpCode || "").trim(),
+    status: {
+      ytdRevenue: 0,
+      ytdExaminees: 0,
+      firstVisitDate: "-",
+      lastVisitDate: "-",
+      manager: { name:"-", email:"-", phone:"-" },
+      taxInvoiceDate: "-",
+      expectedDepositDate: "-",
+      paidToDate: 0,
+    },
+    finance: {
+      years: [2023, 2024],
+      unit: "천원(샘플)",
+      revenue: [0, 0],
+      op:      [0, 0],
+      net:     [0, 0],
+      capital: [0, 0]
+    },
+    more: {
+      news: `customer_news_all.html?c=${encodeURIComponent(name)}`,
+      filings: `customer_filings_all.html?c=${encodeURIComponent(name)}`
+    }
+  };
+}
+
+async function hydrateCustomerDBFromSheet(){
+  const statusEl = document.getElementById("sheetStatus");
+  try{
+    statusEl.textContent = "고객 목록: Google Sheet에서 불러오는 중…";
+
+    const customers = await fetchCustomersFromSheet();
+    const byName = new Map(CUSTOMER_DB.map(x => [x.name, x]));
+
+    customers.forEach(c => {
+      if (byName.has(c.name)){
+        const old = byName.get(c.name);
+        if (c.corpCode) old.corpCode = c.corpCode; // 시트 값을 우선
+      } else {
+        CUSTOMER_DB.push(makeCustomerSkeleton(c.name, c.corpCode));
+      }
+    });
+
+    statusEl.innerHTML = `고객 목록: <span class="font-extrabold text-slate-900">${CUSTOMER_DB.length.toLocaleString("ko-KR")}개</span> (Sheet 연동 완료)`;
+  }catch(e){
+    console.error("시트 연동 실패:", e);
+    statusEl.innerHTML =
+      `고객 목록: <span class="font-extrabold text-slate-900">${CUSTOMER_DB.length.toLocaleString("ko-KR")}개</span> ` +
+      `(Sheet 연동 실패 → 샘플만 사용) · <span style="color:#ef4444;font-weight:900;">${String(e.message || e).slice(0,120)}</span>`;
   }
 }
 
@@ -751,13 +769,8 @@ function renderManagerBox(mgr){
 function findCustomerByQuery(q){
   const qq = (q || "").trim().toLowerCase();
   if (!qq) return null;
-
-  // 1) 완전일치 우선
-  const exact = CUSTOMER_DB.find(c => c.name.toLowerCase() === qq);
-  if (exact) return exact;
-
-  // 2) 포함검색
-  return CUSTOMER_DB.find(c => c.name.toLowerCase().includes(qq)) || null;
+  // 부분일치도 허용
+  return CUSTOMER_DB.find(c => c.name.toLowerCase() === qq || c.name.toLowerCase().includes(qq)) || null;
 }
 
 async function loadCustomer(c){
@@ -766,21 +779,24 @@ async function loadCustomer(c){
 
   document.getElementById("selectedName").textContent = c.name;
 
-  // 거래 현황
-  const s = c.status;
+  // 거래 현황 (샘플)
+  const s = c.status || {};
   document.getElementById("statusSub").textContent = `거래처: ${c.name} · (샘플) 올해 누적 기준`;
 
-  document.getElementById("kpiRevenue").textContent = `${fmt(s.ytdRevenue)} 천원`;
-  document.getElementById("kpiExaminees").textContent = `${fmt(s.ytdExaminees)} 명`;
+  document.getElementById("kpiRevenue").textContent = `${fmt(s.ytdRevenue || 0)} 천원`;
+  document.getElementById("kpiExaminees").textContent = `${fmt(s.ytdExaminees || 0)} 명`;
 
   document.getElementById("kpiFirstVisit").textContent = s.firstVisitDate || "-";
   document.getElementById("kpiLastVisit").textContent  = s.lastVisitDate || "-";
 
-  // 담당자
+  // 담당자 (샘플)
   renderManagerBox(s.manager);
 
-  // 재무 2x2
-  const f = c.finance;
+  // 재무 2x2 (샘플)
+  const f = c.finance || {
+    years:[2023,2024], unit:"천원(샘플)",
+    revenue:[0,0], op:[0,0], net:[0,0], capital:[0,0]
+  };
   document.getElementById("financeYears").textContent = `${f.years[0]} vs ${f.years[1]}`;
   renderFinance2x2(f);
 
@@ -789,12 +805,12 @@ async function loadCustomer(c){
   const y = today.getFullYear(), m = String(today.getMonth()+1).padStart(2,"0"), d = String(today.getDate()).padStart(2,"0");
   document.getElementById("newsSub").textContent = `조회일: ${y}-${m}-${d}`;
 
-  document.getElementById("newsMore").setAttribute("href", c.more.news);
-  document.getElementById("filingsMore").setAttribute("href", c.more.filings);
+  document.getElementById("newsMore").setAttribute("href", c.more?.news || "#");
+  document.getElementById("filingsMore").setAttribute("href", c.more?.filings || "#");
 
   await loadKeywordNews(c.name, 5);
 
-  // ✅ DART: 기업명 기준으로 corp_code 자동/힌트 사용해서 공시 로드
+  // ✅ DART: 시트 corp_code를 우선 사용
   await loadDartFilingsByCustomerName(c.name, c.corpCode);
 }
 
@@ -808,11 +824,15 @@ async function applySearch(){
     document.getElementById("emptyState").classList.remove("hidden");
     document.getElementById("emptyState").innerHTML = `
       <div class="font-extrabold text-slate-900">검색 결과가 없습니다.</div>
-      <div class="muted small mt-1">Google Sheet에 등록된 거래처명을 확인해주세요. (시트: <span class="font-extrabold text-slate-900">${SHEET_NAME}</span>)</div>
-      <div class="muted small mt-2">예: <span class="font-extrabold text-slate-900">삼성전자</span></div>
+      <div class="muted small mt-1">시트에 입력된 거래처명을 확인해주세요.</div>
     `;
     return;
   }
+
+  document.getElementById("emptyState").innerHTML = `
+    <div class="font-extrabold text-slate-900">거래처를 검색해주세요.</div>
+    <div class="muted small mt-1">예: <span class="font-extrabold text-slate-900">삼성전자</span> / <span class="font-extrabold text-slate-900">GC케어</span></div>
+  `;
 
   await loadCustomer(c);
 }
@@ -821,10 +841,12 @@ document.getElementById("q").addEventListener("keydown", (e)=>{
   if (e.key === "Enter") applySearch();
 });
 
-/* ✅ 페이지 로드 시 구글시트에서 고객명 로드 */
-window.addEventListener("DOMContentLoaded", async () => {
+/* =========================================================
+   ✅ 초기 실행: 시트 → CUSTOMER_DB 확장
+========================================================= */
+(async function init(){
   await hydrateCustomerDBFromSheet();
-});
+})();
 </script>
 </body>
 </html>
