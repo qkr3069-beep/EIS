@@ -58,7 +58,7 @@
   .mgrVal a{ color:#0f172a; text-decoration:none; }
   .mgrVal a:hover{ text-decoration:underline; }
 
-  /* ===== 재무현황 2x2 + 세로막대 ===== */
+  /* ===== 재무현황 2x2 + (양옆 숫자) + 음수 지원 ===== */
   .finGrid{
     display:grid;
     grid-template-columns: 1fr;
@@ -88,47 +88,75 @@
     font-weight:900;
     color:#334155;
   }
+
   .barsArea{
     margin-top:12px;
-    height:170px;
+    height:190px;
     display:flex;
     align-items:flex-end;
     justify-content:center;
-    gap:14px;
+    gap:16px;
   }
   .vbarCol{
-    width:74px;
+    width:160px; /* 숫자 양옆 배치 여유 */
     display:flex;
     flex-direction:column;
     align-items:center;
     gap:8px;
   }
-  .vbarWrap{
+
+  /* 숫자 + 막대(양옆) */
+  .barRow{
     width:100%;
-    height:130px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    justify-content:center;
+  }
+  .valSide{
+    width:64px;
+    font-size:.82rem;
+    font-weight:900;
+    color:#0f172a;
+    text-align:right;
+    white-space:nowrap;
+  }
+  .valSide.right{
+    text-align:left;
+  }
+
+  .vbarWrap{
+    flex:1;
+    height:140px;
     border:1px solid #e5e7eb;
     background:#ffffff;
     border-radius:14px;
-    display:flex;
-    align-items:flex-end;
-    justify-content:center;
+    position:relative;
     overflow:hidden;
   }
-  .vbar{
-    width:60%;
-    border-radius:12px 12px 0 0;
+  .baseline{
+    position:absolute;
+    left:0; right:0;
+    top:50%;
+    height:1px;
+    background:#e5e7eb;
   }
+  .vbar{
+    position:absolute;
+    left:50%;
+    transform:translateX(-50%);
+    width:38%;
+  }
+  .vbar.pos{ bottom:50%; border-radius:12px 12px 0 0; }
+  .vbar.neg{ top:50%; border-radius:0 0 12px 12px; }
+
   .y1{ background:#93c5fd; }
   .y2{ background:#1e3a8a; }
+
   .yearTag{
     font-size:.78rem;
     font-weight:900;
     color:#334155;
-  }
-  .valTag{
-    font-size:.8rem;
-    font-weight:900;
-    color:#0f172a;
   }
   .finFoot{
     margin-top:10px;
@@ -281,7 +309,7 @@
       </div>
     </section>
 
-    <!-- 3행: 재무현황(2x2 + 세로막대) -->
+    <!-- 3행: 재무현황 -->
     <section class="card p-5">
       <div class="flex items-start justify-between gap-3 flex-wrap">
         <div>
@@ -371,7 +399,9 @@ function defaultStatusSample(){
 const fmt = (n) => (n ?? 0).toLocaleString("ko-KR");
 
 /* =========================================================
-   ✅ Finance 2x2 Render (기존 그대로)
+   ✅ Finance 2x2 Render
+   - 숫자: 차트 '양 옆'으로 이동 (겹침 방지)
+   - 음수: 0 기준선(중앙) 아래로도 표시
 ========================================================= */
 function renderFinance2x2(fin){
   const wrap = document.getElementById("finGrid");
@@ -387,10 +417,30 @@ function renderFinance2x2(fin){
     { key:"capital", title:"자본금", vals: fin.capital },
   ];
 
+  const safeNum = (v)=> (typeof v === "number" && Number.isFinite(v) ? v : 0);
+
   metrics.forEach(m=>{
-    const maxV = Math.max(m.vals?.[0] ?? 0, m.vals?.[1] ?? 0, 1);
-    const h1 = Math.round(((m.vals?.[0] ?? 0)/maxV)*100);
-    const h2 = Math.round(((m.vals?.[1] ?? 0)/maxV)*100);
+    const v1 = safeNum(m.vals?.[0]);
+    const v2 = safeNum(m.vals?.[1]);
+
+    const maxAbs = Math.max(Math.abs(v1), Math.abs(v2), 1);
+
+    // wrap의 상/하가 50%씩이므로, 막대는 최대 50%까지만 사용
+    const h1 = Math.round((Math.abs(v1) / maxAbs) * 50);
+    const h2 = Math.round((Math.abs(v2) / maxAbs) * 50);
+
+    const cls1 = v1 >= 0 ? "pos" : "neg";
+    const cls2 = v2 >= 0 ? "pos" : "neg";
+
+    const style1 = v1 >= 0
+      ? `height:${h1}%; bottom:50%;`
+      : `height:${h1}%; top:50%;`;
+
+    const style2 = v2 >= 0
+      ? `height:${h2}%; bottom:50%;`
+      : `height:${h2}%; top:50%;`;
+
+    const delta = v2 - v1;
 
     const card = document.createElement("div");
     card.className = "finCard";
@@ -401,18 +451,26 @@ function renderFinance2x2(fin){
       </div>
 
       <div class="barsArea">
+        <!-- Year 1: 숫자(왼쪽) + 막대 -->
         <div class="vbarCol">
-          <div class="valTag">${fmt(m.vals?.[0] ?? 0)}</div>
-          <div class="vbarWrap">
-            <div class="vbar y1" style="height:${h1}%"></div>
+          <div class="barRow">
+            <div class="valSide">${fmt(v1)}</div>
+            <div class="vbarWrap" aria-label="${years[0]} ${m.title}">
+              <div class="baseline"></div>
+              <div class="vbar y1 ${cls1}" style="${style1}"></div>
+            </div>
           </div>
           <div class="yearTag">${years[0]}</div>
         </div>
 
+        <!-- Year 2: 막대 + 숫자(오른쪽) -->
         <div class="vbarCol">
-          <div class="valTag">${fmt(m.vals?.[1] ?? 0)}</div>
-          <div class="vbarWrap">
-            <div class="vbar y2" style="height:${h2}%"></div>
+          <div class="barRow">
+            <div class="vbarWrap" aria-label="${years[1]} ${m.title}">
+              <div class="baseline"></div>
+              <div class="vbar y2 ${cls2}" style="${style2}"></div>
+            </div>
+            <div class="valSide right">${fmt(v2)}</div>
           </div>
           <div class="yearTag">${years[1]}</div>
         </div>
@@ -421,7 +479,7 @@ function renderFinance2x2(fin){
       <div class="finFoot">
         ${years[0]} → ${years[1]} 변화:
         <span style="color:#0f172a; font-weight:900;">
-          ${(m.vals?.[1] ?? 0)-(m.vals?.[0] ?? 0) >= 0 ? "+" : ""}${fmt((m.vals?.[1] ?? 0)-(m.vals?.[0] ?? 0))}
+          ${delta >= 0 ? "+" : ""}${fmt(delta)}
         </span>
       </div>
     `;
@@ -629,7 +687,8 @@ async function loadFinanceFromWorker(corpCode){
   }
 
   // Worker는 '원' 단위로 줌. 화면은 '천원'으로 보기 좋게 변환.
-  const toThousandWon = (v) => (typeof v === "number" ? Math.round(v / 1000) : 0);
+  // (음수도 그대로 유지)
+  const toThousandWon = (v) => (typeof v === "number" && Number.isFinite(v) ? Math.round(v / 1000) : 0);
 
   const f = {
     years: finRes.years || [y1, y2],
