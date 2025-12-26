@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>OmniCare EIS · 거래처 추가</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/variable/pretendardvariable.css" />
+
+<style>
+  html,body{ font-family:"Pretendard Variable", system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+  .card{ border:1px solid #e5e7eb; border-radius:16px; background:#fff; box-shadow:0 8px 24px rgba(15,23,42,.06); }
+  .muted{ color:#64748b; }
+  .divider{ height:1px; background:#e5e7eb; }
+  .chip{ border:1px solid #e5e7eb; border-radius:999px; padding:.25rem .6rem; font-size:.8rem; color:#334155; background:#f8fafc; }
+  .btn2{ border:1px solid #e5e7eb; background:#fff; color:#0f172a; border-radius:12px; padding:.6rem .95rem; font-weight:900; }
+  .btnDark{ border:1px solid #0f172a; background:#0f172a; color:#fff; border-radius:12px; padding:.6rem .95rem; font-weight:900; }
+  .btnDark:disabled{ opacity:.55; cursor:not-allowed; }
+  .input{
+    border:1px solid #e5e7eb; border-radius:14px;
+    padding:.7rem .85rem; background:#fff; color:#0f172a;
+    outline:none;
+  }
+  .input:focus{ border-color:#94a3b8; box-shadow:0 0 0 3px rgba(148,163,184,.25); }
+  .select{
+    border:1px solid #e5e7eb; border-radius:14px;
+    padding:.7rem .85rem; background:#fff; color:#0f172a;
+  }
+  .help{
+    border:1px dashed #e5e7eb; border-radius:16px;
+    padding:12px 14px; background:#f8fafc; color:#334155;
+    font-size:.88rem;
+  }
+  .err{ color:#b91c1c; font-weight:800; font-size:.9rem; }
+  .ok{ color:#166534; font-weight:900; font-size:.95rem; }
+</style>
+</head>
+
+<body class="bg-slate-50">
+
+<header class="sticky top-0 z-20 bg-white/90 backdrop-blur border-b border-slate-200">
+  <div class="max-w-[960px] mx-auto px-2 py-3 flex items-center gap-3">
+    <a href="https://qkr3069-beep.github.io/EIS/" aria-label="메인으로 이동">
+      <img src="omnicare_logo.png" alt="옴니케어 로고" class="h-12 object-contain cursor-pointer" />
+    </a>
+    <div class="flex-1">
+      <div class="font-semibold text-slate-900">OmniCare Intelligence Hub</div>
+      <div class="text-sm muted">거래처 추가</div>
+    </div>
+
+    <button onclick="location.href='accounts_sales_all.html'" class="btn2">목록</button>
+    <button onclick="location.href='https://qkr3069-beep.github.io/EIS/'" class="btn2">메인</button>
+  </div>
+</header>
+
+<main class="max-w-[960px] mx-auto px-2 py-6 space-y-6">
+
+  <section class="card p-5">
+    <div class="flex items-start justify-between gap-3">
+      <div>
+        <div class="text-lg font-extrabold text-slate-900">거래처 추가</div>
+        <div class="muted text-sm">거래처명/계약형태는 필수 · 담당자 정보는 선택</div>
+      </div>
+      <span class="chip">ADD</span>
+    </div>
+
+    <div class="divider my-4"></div>
+
+    <div class="help">
+      ✅ <b>B열·C열은 건드리지 않습니다</b> (corp_code 영역)<br/>
+      - A열: 거래처명(필수)<br/>
+      - D열: 계약 형태(필수)<br/>
+      - E~G열: 담당자 정보(선택)
+    </div>
+
+    <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+      <div>
+        <div class="text-sm font-extrabold text-slate-900 mb-2">거래처명 <span class="err">*</span></div>
+        <input id="customerName" class="input w-full" placeholder="예) 천재교육" />
+      </div>
+
+      <div>
+        <div class="text-sm font-extrabold text-slate-900 mb-2">계약 형태 <span class="err">*</span></div>
+        <select id="contractType" class="select w-full">
+          <option value="">선택</option>
+          <option value="3자">3자</option>
+          <option value="withKMI">withKMI</option>
+          <option value="기타">기타</option>
+        </select>
+        <div class="muted text-xs mt-1">※ 시트 D열에 저장</div>
+      </div>
+    </div>
+
+    <div class="mt-5">
+      <div class="text-sm font-extrabold text-slate-900 mb-2">담당자 정보 (선택)</div>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <input id="managerName" class="input w-full" placeholder="담당자 이름(선택)" />
+        <input id="managerEmail" class="input w-full" placeholder="담당자 이메일(선택)" />
+        <input id="managerPhone" class="input w-full" placeholder="연락처(선택)" />
+      </div>
+      <div class="muted text-xs mt-2">※ 시트 E/F/G열에 저장 (비워두면 빈칸)</div>
+    </div>
+
+    <div class="mt-5 flex items-center gap-2 flex-wrap">
+      <button id="saveBtn" class="btnDark">저장하기</button>
+      <button id="resetBtn" class="btn2">초기화</button>
+      <div id="msg" class="ml-1"></div>
+    </div>
+  </section>
+
+  <footer class="text-center muted text-sm py-4">
+    저장 후 거래처 목록으로 이동합니다.
+  </footer>
+
+</main>
+
+<script>
+/**
+ * ✅ 브라우저(GitHub Pages)에서는 Apps Script /exec 직접 호출이 CORS로 막히는 경우가 많음
+ * → Cloudflare Worker 프록시로 호출
+ *
+ * 너의 Worker 도메인에 맞춰서 사용:
+ */
+const SCRIPT_WEBAPP_URL = "https://add-cutomer.qkr3069.workers.dev/gs/add_customer";
+
+const $ = (id)=>document.getElementById(id);
+const msgEl = $("msg");
+
+function setMsg(type, text){
+  msgEl.className = type === "ok" ? "ok" : "err";
+  msgEl.textContent = text || "";
+}
+function vTrim(id){ return String($(id).value || "").trim(); }
+
+function validate(){
+  const name = vTrim("customerName");
+  const contract = String($("contractType").value || "").trim();
+  if(!name) return { ok:false, reason:"거래처명을 입력해 주세요." };
+  if(!contract) return { ok:false, reason:"계약 형태를 선택해 주세요." };
+  return { ok:true };
+}
+
+function buildPayload(){
+  return {
+    customerName: vTrim("customerName"),
+    contractType: String($("contractType").value || "").trim(),
+    managerName: vTrim("managerName"),
+    managerEmail: vTrim("managerEmail"),
+    managerPhone: vTrim("managerPhone")
+  };
+}
+
+async function save(){
+  setMsg("", "");
+  const v = validate();
+  if(!v.ok){ setMsg("err", "❗ " + v.reason); return; }
+
+  const btn = $("saveBtn");
+  btn.disabled = true;
+  const oldText = btn.textContent;
+  btn.textContent = "저장 중…";
+
+  try{
+    const res = await fetch(SCRIPT_WEBAPP_URL, {
+      method: "POST",
+      headers: { "Content-Type":"text/plain;charset=utf-8" },
+      body: JSON.stringify(buildPayload())
+    });
+
+    const text = await res.text();
+    let data = null;
+    try{ data = JSON.parse(text); }catch(_){}
+
+    if(!res.ok) throw new Error("HTTP " + res.status + " " + text);
+    if(!data || data.ok !== true) throw new Error((data && (data.error || data.message)) || ("응답 파싱 실패: " + text));
+
+    setMsg("ok", "✅ 저장 완료! 목록으로 이동합니다…");
+    setTimeout(()=> location.href="accounts_sales_all.html", 600);
+
+  }catch(err){
+    console.error(err);
+    setMsg("err", "저장 실패: " + (err?.message || err));
+  }finally{
+    btn.disabled = false;
+    btn.textContent = oldText;
+  }
+}
+
+function resetForm(){
+  $("customerName").value = "";
+  $("contractType").value = "";
+  $("managerName").value = "";
+  $("managerEmail").value = "";
+  $("managerPhone").value = "";
+  setMsg("", "");
+}
+
+$("saveBtn").addEventListener("click", save);
+$("resetBtn").addEventListener("click", resetForm);
+</script>
+
+</body>
+</html>
