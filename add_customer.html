@@ -32,8 +32,10 @@
     padding:12px 14px; background:#f8fafc; color:#334155;
     font-size:.88rem;
   }
-  .err{ color:#b91c1c; font-weight:800; font-size:.9rem; }
+  .err{ color:#b91c1c; font-weight:900; font-size:.92rem; }
   .ok{ color:#166534; font-weight:900; font-size:.95rem; }
+  .warn{ color:#92400e; font-weight:900; font-size:.92rem; }
+  .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
 </style>
 </head>
 
@@ -71,13 +73,16 @@
       ✅ <b>B열·C열은 건드리지 않습니다</b> (corp_code 영역)<br/>
       - A열: 거래처명(필수)<br/>
       - D열: 계약 형태(필수)<br/>
-      - E~G열: 담당자 정보(선택)
+      - E~G열: 담당자 정보(선택)<br/>
+      <div class="mt-2 muted text-xs">
+        * 저장은 <b>Worker 프록시</b>를 통해 Apps Script로 전달됩니다.
+      </div>
     </div>
 
     <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
       <div>
         <div class="text-sm font-extrabold text-slate-900 mb-2">거래처명 <span class="err">*</span></div>
-        <input id="customerName" class="input w-full" placeholder="예) 천재교육" />
+        <input id="customerName" class="input w-full" placeholder="예) 대구메디컬센터" autocomplete="off" />
       </div>
 
       <div>
@@ -95,9 +100,9 @@
     <div class="mt-5">
       <div class="text-sm font-extrabold text-slate-900 mb-2">담당자 정보 (선택)</div>
       <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <input id="managerName" class="input w-full" placeholder="담당자 이름(선택)" />
-        <input id="managerEmail" class="input w-full" placeholder="담당자 이메일(선택)" />
-        <input id="managerPhone" class="input w-full" placeholder="연락처(선택)" />
+        <input id="managerName" class="input w-full" placeholder="담당자 이름(선택)" autocomplete="off" />
+        <input id="managerEmail" class="input w-full" placeholder="담당자 이메일(선택)" autocomplete="off" />
+        <input id="managerPhone" class="input w-full" placeholder="연락처(선택)" autocomplete="off" />
       </div>
       <div class="muted text-xs mt-2">※ 시트 E/F/G열에 저장 (비워두면 빈칸)</div>
     </div>
@@ -105,31 +110,46 @@
     <div class="mt-5 flex items-center gap-2 flex-wrap">
       <button id="saveBtn" class="btnDark">저장하기</button>
       <button id="resetBtn" class="btn2">초기화</button>
+      <button id="debugBtn" class="btn2">디버그 보기</button>
       <div id="msg" class="ml-1"></div>
+    </div>
+
+    <div id="debugBox" class="mt-4 hidden">
+      <div class="divider my-3"></div>
+      <div class="text-sm font-extrabold text-slate-900">디버그</div>
+      <div class="muted text-xs mt-1">응답이 JSON이 아니어도 여기서 확인 가능합니다.</div>
+      <pre id="debugPre" class="mt-3 p-3 rounded-2xl border border-slate-200 bg-slate-50 text-xs overflow-auto mono" style="max-height:260px;"></pre>
     </div>
   </section>
 
   <footer class="text-center muted text-sm py-4">
-    저장 후 거래처 목록으로 이동합니다.
+    저장 후에는 거래처 목록 페이지로 이동합니다.
   </footer>
 
 </main>
 
 <script>
-/**
- * ✅ 브라우저(GitHub Pages)에서는 Apps Script /exec 직접 호출이 CORS로 막히는 경우가 많음
- * → Cloudflare Worker 프록시로 호출
- *
- * 너의 Worker 도메인에 맞춰서 사용:
+/** =========================
+ * ✅ 여기가 핵심: Worker 프록시 URL
+ * =========================
+ * - Worker: https://add-cutomer.qkr3069.workers.dev
+ * - Route:  /gs/add_customer
  */
-const SCRIPT_WEBAPP_URL = "https://add-cutomer.qkr3069.workers.dev/gs/add_customer";
+const SCRIPT_PROXY_URL = "https://add-cutomer.qkr3069.workers.dev/gs/add_customer";
 
+/** DOM Helpers */
 const $ = (id)=>document.getElementById(id);
 const msgEl = $("msg");
+const debugBox = $("debugBox");
+const debugPre = $("debugPre");
 
 function setMsg(type, text){
-  msgEl.className = type === "ok" ? "ok" : "err";
+  msgEl.className = type === "ok" ? "ok" : (type === "warn" ? "warn" : "err");
   msgEl.textContent = text || "";
+}
+function setDebug(objOrText){
+  const t = (typeof objOrText === "string") ? objOrText : JSON.stringify(objOrText, null, 2);
+  debugPre.textContent = t;
 }
 function vTrim(id){ return String($(id).value || "").trim(); }
 
@@ -141,63 +161,124 @@ function validate(){
   return { ok:true };
 }
 
+/**
+ * ✅ 서버(앱스크립트)로 보낼 데이터
+ * - B/C는 절대 건드리지 않게: 서버는 A,D,E,F,G만 append 해야 함
+ */
 function buildPayload(){
   return {
-    customerName: vTrim("customerName"),
-    contractType: String($("contractType").value || "").trim(),
-    managerName: vTrim("managerName"),
-    managerEmail: vTrim("managerEmail"),
-    managerPhone: vTrim("managerPhone")
+    action: "appendCustomer",
+    sheetName: "omnicare_customer",
+    customerName: vTrim("customerName"), // A
+    contractType: String($("contractType").value || "").trim(), // D
+    managerName: vTrim("managerName"),   // E (optional)
+    managerEmail: vTrim("managerEmail"), // F (optional)
+    managerPhone: vTrim("managerPhone"), // G (optional)
+    clientTs: new Date().toISOString()
   };
 }
 
+/** 안전 JSON 파서: JSON 아니면 null */
+function safeJsonParse(text){
+  try { return JSON.parse(text); } catch(_) { return null; }
+}
+
+/** 저장 */
 async function save(){
-  setMsg("", "");
+  setMsg("warn", "");
+  setDebug("");
+
   const v = validate();
-  if(!v.ok){ setMsg("err", "❗ " + v.reason); return; }
+  if(!v.ok){
+    setMsg("err", "❗ " + v.reason);
+    return;
+  }
 
   const btn = $("saveBtn");
   btn.disabled = true;
   const oldText = btn.textContent;
   btn.textContent = "저장 중…";
 
+  const payload = buildPayload();
+
   try{
-    const res = await fetch(SCRIPT_WEBAPP_URL, {
+    const res = await fetch(SCRIPT_PROXY_URL, {
       method: "POST",
-      headers: { "Content-Type":"text/plain;charset=utf-8" },
-      body: JSON.stringify(buildPayload())
+      // ✅ Apps Script doPost에서 e.postData.contents로 받기 좋게
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(payload),
+      redirect: "follow"
     });
 
     const text = await res.text();
-    let data = null;
-    try{ data = JSON.parse(text); }catch(_){}
+    const data = safeJsonParse(text);
 
-    if(!res.ok) throw new Error("HTTP " + res.status + " " + text);
-    if(!data || data.ok !== true) throw new Error((data && (data.error || data.message)) || ("응답 파싱 실패: " + text));
+    // 디버그 기록(항상)
+    setDebug({
+      requestTo: SCRIPT_PROXY_URL,
+      payload,
+      httpStatus: res.status,
+      responseContentType: res.headers.get("content-type"),
+      responseTextPreview: text.slice(0, 1200)
+    });
 
-    setMsg("ok", "✅ 저장 완료! 목록으로 이동합니다…");
-    setTimeout(()=> location.href="accounts_sales_all.html", 600);
+    if(!res.ok){
+      // HTML 에러페이지여도 여기서 확인 가능
+      throw new Error("HTTP " + res.status);
+    }
+
+    // ✅ 기대 포맷: { ok:true, ... }
+    if(!data){
+      throw new Error("응답이 JSON이 아닙니다. (GAS가 HTML/텍스트를 반환)");
+    }
+    if(data.ok !== true){
+      throw new Error(data.message || data.error || "저장 실패(서버 응답 ok=false)");
+    }
+
+    setMsg("ok", "✅ 저장 완료! 거래처 목록으로 이동합니다…");
+    setTimeout(()=> location.href="accounts_sales_all.html", 700);
 
   }catch(err){
     console.error(err);
     setMsg("err", "저장 실패: " + (err?.message || err));
+    // 디버그 박스 자동 오픈
+    debugBox.classList.remove("hidden");
   }finally{
     btn.disabled = false;
     btn.textContent = oldText;
   }
 }
 
+/** 초기화 */
 function resetForm(){
   $("customerName").value = "";
   $("contractType").value = "";
   $("managerName").value = "";
   $("managerEmail").value = "";
   $("managerPhone").value = "";
-  setMsg("", "");
+  setMsg("warn", "");
+  setDebug("");
 }
 
+/** 디버그 토글 */
+function toggleDebug(){
+  debugBox.classList.toggle("hidden");
+}
+
+/** 이벤트 */
 $("saveBtn").addEventListener("click", save);
 $("resetBtn").addEventListener("click", resetForm);
+$("debugBtn").addEventListener("click", toggleDebug);
+
+// Enter 키 저장(거래처명/담당자 입력칸에서)
+["customerName","managerName","managerEmail","managerPhone"].forEach(id=>{
+  $(id).addEventListener("keydown", (e)=>{
+    if(e.key === "Enter"){
+      e.preventDefault();
+      save();
+    }
+  });
+});
 </script>
 
 </body>
