@@ -36,6 +36,17 @@
     color:#0f172a;
   }
   input[type="date"]{ color:#0f172a; }
+
+  .pill{
+    display:inline-flex; align-items:center; gap:6px;
+    border:1px solid #e5e7eb;
+    border-radius:999px;
+    padding:4px 10px;
+    font-size:.78rem;
+    font-weight:900;
+    background:#f8fafc;
+    white-space:nowrap;
+  }
 </style>
 </head>
 
@@ -85,12 +96,20 @@
           <option value="20">20</option>
           <option value="40">40</option>
           <option value="60">60</option>
+          <option value="100">100</option>
         </select>
       </div>
 
       <div class="lg:col-span-2 flex items-end gap-2">
-        <button class="btn2 w-full" onclick="loadAccountNewsAll()">조회</button>
+        <button class="btn2 w-full" onclick="loadAccountNewsAll(false)">조회</button>
+        <button class="btn2 w-full" onclick="loadAccountNewsAll(true)" title="시트 캐시 무시하고 새로고침">강제</button>
       </div>
+    </div>
+
+    <div class="mt-3 flex flex-wrap gap-2 items-center">
+      <span class="pill" id="sheetPill">Sheet: -</span>
+      <span class="pill" id="kwPill">키워드: -</span>
+      <span class="pill" id="dupPill">중복 제거: -</span>
     </div>
 
     <div class="mt-3 muted small" id="hint">-</div>
@@ -106,45 +125,25 @@
 </main>
 
 <script>
+/** =========================
+ *  ✅ 설정
+ * ========================= */
+const API_BASE   = "https://eis.qkr3069.workers.dev"; // ✅ /sheet/names, /rss 사용
+const SHEET_ID   = "1kKsPK5Kxplgoutz4pkS8QqXTdC7Ai1jeaeaOJsZVgnI";
+const SHEET_NAME = "omnicare_customer";
+
 /** 샘플 로그인 */
 const CURRENT_USER = { id:"u1", name:"김영업", team:"A팀", role:"sales" };
 const NOW_YM = "2025-12";
 
-/** mypage_sales와 동일한 샘플 거래처 생성(키워드용) */
-function seededRand(i){ const x = Math.sin(i * 999) * 10000; return x - Math.floor(x); }
-function toYMD(d){ const y=d.getFullYear(); const m=String(d.getMonth()+1).padStart(2,"0"); const dd=String(d.getDate()).padStart(2,"0"); return `${y}-${m}-${dd}`; }
-function addDays(base, days){ const d=new Date(base); d.setDate(d.getDate()+days); return d; }
-
-function makeSampleAccounts(n=100){
-  const owners = ["김영업","박영업","이영업","최영업"];
-  const prefixes = ["메디컬","종합","헬스","케어","바이오","메디","건강","연구","검진","파트너"];
-  const cities = ["대구","수성","달서","동구","서구","중구","수원","부산","광주","제주","여의도","강남","광화문"];
-
-  const baseDate = new Date("2025-12-15T00:00:00");
-  const out = [];
-  for(let i=1;i<=n;i++){
-    const r1 = seededRand(i);
-    const r2 = seededRand(i+100);
-    const r3 = seededRand(i+200);
-
-    const owner = owners[Math.floor(r1*owners.length)];
-    const name = `${cities[Math.floor(r2*cities.length)]}${prefixes[Math.floor(r3*prefixes.length)]}센터 ${String(i).padStart(3,"0")}`;
-
-    const ytdRevenue = Math.round( (2000 + r1*48000) / 10 ) * 10;
-    const paidRate = 0.20 + r2*0.70;
-    const paidToDate = Math.round(ytdRevenue * paidRate / 10) * 10;
-
-    out.push({ name, owner, ytdRevenue, paidToDate });
-  }
-  return out;
-}
-const ACCOUNTS = makeSampleAccounts(100);
-function scopedAccounts(){ return ACCOUNTS.filter(a => a.owner === CURRENT_USER.name); }
-function arOf(a){ return Math.max(0, (a.ytdRevenue||0) - (a.paidToDate||0)); }
-
-async function fetchRSS2JSON(rssUrl){
-  const r = await fetch("https://api.rss2json.com/v1/api.json?rss_url=" + encodeURIComponent(rssUrl));
-  return r.json();
+/** =========================
+ *  유틸
+ * ========================= */
+function toYMD(d){
+  const y=d.getFullYear();
+  const m=String(d.getMonth()+1).padStart(2,"0");
+  const dd=String(d.getDate()).padStart(2,"0");
+  return `${y}-${m}-${dd}`;
 }
 function stripHtml(s){ return (s || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim(); }
 function ymdFromStr(dateStr){
@@ -152,15 +151,129 @@ function ymdFromStr(dateStr){
   if (Number.isNaN(d.getTime())) return "";
   return toYMD(d);
 }
+function normalizeCompanyName(s){
+  let x = (s || "").toString().trim();
+  if (!x) return "";
+  x = x.replace(/\u00A0/g, " ");
+  x = x.replace(/\s+/g, " ").trim();
+  if (x.length > 30) x = x.slice(0,30);
+  return x;
+}
 
-function buildAccountNewsRSS(){
-  const base = scopedAccounts().slice().sort((a,b)=> arOf(b) - arOf(a));
-  const top = base.slice(0,10).map(a => a.name.replace(/\s*센터\s*\d+\s*$/,"").trim());
-  const terms = top.length ? top : ["검진센터","건강검진"];
+/** =========================
+ *  ✅ 시트(A2:A)에서 회사명 가져오기 (Worker 프록시)
+ *  - GET /sheet/names?sheet_id=...&sheet_name=...&range=A2:A
+ * ========================= */
+const SHEET_CACHE_KEY = "omni.sheet.names.cache.v1";
+const SHEET_CACHE_TTL_MS = 1000 * 60 * 60 * 6;
+
+function saveCachedSheetNames(names){
+  try{ localStorage.setItem(SHEET_CACHE_KEY, JSON.stringify({ t: Date.now(), names })); }catch(_e){}
+}
+function loadCachedSheetNames(){
+  try{
+    const raw = localStorage.getItem(SHEET_CACHE_KEY);
+    if (!raw) return null;
+    const obj = JSON.parse(raw);
+    if (!obj?.t || !Array.isArray(obj?.names)) return null;
+    if (Date.now() - obj.t > SHEET_CACHE_TTL_MS) return null;
+    return obj.names;
+  }catch(_e){
+    return null;
+  }
+}
+async function fetchCompanyNamesFromSheet(force=false){
+  if (force){
+    try{ localStorage.removeItem(SHEET_CACHE_KEY); }catch(_e){}
+  }
+  if (!force){
+    const cached = loadCachedSheetNames();
+    if (cached && cached.length) return cached;
+  }
+
+  const proxyUrl =
+    `${API_BASE}/sheet/names?sheet_id=${encodeURIComponent(SHEET_ID)}` +
+    `&sheet_name=${encodeURIComponent(SHEET_NAME)}` +
+    `&range=${encodeURIComponent("A2:A")}` +
+    `&_=${Date.now()}`;
+
+  const r = await fetch(proxyUrl, { cache:"no-store" });
+  const data = await r.json().catch(()=> ({}));
+  if (!r.ok || !data?.ok) throw new Error(data?.error || `Sheet proxy failed: ${r.status}`);
+
+  const set = new Set();
+  const cleaned = [];
+  for (const v of (data.names || [])){
+    const nn = normalizeCompanyName(v);
+    if (!nn) continue;
+    if (set.has(nn)) continue;
+    set.add(nn);
+    cleaned.push(nn);
+  }
+
+  saveCachedSheetNames(cleaned);
+  return cleaned;
+}
+
+/** =========================
+ *  ✅ RSS 프록시로 XML 가져오기 + 파싱
+ * ========================= */
+async function fetchRssXmlViaWorker(rssUrl){
+  const u = `${API_BASE}/rss?url=${encodeURIComponent(rssUrl)}&_=${Date.now()}`;
+  const r = await fetch(u, { cache:"no-store" });
+  if (!r.ok) throw new Error(`RSS proxy failed: ${r.status}`);
+  return await r.text();
+}
+function parseRssItemsFromXml(xmlText){
+  const doc = new DOMParser().parseFromString(xmlText, "text/xml");
+  const items = Array.from(doc.querySelectorAll("item")).map(it => ({
+    title: (it.querySelector("title")?.textContent || "").trim(),
+    link: (it.querySelector("link")?.textContent || "").trim(),
+    pubDate: (it.querySelector("pubDate")?.textContent || "").trim(),
+    description: (it.querySelector("description")?.textContent || "").trim(),
+    source: (it.querySelector("source")?.textContent || "").trim(),
+  })).filter(x => x.title && x.link);
+  return items;
+}
+
+/** =========================
+ *  ✅ Google News RSS 생성
+ * ========================= */
+function buildGoogleNewsRssByTerms(terms){
   const q = terms.map(t => `"${t}"`).join(" OR ");
   return `https://news.google.com/rss/search?q=${encodeURIComponent(q)}&hl=ko&gl=KR&ceid=KR:ko`;
 }
 
+/** =========================
+ *  ✅ 중복 제거 로직
+ *  - link 기준(1차) + title 정규화(2차)로 중복 제거
+ * ========================= */
+function normTitleKey(s){
+  return (s||"")
+    .toLowerCase()
+    .replace(/\s+/g," ")
+    .replace(/[^\p{L}\p{N}\s]/gu,"") // 문자/숫자/공백만
+    .trim();
+}
+function dedupeItems(items){
+  const seenLink = new Set();
+  const seenTitle = new Set();
+  const out = [];
+  for (const it of items){
+    const link = (it.link || "").trim();
+    const tk = normTitleKey(it.title);
+    if (link && seenLink.has(link)) continue;
+    if (tk && seenTitle.has(tk)) continue;
+    if (link) seenLink.add(link);
+    if (tk) seenTitle.add(tk);
+    out.push(it);
+  }
+  return out;
+}
+
+/** =========================
+ *  렌더
+ * ========================= */
 function render(items){
   const date = document.getElementById("datePicker").value;
   const q = (document.getElementById("q").value || "").trim().toLowerCase();
@@ -206,28 +319,57 @@ function render(items){
   });
 
   hint.textContent =
-    `조회일 ${date} 기준 · 표시 ${list.length}건 (내 담당 거래처 키워드 기반, 날짜 결과 부족 시 최신 기사로 대체될 수 있음)`;
+    `조회일 ${date} 기준 · 표시 ${list.length}건 (시트 키워드 기반 · 해당 날짜 기사가 부족하면 최신 기사로 대체될 수 있음)`;
 }
 
 let CACHE_ITEMS = [];
+let LAST_META = { keywords:0, raw:0, deduped:0 };
 
-async function loadAccountNewsAll(){
+/** =========================
+ *  메인 로더
+ * ========================= */
+async function loadAccountNewsAll(force=false){
   const wrap = document.getElementById("list");
   const hint = document.getElementById("hint");
   wrap.innerHTML = `<div class="muted">불러오는 중…</div>`;
   hint.textContent = "";
 
+  document.getElementById("sheetPill").textContent = `Sheet: ${SHEET_NAME} (A2:A)`;
+  document.getElementById("kwPill").textContent = `키워드: -`;
+  document.getElementById("dupPill").textContent = `중복 제거: -`;
+
   try{
-    const rss = buildAccountNewsRSS();
-    const data = await fetchRSS2JSON(rss);
-    CACHE_ITEMS = (data.items || []);
+    // 1) 시트 키워드
+    const names = await fetchCompanyNamesFromSheet(force);
+
+    // Google News RSS는 너무 길면 결과가 이상해질 수 있어 상한(안전)
+    const terms = (names && names.length ? names : []).slice(0, 10);
+
+    document.getElementById("kwPill").textContent = `키워드: ${terms.length}개`;
+
+    // 2) RSS -> XML -> items
+    const rss = buildGoogleNewsRssByTerms(terms);
+    const xml = await fetchRssXmlViaWorker(rss);
+    const rawItems = parseRssItemsFromXml(xml);
+
+    // 3) 중복 제거
+    const deduped = dedupeItems(rawItems);
+
+    CACHE_ITEMS = deduped;
+
+    LAST_META = { keywords: terms.length, raw: rawItems.length, deduped: deduped.length };
+    document.getElementById("dupPill").textContent = `중복 제거: ${rawItems.length} → ${deduped.length}`;
+
     render(CACHE_ITEMS);
   }catch(e){
-    wrap.innerHTML = `<div class="muted">불러오기에 실패했습니다. (네트워크/쿼터 이슈 가능)</div>`;
-    hint.textContent = "";
+    wrap.innerHTML = `<div class="muted">불러오기에 실패했습니다.</div>`;
+    hint.textContent = `오류: ${String(e?.message || e)}`;
   }
 }
 
+/** =========================
+ *  init
+ * ========================= */
 function init(){
   document.getElementById("userLine").textContent =
     `${CURRENT_USER.name} · ${CURRENT_USER.team} · ${NOW_YM} 기준`;
@@ -238,7 +380,7 @@ function init(){
   document.getElementById("limitSel").addEventListener("change", ()=> render(CACHE_ITEMS));
   document.getElementById("datePicker").addEventListener("change", ()=> render(CACHE_ITEMS));
 
-  loadAccountNewsAll();
+  loadAccountNewsAll(false);
 }
 
 init();
