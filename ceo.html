@@ -252,9 +252,10 @@ html,body{ font-family:"Pretendard Variable", system-ui, -apple-system, Segoe UI
         <div class="divider my-4"></div>
 
         <div id="pickedNewsWrap" class="grid grid-cols-1 gap-3"></div>
+        <div class="mt-2 muted text-xs font-semibold" id="pickedNewsMeta"></div>
 
         <div class="mt-3 muted text-xs font-semibold">
-          * 연결 방식: Google Apps Script 또는 별도 API에서 “선정 3건” JSON을 가져오는 형태를 가정합니다.
+          * 연결 방식: news_ceo 저장 API(JSON)에서 “선정 3건”을 가져옵니다.
         </div>
       </div>
 
@@ -411,11 +412,21 @@ function toYMD(dateStr){
   const dd = String(d.getDate()).padStart(2,"0");
   return `${y}-${m}-${dd}`;
 }
+function escapeHtml(s){
+  return String(s||"")
+    .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;").replaceAll("'","&#039;");
+}
+function todayYMD(){
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,"0");
+  const dd = String(d.getDate()).padStart(2,"0");
+  return `${y}-${m}-${dd}`;
+}
 
 /* =========================================================
    (A) 국보급 이야기: Main과 동일 시트(API) 사용
-   - GET: { quote, body, sign, updatedAt }
-   - POST: 저장 (quote/body/sign) -> 같은 시트에 반영
 ========================================================= */
 const CEO_SHEET_API = "https://script.google.com/macros/s/AKfycbwViwA1iYn2ra-v3SZ4AGO6eVwD3dQqTp9vF97dQk8lZoGUkd02QjCvcTvzsAYt2ukW/exec";
 
@@ -442,7 +453,7 @@ function renderPreview(data){
   }
 
   document.getElementById("prevQuote").textContent = quote;
-  document.getElementById("prevBody").innerHTML = bodyLines.map(p=>`<p class="mt-2">${p}</p>`).join("");
+  document.getElementById("prevBody").innerHTML = bodyLines.map(p=>`<p class="mt-2">${escapeHtml(p)}</p>`).join("");
   document.getElementById("prevSign").textContent = sign;
 
   const upd = document.getElementById("prevUpdatedAt");
@@ -463,7 +474,6 @@ async function loadCEOMessage(){
     const data = await res.json();
     if (data && data.error) throw new Error(data.error);
 
-    // 입력칸 채우기
     document.getElementById("inpQuote").value = (data.quote||"").toString();
     if (Array.isArray(data.body)) {
       document.getElementById("inpBody").value = data.body.join("\n");
@@ -499,7 +509,7 @@ async function saveCEOMessage(){
       + "&quote=" + encodeURIComponent(quote)
       + "&body="  + encodeURIComponent(body)
       + "&sign="  + encodeURIComponent(sign)
-      + "&t=" + Date.now(); // 캐시 방지
+      + "&t=" + Date.now();
 
     const res = await fetch(url, { cache:"no-store" });
     const text = await res.text();
@@ -515,7 +525,6 @@ async function saveCEOMessage(){
     status.textContent = "저장 완료";
     toast("저장 완료! Main 페이지에 반영됩니다.");
 
-    // 저장 후 최신 다시 불러오기
     await loadCEOMessage();
     setTimeout(()=>{ status.style.display="none"; }, 2200);
 
@@ -541,13 +550,11 @@ function livePreview(){
 }
 
 /* =========================================================
-   (B) 국보급 소식 3건(Director Picks)
-   - GET: { items:[{title, link, date, summary}] }
+   (B) 국보급 소식 3건: ✅ news_ceo 저장 API에서 “현재 노출” 불러오기
+   - GET: .../exec?date=YYYY-MM-DD  -> { ok:true, items:[{title, link, date, summary}] , debug? }
 ========================================================= */
-// ✅ 필요 시 실제 엔드포인트로 교체
-const DIRECTOR_PICK_API = "https://script.google.com/macros/s/REPLACE_WITH_YOUR_DIRECTOR_PICK_API/exec";
+const EXEC_NEWS_API = "https://script.google.com/macros/s/AKfycbwgDbjAC90L_0M_muN31QM1n-UbBCG5wXnvM7t0EQh3aGwCEbQd_5W05gSl7OuQ9Ds/exec";
 
-// 샘플(연동 전)
 const DIRECTOR_PICK_FALLBACK = {
   items: [
     { title:"(샘플) 정신건강 검진 항목 확대… 기업 검진 트렌드 변화", link:"#", date:"2025-12-29", summary:"기업 검진에서 정신건강 평가 항목이 확대되는 움직임…" },
@@ -556,44 +563,69 @@ const DIRECTOR_PICK_FALLBACK = {
   ]
 };
 
-function renderPickedNews(data){
+function renderPickedNews(data, metaText){
   const wrap = document.getElementById("pickedNewsWrap");
+  const meta = document.getElementById("pickedNewsMeta");
   wrap.innerHTML = "";
+
+  if (meta) meta.textContent = metaText || "";
+
   const items = (data && Array.isArray(data.items)) ? data.items : DIRECTOR_PICK_FALLBACK.items;
 
+  if (!items || items.length === 0){
+    wrap.innerHTML = `<div class="text-slate-500 text-sm">현재 노출 기사가 없습니다. (news_ceo에서 3개 선택 후 저장해 주세요)</div>`;
+    return;
+  }
+
   items.slice(0,3).forEach(it=>{
+    const title = escapeHtml(it.title || "(제목 없음)");
+    const link = it.link || it.url || "#";
+    const date = escapeHtml(it.date || "");
+    const summary = escapeHtml(it.summary || it.desc || "");
+
     const box = document.createElement("div");
     box.className = "newsItem";
     box.innerHTML = `
-      <a class="newsLink newsTitle" href="${it.link}" target="_blank" rel="noopener">${it.title}</a>
-      <div class="newsMeta">${it.date || "-"} · ${(it.summary||"").toString()}</div>
+      <a class="newsLink newsTitle" href="${link}" target="_blank" rel="noopener">${title}</a>
+      <div class="newsMeta">${date ? `${date} · ` : ""}${summary}</div>
     `;
     wrap.appendChild(box);
   });
 }
 
 async function loadDirectorPicks(){
+  const reqDate = todayYMD();
+
   try{
-    if (DIRECTOR_PICK_API.includes("REPLACE_WITH_YOUR_DIRECTOR_PICK_API")){
-      renderPickedNews(DIRECTOR_PICK_FALLBACK);
-      return;
-    }
-    const url = DIRECTOR_PICK_API + (DIRECTOR_PICK_API.includes("?") ? "&" : "?") + "t=" + Date.now();
+    renderPickedNews({ items: [] }, "불러오는 중…");
+
+    const url = EXEC_NEWS_API
+      + (EXEC_NEWS_API.includes("?") ? "&" : "?")
+      + "date=" + encodeURIComponent(reqDate)
+      + "&t=" + Date.now();
+
     const res = await fetch(url, { cache:"no-store" });
     if(!res.ok) throw new Error("HTTP " + res.status);
     const data = await res.json();
     if (data && data.error) throw new Error(data.error);
-    renderPickedNews(data);
+
+    const items = data && Array.isArray(data.items) ? data.items : [];
+
+    const dbg = data && data.debug ? data.debug : null;
+    const metaText = dbg
+      ? `불러온 날짜: ${dbg.requestedDate || reqDate} · 사용 행 날짜: ${dbg.usedRowDate || "-"}`
+      : `불러온 날짜: ${reqDate}`;
+
+    renderPickedNews({ items }, metaText);
+
   }catch(e){
     console.warn("[PICK] load failed:", e);
-    renderPickedNews(DIRECTOR_PICK_FALLBACK);
+    renderPickedNews(DIRECTOR_PICK_FALLBACK, "불러오기 실패: 샘플 표시(네트워크/권한 확인)");
   }
 }
 
 /* =========================================================
-   (C) 본부/지사별 매출
-   - Main 페이지의 org list 그대로 사용 (omniSalesByRegionList)
-   - 선택 시: 조직 상세(직원별 매출/기여도) 표시
+   (C) 본부/지사별 매출 (샘플)
 ========================================================= */
 const SECTION1_SAMPLE = {
   "section1": {
@@ -609,8 +641,6 @@ const SECTION1_SAMPLE = {
   }
 };
 
-// ✅ 조직 선택 시 보여줄 “직원별 매출” 샘플
-// 실제로는 API/시트에서 조직명 기준으로 가져오면 됩니다.
 const ORG_DETAIL_SAMPLE = {
   "1본부": [
     { name:"김OO", sales: 612300, note:"핵심 거래처" },
@@ -645,7 +675,6 @@ const ORG_DETAIL_SAMPLE = {
 };
 
 async function fetchSection1(){
-  // TODO: 실제 API로 교체 가능
   return SECTION1_SAMPLE.section1;
 }
 
@@ -667,7 +696,6 @@ function renderOverlayBarChart_EqualCols(data, wrapId){
   const maxGoal = Math.max(...data.map(d=>d.goal||0), 1);
 
   data.forEach(d=>{
-    const goalH = (d.goal/maxGoal)*100;
     const actualH = (d.actual/maxGoal)*100;
 
     const col = document.createElement("div");
@@ -675,11 +703,10 @@ function renderOverlayBarChart_EqualCols(data, wrapId){
     col.innerHTML = `
       <div class="top-num">${(d.goal||0).toLocaleString()}</div>
       <div class="bar-area">
-        <!-- ✅ Main과 동일: goal 배경(하늘색) 제거, actual만 표시 -->
         <div class="bar-actual omni-actual" style="height:${actualH}%"></div>
       </div>
       <div class="bottom-num">${(d.actual||0).toLocaleString()}</div>
-      <div class="bar-label" title="${(d.name||"-")}">${d.name||"-"}</div>
+      <div class="bar-label" title="${escapeHtml(d.name||"-")}">${escapeHtml(d.name||"-")}</div>
     `;
     wrap.appendChild(col);
   });
@@ -720,16 +747,16 @@ function renderOrgDetail(orgName, totalThousand){
   rows
     .slice()
     .sort((a,b)=>(Number(b.sales)||0)-(Number(a.sales)||0))
-    .forEach((r, idx)=>{
+    .forEach((r)=>{
       const sales = Number(r.sales)||0; // 천원 단위(샘플)
       const pct = (sales/sum)*100;
 
       const tr = document.createElement("tr");
       tr.innerHTML = `
-        <td class="font-extrabold text-slate-900">${r.name}</td>
+        <td class="font-extrabold text-slate-900">${escapeHtml(r.name)}</td>
         <td class="right mono font-extrabold text-slate-900">${sales.toLocaleString()}</td>
         <td class="right mono font-extrabold text-slate-900">${pct.toFixed(1)}%</td>
-        <td class="muted small">${r.note || ""}</td>
+        <td class="muted small">${escapeHtml(r.note || "")}</td>
       `;
       tbody.appendChild(tr);
     });
@@ -745,8 +772,8 @@ document.getElementById("btnSaveMsg").addEventListener("click", saveCEOMessage);
   document.getElementById(id).addEventListener("input", livePreview);
 });
 
-document.getElementById("btnReloadPick").addEventListener("click", ()=>{
-  loadDirectorPicks();
+document.getElementById("btnReloadPick").addEventListener("click", async ()=>{
+  await loadDirectorPicks();
   toast("국보급 소식 새로고침");
 });
 
@@ -760,30 +787,23 @@ document.getElementById("selOrg").addEventListener("change", (e)=>{
    초기 로드
 ========================================================= */
 (async function init(){
-  // 1) 국보급 이야기 불러오기 + 미리보기
   await loadCEOMessage();
-
-  // 2) 국보급 소식 3건 로드
   await loadDirectorPicks();
 
-  // 3) 본부/지사별 매출 (Main과 동일 org list)
   const s1 = await fetchSection1();
   const list = s1.omniSalesByRegionList || [];
   const bars = buildOmniByOrgBars(list);
   renderOverlayBarChart_EqualCols(bars, "orgTotalChart");
 
-  // select 구성 + total map 구성
   const names = list.map(x=>x.name);
   fillOrgSelect(names);
 
-  // 조직별 총합(천원) 맵 생성 (선택 상세용)
   window.__orgTotals = {};
   list.forEach(r=>{
     const total = toThousandWon(r.otherSalesPrice) + toThousandWon(r.withkmiSalesPrice) + toThousandWon(r.etcSalesPrice);
     window.__orgTotals[r.name] = total;
   });
 
-  // 기본 선택 없음
   renderOrgDetail("", 0);
 })();
 </script>
