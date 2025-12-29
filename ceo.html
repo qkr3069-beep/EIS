@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>OmniCare EIS · CEO</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/variable/pretendardvariable.css" />
+
+<style>
+html,body{ font-family:"Pretendard Variable", system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+.card{
+  border:1px solid #e5e7eb; border-radius:16px; background:#fff;
+  box-shadow:0 8px 24px rgba(15,23,42,.06);
+}
+.muted{ color:#64748b; }
+.divider{ height:1px; background:#e5e7eb; }
+.chip{ border:1px solid #e5e7eb; border-radius:999px; padding:.25rem .6rem; font-size:.8rem; color:#334155; background:#f8fafc; }
+.btn2{ border:1px solid #e5e7eb; background:#fff; color:#0f172a; border-radius:12px; padding:.55rem .9rem; font-weight:800; }
+.btnPrimary{
+  border:1px solid #1e3a8a; background:#1e3a8a; color:#fff;
+  border-radius:12px; padding:.55rem .9rem; font-weight:900;
+}
+.btnGhost{
+  border:1px solid #e5e7eb; background:#f8fafc; color:#0f172a;
+  border-radius:12px; padding:.55rem .9rem; font-weight:800;
+}
+.small{ font-size:.85rem; }
+.input, .textarea, .select{
+  width:100%;
+  border:1px solid #e5e7eb;
+  border-radius:14px;
+  padding:.65rem .8rem;
+  background:#fff;
+  outline:none;
+}
+.textarea{ min-height:140px; resize:vertical; }
+.helper{ font-size:.8rem; color:#64748b; margin-top:6px; font-weight:700; }
+.toast{
+  position:fixed; right:16px; bottom:16px; z-index:60;
+  background:#0f172a; color:#fff; padding:12px 14px; border-radius:14px;
+  box-shadow:0 18px 40px rgba(15,23,42,.18);
+  font-weight:800; font-size:.9rem; display:none;
+}
+.badgeOK{
+  display:inline-flex; align-items:center; gap:6px;
+  border:1px solid #bbf7d0; background:#f0fdf4; color:#14532d;
+  padding:.25rem .55rem; border-radius:999px; font-size:.78rem; font-weight:900;
+}
+.badgeWarn{
+  display:inline-flex; align-items:center; gap:6px;
+  border:1px solid #fed7aa; background:#fff7ed; color:#7c2d12;
+  padding:.25rem .55rem; border-radius:999px; font-size:.78rem; font-weight:900;
+}
+
+/* ===== 뉴스 ===== */
+.newsItem{
+  padding:12px 12px;
+  border:1px solid #e5e7eb;
+  border-radius:14px;
+  background:#f8fafc;
+}
+.newsTitle{ font-weight:900; color:#0f172a; }
+.newsMeta{ color:#64748b; font-size:.8rem; margin-top:2px; font-weight:700; }
+.newsLink{ color:#0f172a; text-decoration:none; }
+.newsLink:hover{ text-decoration:underline; }
+
+/* ===== Overlay Bar Chart (균등) ===== */
+.chart-equal{
+  display:grid;
+  gap:12px;
+  align-items:end;
+  overflow:hidden;
+  padding-bottom:6px;
+}
+.bar-col{ display:flex; flex-direction:column; align-items:center; gap:6px; min-width:0; }
+.bar-area{ position:relative; width:100%; height:250px; display:flex; align-items:flex-end; }
+.bar-goal{
+  width:100%;
+  background:#e5e7eb;
+  border-radius:8px;
+  position:absolute;
+  bottom:0;
+}
+.bar-actual{
+  width:56%;
+  position:absolute;
+  bottom:0;
+  left:50%;
+  transform:translateX(-50%);
+  border-radius:6px;
+}
+.omni-goal{ background:#bfdbfe; }
+.omni-actual{ background:#1e3a8a; }
+
+.top-num{ font-size:.72rem; color:#374151; font-weight:900; }
+.bottom-num{ font-size:.72rem; color:#0f172a; font-weight:900; }
+.bar-label{
+  font-size:.8rem; font-weight:900; color:#0f172a; text-align:center;
+  max-width:100%;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+/* ===== KPI ===== */
+.kpiRow{ display:flex; flex-wrap:wrap; gap:10px; margin-top:10px; }
+.kpi{
+  border:1px solid #e5e7eb; border-radius:14px; background:#fff;
+  padding:10px 12px;
+}
+.kpi .t{ font-size:.78rem; color:#64748b; font-weight:800; }
+.kpi .v{ font-size:1.15rem; font-weight:950; color:#0f172a; margin-top:2px; letter-spacing:-0.01em; }
+.kpi .s{ font-size:.78rem; color:#64748b; margin-top:2px; font-weight:700; }
+
+/* ===== Table ===== */
+.tbl{
+  width:100%;
+  border-collapse:separate;
+  border-spacing:0;
+  overflow:hidden;
+  border:1px solid #e5e7eb;
+  border-radius:16px;
+  background:#fff;
+}
+.tbl th, .tbl td{
+  padding:10px 12px;
+  border-bottom:1px solid #eef2f7;
+  font-size:.88rem;
+}
+.tbl th{
+  text-align:left;
+  color:#334155;
+  font-weight:900;
+  background:#f8fafc;
+}
+.tbl tr:last-child td{ border-bottom:none; }
+.right{ text-align:right; }
+.mono{ font-variant-numeric:tabular-nums; }
+</style>
+</head>
+
+<body class="bg-slate-50">
+
+<header class="sticky top-0 z-20 bg-white/90 backdrop-blur border-b border-slate-200">
+  <div class="max-w-[1440px] mx-auto px-2 py-3 flex items-center gap-3">
+    <a href="https://qkr3069-beep.github.io/EIS/" aria-label="메인으로 이동">
+      <img src="omnicare_logo.png" alt="옴니케어 로고" class="h-12 object-contain cursor-pointer" />
+    </a>
+    <div class="flex-1">
+      <div class="font-semibold text-slate-900">OmniCare Intelligence Hub</div>
+      <div class="text-sm muted">대표님 페이지 · 메시지 작성 · 국보급 소식 선정 · 본부별 매출</div>
+    </div>
+
+    <button onclick="location.href='main.html'" class="btn2">메인</button>
+    <button onclick="location.href='admin_manager.html'" class="btn2">관리자 페이지</button>
+    <button onclick="location.href='mypage_sales.html'" class="btn2">마이페이지</button>
+  </div>
+</header>
+
+<main class="max-w-[1440px] mx-auto px-2 py-6 space-y-6">
+
+  <!-- 1) 국보급 이야기를 작성해 주세요 -->
+  <section class="card p-6">
+    <div class="flex items-start justify-between gap-3">
+      <div>
+        <div class="font-extrabold text-slate-900 text-lg">국보급 이야기를 작성해 주세요</div>
+        <div class="muted small">저장하면 Main 페이지 “국보급 이야기”에 즉시 반영</div>
+      </div>
+      <span class="chip">WRITE</span>
+    </div>
+
+    <div class="divider my-4"></div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <!-- 작성 -->
+      <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+        <div class="font-extrabold text-slate-900 mb-3">작성</div>
+
+        <label class="block text-sm font-extrabold text-slate-900">한 줄 메시지(Quote)</label>
+        <input id="inpQuote" class="input mt-2" placeholder="예) “숫자는 과거를 말하고, 실행은 내일을 만든다.”" />
+        <div class="helper">Main 페이지 상단 굵은 문장으로 표시됩니다.</div>
+
+        <div class="mt-4">
+          <label class="block text-sm font-extrabold text-slate-900">본문(Body)</label>
+          <textarea id="inpBody" class="textarea mt-2" placeholder="문장1&#10;문장2&#10;문장3"></textarea>
+          <div class="helper">엔터(줄바꿈) 기준으로 문단이 나뉘어 표시됩니다.</div>
+        </div>
+
+        <div class="mt-4">
+          <label class="block text-sm font-extrabold text-slate-900">서명(Sign)</label>
+          <input id="inpSign" class="input mt-2" placeholder="예) — 대표" />
+          <div class="helper">Main 페이지 하단에 표시됩니다.</div>
+        </div>
+
+        <div class="mt-4 flex flex-wrap gap-2">
+          <button id="btnLoadMsg" class="btnGhost">현재 내용 불러오기</button>
+          <button id="btnSaveMsg" class="btnPrimary">저장(반영)</button>
+          <span id="msgStatus" class="badgeWarn" style="display:none;"></span>
+        </div>
+
+        <div class="mt-3 muted text-xs font-semibold">
+          * 연결 방식: Google Apps Script(JSON) · GET(조회) + POST(저장) 형태를 가정합니다.
+        </div>
+      </div>
+
+      <!-- 미리보기 -->
+      <div class="rounded-2xl border border-slate-200 bg-white p-4">
+        <div class="flex items-center justify-between">
+          <div class="font-extrabold text-slate-900">미리보기</div>
+          <span class="chip">PREVIEW</span>
+        </div>
+
+        <div class="divider my-4"></div>
+
+        <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+          <div id="prevQuote" class="text-[1.05rem] font-black text-slate-900 leading-snug">“불러오는 중…”</div>
+          <div id="prevBody" class="mt-3 text-slate-900 leading-relaxed"></div>
+          <div id="prevSign" class="mt-4 text-slate-500 text-sm font-extrabold">—</div>
+          <div id="prevUpdatedAt" class="mt-2 muted text-xs font-semibold" style="display:none;"></div>
+        </div>
+
+        <div class="mt-4 muted small">
+          저장 후 Main 페이지에서 동일하게 보이는지 확인하세요.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2) 국보급 소식을 선정해 주세요 -->
+  <section class="card p-6">
+    <div class="flex items-start justify-between gap-3">
+      <div>
+        <div class="font-extrabold text-slate-900 text-lg">국보급 소식을 선정해 주세요</div>
+        <div class="muted small">현재 노출 3건 확인 · 필요 시 news_ceo 페이지로 이동</div>
+      </div>
+      <span class="chip">EDITOR</span>
+    </div>
+
+    <div class="divider my-4"></div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <!-- 현재 노출 3개 -->
+      <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+        <div class="flex items-center justify-between">
+          <div class="font-extrabold text-slate-900">현재 노출되고 있는 기사 3개</div>
+          <button id="btnReloadPick" class="btnGhost">새로고침</button>
+        </div>
+        <div class="muted small mt-1">news_ceo에서 선정된 항목이 Main 페이지 “국보급 소식”에도 동일하게 반영됩니다.</div>
+
+        <div class="divider my-4"></div>
+
+        <div id="pickedNewsWrap" class="grid grid-cols-1 gap-3"></div>
+
+        <div class="mt-3 muted text-xs font-semibold">
+          * 연결 방식: Google Apps Script 또는 별도 API에서 “선정 3건” JSON을 가져오는 형태를 가정합니다.
+        </div>
+      </div>
+
+      <!-- 이동 -->
+      <div class="rounded-2xl border border-slate-200 bg-white p-4">
+        <div class="font-extrabold text-slate-900">기사 선정 페이지로 이동</div>
+        <div class="muted small mt-1">
+          기사 후보를 보고 “국보급 소식 3건”을 선정하는 페이지입니다.
+        </div>
+
+        <div class="divider my-4"></div>
+
+        <div class="p-4 rounded-2xl border border-slate-200 bg-slate-50">
+          <div class="font-extrabold text-slate-900">작업 흐름</div>
+          <ol class="mt-3 space-y-2 text-sm text-slate-900 font-semibold">
+            <li>1) 페이지 이동하여 기사 3건 선택</li>
+            <li>2) 저장</li>
+            <li>3) 본 페이지/메인 페이지에 자동 반영</li>
+          </ol>
+
+          <div class="mt-4">
+            <button onclick="location.href='news_ceo.html'" class="btnPrimary w-full">
+              news_ceo로 이동
+            </button>
+          </div>
+        </div>
+
+        <div class="mt-4 muted small">
+          선정 로직/저장 스키마는 news_ceo 쪽과 동일한 JSON 구조로 맞추면 됩니다.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3) 본부별 매출 -->
+  <section class="card p-6">
+    <div class="flex items-start justify-between gap-3">
+      <div>
+        <div class="font-extrabold text-slate-900 text-lg">본부별 매출</div>
+        <div class="muted small">Main 페이지 “본부/지사별 매출(총합)” 동일 구성 + 본부 선택 시 상세(직원/기여도)</div>
+      </div>
+      <a href="overview_sales.html"
+         class="text-sm font-semibold text-slate-700 hover:text-slate-900 transition flex items-center gap-1 whitespace-nowrap">
+        더보기
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+        </svg>
+      </a>
+    </div>
+
+    <div class="divider my-4"></div>
+
+    <!-- 상단: 본부/지사별 총합 차트 -->
+    <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+      <div class="flex items-center justify-between gap-3">
+        <div>
+          <div class="font-extrabold text-slate-900">본부/지사별 매출(총합)</div>
+          <div class="muted small">Main과 동일: 진한 남색(총합)만 표시</div>
+        </div>
+        <span class="chip">ORG</span>
+      </div>
+
+      <div class="mt-4 chart-equal" id="orgTotalChart"></div>
+    </div>
+
+    <!-- 하단: 본부 선택 + 상세 -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
+      <!-- 선택 -->
+      <div class="rounded-2xl border border-slate-200 bg-white p-4">
+        <div class="font-extrabold text-slate-900">본부 선택</div>
+        <div class="muted small mt-1">Main 페이지 구성과 동일한 조직 목록</div>
+
+        <div class="mt-3">
+          <select id="selOrg" class="select">
+            <option value="">조직을 선택하세요</option>
+          </select>
+          <div class="helper">선택 시, 해당 조직의 매출/직원별 기여도 표가 표시됩니다.</div>
+        </div>
+
+        <div class="mt-4 kpiRow">
+          <div class="kpi">
+            <div class="t">선택 조직 누계 매출</div>
+            <div class="v mono" id="orgTotalSales">-</div>
+            <div class="s">3자 + WITH KMI + 그 외 합계</div>
+          </div>
+          <div class="kpi">
+            <div class="t">직원 수</div>
+            <div class="v mono" id="orgPeopleCnt">-</div>
+            <div class="s">기여도는 매출 비중 기준</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 상세 -->
+      <div class="rounded-2xl border border-slate-200 bg-white p-4">
+        <div class="flex items-center justify-between">
+          <div class="font-extrabold text-slate-900">소속 직원 매출 · 기여도</div>
+          <span class="chip">DETAIL</span>
+        </div>
+
+        <div class="divider my-4"></div>
+
+        <div class="overflow-x-auto">
+          <table class="tbl">
+            <thead>
+              <tr>
+                <th style="width:30%;">직원</th>
+                <th class="right" style="width:35%;">누계 매출(천원)</th>
+                <th class="right" style="width:20%;">기여도</th>
+                <th style="width:15%;">비고</th>
+              </tr>
+            </thead>
+            <tbody id="orgPeopleTbody">
+              <tr><td colspan="4" class="muted small">조직을 선택하면 표시됩니다.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="mt-3 muted text-xs font-semibold">
+          * 실제 연동 시: “본부-직원 매출” API(또는 시트)로 교체하면 됩니다.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="text-center muted small py-6">
+    대표님 페이지 샘플 화면입니다. 실제 서비스에서는 권한/감사로그/저장 승인/데이터 검증이 추가됩니다.
+  </footer>
+</main>
+
+<div id="toast" class="toast"></div>
+
+<script>
+/* =========================================================
+   (0) 공용 유틸
+========================================================= */
+function toast(msg){
+  const el = document.getElementById("toast");
+  el.textContent = msg;
+  el.style.display = "block";
+  clearTimeout(window.__toastTimer);
+  window.__toastTimer = setTimeout(()=> el.style.display="none", 2400);
+}
+function clamp(n,min,max){ return Math.max(min, Math.min(max,n)); }
+function toThousandWon(v){ return Math.round((Number(v)||0) / 1000); }  // 원 → 천원
+function fmtKrwThousand(n){ return (Number(n)||0).toLocaleString() + "천원"; }
+function fmtNum(n){ return (Number(n)||0).toLocaleString(); }
+function stripHtml(s){ return (s || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim(); }
+function toYMD(dateStr){
+  const d = new Date(dateStr);
+  if (Number.isNaN(d.getTime())) return "";
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,"0");
+  const dd = String(d.getDate()).padStart(2,"0");
+  return `${y}-${m}-${dd}`;
+}
+
+/* =========================================================
+   (A) 국보급 이야기: Main과 동일 시트(API) 사용
+   - GET: { quote, body, sign, updatedAt }
+   - POST: 저장 (quote/body/sign) -> 같은 시트에 반영
+========================================================= */
+const CEO_SHEET_API = "https://script.google.com/macros/s/AKfycbwViwA1iYn2ra-v3SZ4AGO6eVwD3dQqTp9vF97dQk8lZoGUkd02QjCvcTvzsAYt2ukW/exec";
+
+const CEO_FALLBACK = {
+  quote: "“숫자는 과거를 말하고, 실행은 내일을 만든다.”",
+  body: [
+    "오늘은 누계보다 속도를 봅시다.",
+    "우리가 이기는 포인트는 ‘단가’가 아니라 ‘운영 편의성’과 ‘전환 정밀도’입니다.",
+    "각 조직은 상위 3개 레버(리드→미팅→계약, 정산, 재구매)를 ‘매주 하나’만 개선해도 누계는 자연히 따라옵니다."
+  ],
+  sign: "— 대표"
+};
+
+function renderPreview(data){
+  const quote = (data && String(data.quote||"").trim()) || CEO_FALLBACK.quote;
+  const sign  = (data && String(data.sign||"").trim())  || CEO_FALLBACK.sign;
+
+  let bodyLines = [];
+  if (data && Array.isArray(data.body)) {
+    bodyLines = data.body.map(s=>String(s||"").trim()).filter(Boolean);
+  } else {
+    const raw = data ? String(data.body||"").trim() : "";
+    bodyLines = raw ? raw.split(/\r?\n/).map(s=>s.trim()).filter(Boolean) : CEO_FALLBACK.body;
+  }
+
+  document.getElementById("prevQuote").textContent = quote;
+  document.getElementById("prevBody").innerHTML = bodyLines.map(p=>`<p class="mt-2">${p}</p>`).join("");
+  document.getElementById("prevSign").textContent = sign;
+
+  const upd = document.getElementById("prevUpdatedAt");
+  const updatedAt = data && data.updatedAt ? String(data.updatedAt) : "";
+  if (updatedAt){
+    upd.style.display = "block";
+    upd.textContent = "업데이트: " + updatedAt;
+  }else{
+    upd.style.display = "none";
+  }
+}
+
+async function loadCEOMessage(){
+  try{
+    const url = CEO_SHEET_API + (CEO_SHEET_API.includes("?") ? "&" : "?") + "t=" + Date.now();
+    const res = await fetch(url, { cache:"no-store" });
+    if(!res.ok) throw new Error("HTTP " + res.status);
+    const data = await res.json();
+    if (data && data.error) throw new Error(data.error);
+
+    // 입력칸 채우기
+    document.getElementById("inpQuote").value = (data.quote||"").toString();
+    if (Array.isArray(data.body)) {
+      document.getElementById("inpBody").value = data.body.join("\n");
+    } else {
+      document.getElementById("inpBody").value = (data.body||"").toString();
+    }
+    document.getElementById("inpSign").value = (data.sign||"").toString();
+
+    renderPreview(data);
+    toast("현재 메시지를 불러왔습니다.");
+  }catch(e){
+    console.warn("[CEO] load failed:", e);
+    renderPreview(null);
+    toast("불러오기 실패: fallback 표시");
+  }
+}
+
+async function saveCEOMessage(){
+  const quote = document.getElementById("inpQuote").value.trim();
+  const body  = document.getElementById("inpBody").value.trim();
+  const sign  = document.getElementById("inpSign").value.trim();
+
+  const status = document.getElementById("msgStatus");
+  status.style.display = "inline-flex";
+  status.className = "badgeWarn";
+  status.textContent = "저장 중…";
+
+  try{
+    const url =
+      CEO_SHEET_API
+      + (CEO_SHEET_API.includes("?") ? "&" : "?")
+      + "action=save"
+      + "&quote=" + encodeURIComponent(quote)
+      + "&body="  + encodeURIComponent(body)
+      + "&sign="  + encodeURIComponent(sign)
+      + "&t=" + Date.now(); // 캐시 방지
+
+    const res = await fetch(url, { cache:"no-store" });
+    const text = await res.text();
+    console.log("[CEO SAVE] status:", res.status, "raw:", text);
+
+    let data = {};
+    try { data = JSON.parse(text); } catch(e) {}
+
+    if(!res.ok) throw new Error("HTTP " + res.status);
+    if (data && data.error) throw new Error(data.error);
+
+    status.className = "badgeOK";
+    status.textContent = "저장 완료";
+    toast("저장 완료! Main 페이지에 반영됩니다.");
+
+    // 저장 후 최신 다시 불러오기
+    await loadCEOMessage();
+    setTimeout(()=>{ status.style.display="none"; }, 2200);
+
+  }catch(err){
+    console.warn("[CEO] save failed:", err);
+    status.className = "badgeWarn";
+    status.textContent = "저장 실패(API/권한 확인)";
+    toast("저장 실패: 콘솔(F12) 로그 확인");
+  }
+}
+
+/* 입력 변경 시 미리보기 즉시 반영 */
+function livePreview(){
+  const quote = document.getElementById("inpQuote").value.trim();
+  const body  = document.getElementById("inpBody").value.trim();
+  const sign  = document.getElementById("inpSign").value.trim();
+  renderPreview({
+    quote: quote || CEO_FALLBACK.quote,
+    body: body || CEO_FALLBACK.body.join("\n"),
+    sign: sign || CEO_FALLBACK.sign,
+    updatedAt: ""
+  });
+}
+
+/* =========================================================
+   (B) 국보급 소식 3건(Director Picks)
+   - GET: { items:[{title, link, date, summary}] }
+========================================================= */
+// ✅ 필요 시 실제 엔드포인트로 교체
+const DIRECTOR_PICK_API = "https://script.google.com/macros/s/REPLACE_WITH_YOUR_DIRECTOR_PICK_API/exec";
+
+// 샘플(연동 전)
+const DIRECTOR_PICK_FALLBACK = {
+  items: [
+    { title:"(샘플) 정신건강 검진 항목 확대… 기업 검진 트렌드 변화", link:"#", date:"2025-12-29", summary:"기업 검진에서 정신건강 평가 항목이 확대되는 움직임…" },
+    { title:"(샘플) 디지털 헬스 플랫폼, 전환율 개선이 승부처", link:"#", date:"2025-12-28", summary:"병원/기업 양측 운영 편의성 개선이 리텐션에 영향…" },
+    { title:"(샘플) 검진센터 대기시간 단축 솔루션 도입 확산", link:"#", date:"2025-12-27", summary:"예약·문진·정산 자동화로 피크 시즌 처리량 확보…" }
+  ]
+};
+
+function renderPickedNews(data){
+  const wrap = document.getElementById("pickedNewsWrap");
+  wrap.innerHTML = "";
+  const items = (data && Array.isArray(data.items)) ? data.items : DIRECTOR_PICK_FALLBACK.items;
+
+  items.slice(0,3).forEach(it=>{
+    const box = document.createElement("div");
+    box.className = "newsItem";
+    box.innerHTML = `
+      <a class="newsLink newsTitle" href="${it.link}" target="_blank" rel="noopener">${it.title}</a>
+      <div class="newsMeta">${it.date || "-"} · ${(it.summary||"").toString()}</div>
+    `;
+    wrap.appendChild(box);
+  });
+}
+
+async function loadDirectorPicks(){
+  try{
+    if (DIRECTOR_PICK_API.includes("REPLACE_WITH_YOUR_DIRECTOR_PICK_API")){
+      renderPickedNews(DIRECTOR_PICK_FALLBACK);
+      return;
+    }
+    const url = DIRECTOR_PICK_API + (DIRECTOR_PICK_API.includes("?") ? "&" : "?") + "t=" + Date.now();
+    const res = await fetch(url, { cache:"no-store" });
+    if(!res.ok) throw new Error("HTTP " + res.status);
+    const data = await res.json();
+    if (data && data.error) throw new Error(data.error);
+    renderPickedNews(data);
+  }catch(e){
+    console.warn("[PICK] load failed:", e);
+    renderPickedNews(DIRECTOR_PICK_FALLBACK);
+  }
+}
+
+/* =========================================================
+   (C) 본부/지사별 매출
+   - Main 페이지의 org list 그대로 사용 (omniSalesByRegionList)
+   - 선택 시: 조직 상세(직원별 매출/기여도) 표시
+========================================================= */
+const SECTION1_SAMPLE = {
+  "section1": {
+    "omniSalesByRegionList": [
+      {"name":"1본부","otherSalesPrice":1676746818,"withkmiSalesPrice":394306363,"etcSalesPrice":0},
+      {"name":"2본부","otherSalesPrice":1896188000,"withkmiSalesPrice":522207272,"etcSalesPrice":0},
+      {"name":"수원지사","otherSalesPrice":459350909,"withkmiSalesPrice":27586363,"etcSalesPrice":0},
+      {"name":"대구지사","otherSalesPrice":119692727,"withkmiSalesPrice":321623181,"etcSalesPrice":28500000},
+      {"name":"부산지사","otherSalesPrice":533028636,"withkmiSalesPrice":287047272,"etcSalesPrice":5636363},
+      {"name":"광주지사","otherSalesPrice":205712181,"withkmiSalesPrice":166275000,"etcSalesPrice":36363636},
+      {"name":"제휴사업","otherSalesPrice":1554545,"withkmiSalesPrice":572727,"etcSalesPrice":124500000}
+    ]
+  }
+};
+
+// ✅ 조직 선택 시 보여줄 “직원별 매출” 샘플
+// 실제로는 API/시트에서 조직명 기준으로 가져오면 됩니다.
+const ORG_DETAIL_SAMPLE = {
+  "1본부": [
+    { name:"김OO", sales: 612300, note:"핵심 거래처" },
+    { name:"이OO", sales: 489150, note:"신규 확장" },
+    { name:"박OO", sales: 368420, note:"리텐션" },
+    { name:"정OO", sales: 295980, note:"운영 개선" }
+  ],
+  "2본부": [
+    { name:"최OO", sales: 702440, note:"대형 계약" },
+    { name:"한OO", sales: 455120, note:"성과 유지" },
+    { name:"유OO", sales: 392000, note:"리드 전환" }
+  ],
+  "수원지사": [
+    { name:"서OO", sales: 201540, note:"현장 운영" },
+    { name:"오OO", sales: 142300, note:"재계약" }
+  ],
+  "대구지사": [
+    { name:"문OO", sales: 268700, note:"WITH 강점" },
+    { name:"송OO", sales: 151900, note:"신규 리드" }
+  ],
+  "부산지사": [
+    { name:"배OO", sales: 238300, note:"피크 대응" },
+    { name:"윤OO", sales: 192450, note:"단가 개선" }
+  ],
+  "광주지사": [
+    { name:"노OO", sales: 159800, note:"센터 협업" }
+  ],
+  "제휴사업": [
+    { name:"장OO", sales: 102500, note:"제휴 확장" },
+    { name:"신OO", sales: 89500, note:"운영 표준화" }
+  ]
+};
+
+async function fetchSection1(){
+  // TODO: 실제 API로 교체 가능
+  return SECTION1_SAMPLE.section1;
+}
+
+function buildOmniByOrgBars(list){
+  return (list||[]).map(r=>{
+    const total = toThousandWon(r.otherSalesPrice) + toThousandWon(r.withkmiSalesPrice) + toThousandWon(r.etcSalesPrice);
+    return { name:r.name, goal: total, actual: total };
+  });
+}
+
+function renderOverlayBarChart_EqualCols(data, wrapId){
+  const wrap = document.getElementById(wrapId);
+  if (!wrap) return;
+
+  wrap.classList.add("chart-equal");
+  wrap.style.gridTemplateColumns = `repeat(${data.length}, minmax(0, 1fr))`;
+  wrap.innerHTML = "";
+
+  const maxGoal = Math.max(...data.map(d=>d.goal||0), 1);
+
+  data.forEach(d=>{
+    const goalH = (d.goal/maxGoal)*100;
+    const actualH = (d.actual/maxGoal)*100;
+
+    const col = document.createElement("div");
+    col.className = "bar-col";
+    col.innerHTML = `
+      <div class="top-num">${(d.goal||0).toLocaleString()}</div>
+      <div class="bar-area">
+        <!-- ✅ Main과 동일: goal 배경(하늘색) 제거, actual만 표시 -->
+        <div class="bar-actual omni-actual" style="height:${actualH}%"></div>
+      </div>
+      <div class="bottom-num">${(d.actual||0).toLocaleString()}</div>
+      <div class="bar-label" title="${(d.name||"-")}">${d.name||"-"}</div>
+    `;
+    wrap.appendChild(col);
+  });
+}
+
+function fillOrgSelect(orgList){
+  const sel = document.getElementById("selOrg");
+  sel.innerHTML = `<option value="">조직을 선택하세요</option>`;
+  orgList.forEach(name=>{
+    const opt = document.createElement("option");
+    opt.value = name;
+    opt.textContent = name;
+    sel.appendChild(opt);
+  });
+}
+
+function renderOrgDetail(orgName, totalThousand){
+  document.getElementById("orgTotalSales").textContent = totalThousand ? fmtKrwThousand(totalThousand) : "-";
+
+  const rows = ORG_DETAIL_SAMPLE[orgName] || [];
+  document.getElementById("orgPeopleCnt").textContent = rows.length ? fmtNum(rows.length) : "-";
+
+  const tbody = document.getElementById("orgPeopleTbody");
+  tbody.innerHTML = "";
+
+  if (!orgName){
+    tbody.innerHTML = `<tr><td colspan="4" class="muted small">조직을 선택하면 표시됩니다.</td></tr>`;
+    return;
+  }
+
+  if (rows.length === 0){
+    tbody.innerHTML = `<tr><td colspan="4" class="muted small">직원 데이터가 없습니다. (연동 필요)</td></tr>`;
+    return;
+  }
+
+  const sum = rows.reduce((a,b)=>a+(Number(b.sales)||0), 0) || 1;
+
+  rows
+    .slice()
+    .sort((a,b)=>(Number(b.sales)||0)-(Number(a.sales)||0))
+    .forEach((r, idx)=>{
+      const sales = Number(r.sales)||0; // 천원 단위(샘플)
+      const pct = (sales/sum)*100;
+
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td class="font-extrabold text-slate-900">${r.name}</td>
+        <td class="right mono font-extrabold text-slate-900">${sales.toLocaleString()}</td>
+        <td class="right mono font-extrabold text-slate-900">${pct.toFixed(1)}%</td>
+        <td class="muted small">${r.note || ""}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+}
+
+/* =========================================================
+   이벤트 바인딩
+========================================================= */
+document.getElementById("btnLoadMsg").addEventListener("click", loadCEOMessage);
+document.getElementById("btnSaveMsg").addEventListener("click", saveCEOMessage);
+
+["inpQuote","inpBody","inpSign"].forEach(id=>{
+  document.getElementById(id).addEventListener("input", livePreview);
+});
+
+document.getElementById("btnReloadPick").addEventListener("click", ()=>{
+  loadDirectorPicks();
+  toast("국보급 소식 새로고침");
+});
+
+document.getElementById("selOrg").addEventListener("change", (e)=>{
+  const name = e.target.value;
+  const total = window.__orgTotals ? window.__orgTotals[name] : 0;
+  renderOrgDetail(name, total);
+});
+
+/* =========================================================
+   초기 로드
+========================================================= */
+(async function init(){
+  // 1) 국보급 이야기 불러오기 + 미리보기
+  await loadCEOMessage();
+
+  // 2) 국보급 소식 3건 로드
+  await loadDirectorPicks();
+
+  // 3) 본부/지사별 매출 (Main과 동일 org list)
+  const s1 = await fetchSection1();
+  const list = s1.omniSalesByRegionList || [];
+  const bars = buildOmniByOrgBars(list);
+  renderOverlayBarChart_EqualCols(bars, "orgTotalChart");
+
+  // select 구성 + total map 구성
+  const names = list.map(x=>x.name);
+  fillOrgSelect(names);
+
+  // 조직별 총합(천원) 맵 생성 (선택 상세용)
+  window.__orgTotals = {};
+  list.forEach(r=>{
+    const total = toThousandWon(r.otherSalesPrice) + toThousandWon(r.withkmiSalesPrice) + toThousandWon(r.etcSalesPrice);
+    window.__orgTotals[r.name] = total;
+  });
+
+  // 기본 선택 없음
+  renderOrgDetail("", 0);
+})();
+</script>
+
+</body>
+</html>
