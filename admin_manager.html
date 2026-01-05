@@ -10,18 +10,15 @@
 
 <style>
   html,body{ font-family:"Pretendard Variable", system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
-  .card{
-    border:1px solid #e5e7eb; border-radius:16px; background:#fff;
-    box-shadow:0 8px 24px rgba(15,23,42,.06);
-  }
+  .card{ border:1px solid #e5e7eb; border-radius:16px; background:#fff; box-shadow:0 8px 24px rgba(15,23,42,.06); }
   .muted{ color:#64748b; }
   .divider{ height:1px; background:#e5e7eb; }
   .chip{ border:1px solid #e5e7eb; border-radius:999px; padding:.25rem .6rem; font-size:.8rem; color:#334155; background:#f8fafc; }
   .btn2{ border:1px solid #e5e7eb; background:#fff; color:#0f172a; border-radius:12px; padding:.55rem .9rem; font-weight:800; }
+  .btn2:disabled{ opacity:.45; cursor:not-allowed; }
   .small{ font-size:.85rem; }
-  .kpi{
-    border:1px solid #e5e7eb; border-radius:14px; padding:14px; background:linear-gradient(180deg,#fff,#f8fafc);
-  }
+  .kpi{ border:1px solid #e5e7eb; border-radius:14px; padding:14px; background:linear-gradient(180deg,#fff,#f8fafc); }
+
   table{ width:100%; border-collapse:separate; border-spacing:0; }
   th,td{ padding:12px 10px; border-bottom:1px solid #e5e7eb; vertical-align:top; }
   th{ text-align:left; font-size:.85rem; color:#334155; background:#f8fafc; position:sticky; top:0; }
@@ -30,116 +27,86 @@
   tr.rowClickable:hover td{ background:#f8fafc; }
   tr.rowActive td{ background:#eff6ff; }
 
-  .pill{
-    display:inline-flex; align-items:center; gap:6px;
-    border:1px solid #e5e7eb; border-radius:999px;
-    padding:.25rem .6rem; font-size:.8rem; background:#fff;
-    white-space:nowrap;
-  }
+  .pill{ display:inline-flex; align-items:center; gap:6px; border:1px solid #e5e7eb; border-radius:999px; padding:.25rem .6rem; font-size:.8rem; background:#fff; white-space:nowrap; }
   .legendDot{ width:10px; height:10px; border-radius:999px; display:inline-block; }
 
-  /* ===== 매출 구성 그래프(스택 바) ===== */
-  .stackBarWrap{
-    border:1px solid #e5e7eb;
-    border-radius:14px;
-    background:#fff;
-    padding:12px;
-  }
-  .stackBar{
-    width:100%;
-    height:16px;
-    border-radius:999px;
-    overflow:hidden;
-    display:flex;
-    border:1px solid #e5e7eb;
-    background:#f8fafc;
-  }
+  /* 매출 스택바 */
+  .stackBarWrap{ border:1px solid #e5e7eb; border-radius:14px; background:#fff; padding:12px; }
+  .stackBar{ width:100%; height:16px; border-radius:999px; overflow:hidden; display:flex; border:1px solid #e5e7eb; background:#f8fafc; }
   .seg{ height:100%; }
-  .seg.a{ background:#60a5fa; }   /* 3자 */
-  .seg.b{ background:#34d399; }   /* withKMI */
-  .seg.c{ background:#fbbf24; }   /* 기타 */
+  .seg.a{ background:#60a5fa; }
+  .seg.b{ background:#34d399; }
+  .seg.c{ background:#fbbf24; }
 
-  /* ===== 미니 브레이크다운 ===== */
-  .subline{
-    margin-top:6px;
-    font-size:.82rem;
-    color:#64748b;
-    font-weight:700;
-    line-height:1.25rem;
-    display:flex;
-    flex-wrap:wrap;
-    gap:6px 10px;
-  }
-  .subtag{
-    display:inline-flex;
-    align-items:center;
-    gap:6px;
-    padding:.15rem .55rem;
-    border:1px solid #e5e7eb;
-    border-radius:999px;
-    background:#fff;
-    white-space:nowrap;
-  }
+  .subline{ margin-top:6px; font-size:.82rem; color:#64748b; font-weight:700; line-height:1.25rem; display:flex; flex-wrap:wrap; gap:6px 10px; }
+  .subtag{ display:inline-flex; align-items:center; gap:6px; padding:.15rem .55rem; border:1px solid #e5e7eb; border-radius:999px; background:#fff; white-space:nowrap; }
 
-  /* ✅ 수검자 구분 전용 색상(매출 색상과 구분) */
-  .exDot1{ background:#a78bfa; }  /* 종검 - violet */
-  .exDot2{ background:#fb7185; }  /* 종검 외 - rose */
-  .exDot3{ background:#22c55e; }  /* 국가 - green */
+  /* 수검자 구분(매출색과 분리) */
+  .exDot1{ background:#a78bfa; }
+  .exDot2{ background:#fb7185; }
+  .exDot3{ background:#22c55e; }
 
-  /* ===== 검색/컨트롤 바 ===== */
-  .controlBar{
-    border:1px solid #e5e7eb;
-    border-radius:16px;
-    background:linear-gradient(180deg,#fff,#f8fafc);
-    padding:12px;
-  }
-  .searchInput{
-    width:100%;
-    border:1px solid #e5e7eb;
-    border-radius:12px;
-    padding:.65rem .85rem;
-    outline:none;
-    background:#fff;
-    font-weight:800;
-  }
-  .selectInput{
-    border:1px solid #e5e7eb;
-    border-radius:12px;
-    padding:.6rem .8rem;
-    outline:none;
-    background:#fff;
-    font-weight:800;
-    min-width: 160px;
-  }
-  .btn3{
-    border:1px solid #e5e7eb;
-    background:#fff;
-    color:#0f172a;
-    border-radius:12px;
-    padding:.6rem .9rem;
-    font-weight:900;
-  }
+  .controlBar{ border:1px solid #e5e7eb; border-radius:16px; background:linear-gradient(180deg,#fff,#f8fafc); padding:12px; }
+  .searchInput{ width:100%; border:1px solid #e5e7eb; border-radius:12px; padding:.65rem .85rem; outline:none; background:#fff; font-weight:800; }
+  .selectInput{ border:1px solid #e5e7eb; border-radius:12px; padding:.6rem .8rem; outline:none; background:#fff; font-weight:800; min-width:160px; }
+
+  .btn3{ border:1px solid #e5e7eb; background:#fff; color:#0f172a; border-radius:12px; padding:.6rem .9rem; font-weight:900; }
   .btn3:hover{ background:#f8fafc; }
-  .hintBadge{
-    display:inline-flex; align-items:center; gap:8px;
-    border:1px solid #e5e7eb; border-radius:999px;
-    padding:.35rem .7rem; background:#fff; font-size:.85rem;
-    color:#334155; font-weight:800;
-  }
+  .btnDanger{ border:1px solid #fecaca; background:#fff; color:#991b1b; border-radius:12px; padding:.6rem .9rem; font-weight:900; }
+  .btnDanger:hover{ background:#fef2f2; }
+  .btnPrimary{ border:1px solid #c7d2fe; background:#eef2ff; color:#1e293b; border-radius:12px; padding:.6rem .9rem; font-weight:900; }
+  .btnPrimary:hover{ background:#e0e7ff; }
 
-  /* ===== 회의록 완료 스타일 ===== */
-  tr.meetingDone td{
-    background:#f0fdf4;
-  }
-  tr.meetingDone td .meetingTitle,
-  tr.meetingDone td .meetingTask{
-    color:#166534;
-  }
+  .hintBadge{ display:inline-flex; align-items:center; gap:8px; border:1px solid #e5e7eb; border-radius:999px; padding:.35rem .7rem; background:#fff; font-size:.85rem; color:#334155; font-weight:800; }
+  .linkCell{ color:#1d4ed8; font-weight:900; text-decoration:underline; text-underline-offset:3px; cursor:pointer; }
+  .linkCell:hover{ color:#1e40af; }
+
+  /* 회의록 완료 스타일 */
+  tr.meetingDone td{ background:#f0fdf4; }
+  tr.meetingDone td .meetingTitle, tr.meetingDone td .meetingTask{ color:#166534; }
   tr.meetingDone td .meetingTitle{
     text-decoration: line-through;
     text-decoration-thickness: 2px;
     text-decoration-color: rgba(22,101,52,.35);
   }
+
+  /* 모달 */
+  .modalBackdrop{ position:fixed; inset:0; background:rgba(15,23,42,.5); display:none; align-items:center; justify-content:center; padding:18px; z-index:60; }
+  .modal{ width:min(900px, 96vw); border:1px solid #e5e7eb; border-radius:18px; background:#fff; box-shadow:0 20px 60px rgba(15,23,42,.25); overflow:hidden; }
+  .modalHeader{ display:flex; align-items:flex-start; justify-content:space-between; gap:12px; padding:16px 16px 12px 16px; background:linear-gradient(180deg,#fff,#f8fafc); border-bottom:1px solid #e5e7eb; }
+  .modalBody{ padding:16px; }
+  .modalFooter{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:12px 16px; border-top:1px solid #e5e7eb; background:#fff; }
+
+  .fieldLabel{ font-size:.85rem; color:#334155; font-weight:900; margin-bottom:6px; }
+  .input{ width:100%; border:1px solid #e5e7eb; border-radius:12px; padding:.65rem .85rem; outline:none; background:#fff; font-weight:800; }
+  .textarea{ width:100%; border:1px solid #e5e7eb; border-radius:12px; padding:.65rem .85rem; outline:none; background:#fff; font-weight:800; min-height:120px; resize:vertical; }
+  .kbd{ border:1px solid #e5e7eb; border-bottom-width:2px; border-radius:8px; padding:.1rem .45rem; font-size:.8rem; font-weight:900; color:#334155; background:#fff; }
+
+  /* 참석자 상태 배지(표시만) */
+  .statusBadge{ display:inline-flex; align-items:center; gap:6px; border:1px solid #e5e7eb; border-radius:999px; padding:.25rem .55rem; font-weight:900; font-size:.8rem; background:#fff; white-space:nowrap; }
+  .dot{ width:10px; height:10px; border-radius:999px; display:inline-block; }
+  .dotRecv{ background:#22c55e; }     /* 수신 */
+  .dotUnrecv{ background:#f59e0b; }   /* 미수신 */
+  .dotAbsent{ background:#64748b; }   /* 미참석 */
+
+  .attRow{
+    border:1px solid #e5e7eb; border-radius:14px; padding:12px;
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    background:linear-gradient(180deg,#fff,#f8fafc);
+  }
+
+  .memberChip{
+    display:inline-flex; align-items:center; gap:8px;
+    border:1px solid #e5e7eb; border-radius:999px;
+    padding:.35rem .7rem; background:#fff;
+    font-weight:900; font-size:.85rem;
+  }
+  .memberChip button{
+    width:18px; height:18px; border-radius:999px;
+    border:1px solid #e5e7eb; font-weight:900; line-height:16px;
+  }
+  .memberChip button:hover{ background:#f8fafc; }
+
 </style>
 </head>
 
@@ -161,12 +128,15 @@
 
 <main class="max-w-[1440px] mx-auto px-2 py-6 space-y-6">
 
-  <!-- ✅✅ NEW: 관리자 회의록 (페이지 최상단) -->
+  <!-- 관리자 회의록 -->
   <section class="card p-5">
     <div class="flex items-start justify-between gap-3">
       <div>
         <div class="font-extrabold text-slate-900 text-lg">관리자 회의록</div>
-        <div class="muted small">안건별 진행/완료 여부를 체크하여 관리합니다. (체크 상태는 브라우저에 저장됩니다)</div>
+        <div class="muted small">
+          - <b>상세</b> 클릭: 아래에 회의록 전문 표시<br/>
+          - <b>참석자</b> 클릭: 참석자별 <b>수신/미수신/미참석</b> 현황 팝업(표시만)
+        </div>
       </div>
       <span class="chip">MINUTES</span>
     </div>
@@ -179,20 +149,69 @@
           <tr>
             <th style="min-width:90px;">완료</th>
             <th style="min-width:140px;">등록일</th>
-            <th style="min-width:240px;">안건</th>
-            <th style="min-width:420px;">완료 업무</th>
+            <th style="min-width:260px;">안건</th>
+            <th style="min-width:520px;">상세</th>
+            <th style="min-width:220px;">참석자</th>
+            <th style="min-width:190px;">회의 일시</th>
           </tr>
         </thead>
         <tbody id="meetingTbody"></tbody>
       </table>
     </div>
 
+    <div class="mt-4 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+      <div class="flex flex-wrap items-center gap-2">
+        <button id="btnMeetingCreate" class="btnPrimary">등록</button>
+        <button id="btnMeetingEdit" class="btn3" disabled>수정</button>
+        <button id="btnMeetingDelete" class="btnDanger" disabled>삭제</button>
+        <button id="btnMeetingRecurring" class="btn3" disabled>정기회의 지정</button>
+      </div>
+      <div class="muted small">
+        * 행을 클릭해서 선택한 뒤 <span class="kbd">수정</span>/<span class="kbd">삭제</span>/<span class="kbd">정기회의 지정</span>
+        <span class="chip ml-2">선택: <span id="meetingSelectedLabel">없음</span></span>
+      </div>
+    </div>
+
     <div class="mt-3 muted small">
-      * 체크하면 완료 처리되며, 완료된 안건은 연한 초록 배경 및 취소선으로 표시됩니다.
+      * 완료 체크 시 완료 처리(초록 배경 + 취소선)됩니다.
     </div>
   </section>
 
-  <!-- 상단: 팀 필터 + KPI(1줄 5개) + 매출구성 -->
+  <!-- 상세 섹션 (회의록과 부서 개요 사이) -->
+  <section class="card p-5" id="meetingDetailSection" style="display:none;">
+    <div class="flex items-start justify-between gap-3">
+      <div>
+        <div class="font-extrabold text-slate-900 text-lg" id="meetingDetailTitle">회의록 상세</div>
+        <div class="muted small" id="meetingDetailMeta">—</div>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="chip" id="meetingDetailBadges">DETAIL</span>
+        <button class="btn3" id="btnMeetingDetailClose">닫기</button>
+      </div>
+    </div>
+
+    <div class="divider my-4"></div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-3">
+      <div class="kpi lg:col-span-1">
+        <div class="muted small font-semibold">참석자</div>
+        <div class="mt-2 flex flex-wrap gap-2" id="meetingDetailAttendeesPills"></div>
+        <div class="muted small mt-3">
+          * 참석자 이름을 누르면 “수신/미수신/미참석” 팝업이 열립니다. (여기서 변경은 하지 않습니다)
+        </div>
+      </div>
+
+      <div class="lg:col-span-2">
+        <div class="kpi">
+          <div class="muted small font-semibold">회의록 전문</div>
+          <div class="mt-2 font-extrabold text-slate-900" id="meetingDetailFullTitle">—</div>
+          <div class="mt-3 whitespace-pre-wrap text-slate-900 font-semibold leading-relaxed" id="meetingDetailFullText">—</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 부서별 개요 -->
   <section class="card p-5">
     <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
       <div>
@@ -210,7 +229,6 @@
 
     <div class="divider my-4"></div>
 
-    <!-- ✅ 한 줄(가로) 5개 고정: xl 이상 5열, 그 이하는 반응형 -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3" id="deptKpis"></div>
 
     <div class="mt-4">
@@ -305,7 +323,7 @@
     </div>
   </section>
 
-  <!-- ✅ 체크된 직원들의 거래처(합산) -->
+  <!-- 체크된 직원들의 거래처 -->
   <section class="card p-5" id="accountSection" style="display:none;">
     <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
       <div>
@@ -346,173 +364,642 @@
 
 </main>
 
+<!-- 회의록 등록/수정 모달 -->
+<div id="meetingModalBackdrop" class="modalBackdrop" role="dialog" aria-modal="true" aria-labelledby="meetingModalTitle">
+  <div class="modal">
+    <div class="modalHeader">
+      <div>
+        <div class="font-extrabold text-slate-900 text-lg" id="meetingModalTitle">회의록 등록</div>
+        <div class="muted small" id="meetingModalSub">안건/상세/참석자/회의일시를 입력하세요.</div>
+      </div>
+      <button class="btn3" id="btnMeetingClose">닫기</button>
+    </div>
+
+    <div class="modalBody">
+      <input type="hidden" id="meetingFormMode" value="create" />
+      <input type="hidden" id="meetingFormId" value="" />
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
+        <div>
+          <div class="fieldLabel">등록일</div>
+          <input id="meetingFormDate" type="date" class="input" />
+        </div>
+
+        <div>
+          <div class="fieldLabel">회의 일시</div>
+          <input id="meetingFormDatetime" type="datetime-local" class="input" />
+        </div>
+
+        <div class="lg:col-span-2">
+          <div class="fieldLabel">안건</div>
+          <input id="meetingFormTitle" type="text" class="input" placeholder="예) 1월 운영 회의: KPI/액션 확정" />
+        </div>
+
+        <div class="lg:col-span-2">
+          <div class="fieldLabel">상세(회의록 전문)</div>
+          <textarea id="meetingFormDetail" class="textarea" placeholder="예) ① 진행 현황 ② 이슈 ③ 결정 사항 ④ 액션(담당/기한)"></textarea>
+        </div>
+
+        <div class="lg:col-span-2">
+          <div class="fieldLabel">참석자</div>
+
+          <!-- ✅ 등록된 팀원 고려: 빠른 선택 -->
+          <div class="muted small mb-2">빠른 선택(클릭 시 추가/제거):</div>
+          <div class="flex flex-wrap gap-2 mb-3" id="memberQuickPick"></div>
+
+          <input id="meetingFormAttendees" type="text" class="input" placeholder="쉼표로 구분 (예: 이형익, 오승석, 박동혁)" />
+          <div class="muted small mt-2">
+            * 수신/미수신/미참석 상태는 참석자(MyPage)에서 “확인”을 누르는지에 따라 변한다고 가정합니다. (관리자 팝업은 <b>표시만</b>)
+          </div>
+        </div>
+
+        <div class="lg:col-span-2 flex items-center gap-2">
+          <label class="inline-flex items-center gap-2 font-extrabold text-slate-900">
+            <input id="meetingFormRecurring" type="checkbox" class="w-4 h-4 accent-slate-900" />
+            정기회의
+          </label>
+          <span class="muted small">(주간/월간 등)</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="modalFooter">
+      <div class="muted small">
+        <span class="kbd">Esc</span> 로 닫기 · 필수: 안건/회의 일시
+      </div>
+      <div class="flex items-center gap-2">
+        <button class="btn3" id="btnMeetingCancel">취소</button>
+        <button class="btnPrimary" id="btnMeetingSave">저장</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ✅ 참석자 수신 현황(표시만) 모달 -->
+<div id="attendeeModalBackdrop" class="modalBackdrop" role="dialog" aria-modal="true" aria-labelledby="attendeeModalTitle">
+  <div class="modal">
+    <div class="modalHeader">
+      <div>
+        <div class="font-extrabold text-slate-900 text-lg" id="attendeeModalTitle">참석자 수신 현황</div>
+        <div class="muted small" id="attendeeModalSub">—</div>
+      </div>
+      <button class="btn3" id="btnAttendeeClose">닫기</button>
+    </div>
+
+    <div class="modalBody">
+      <div class="flex flex-wrap gap-2 mb-3" id="attendeeStatusSummary"></div>
+      <div class="grid grid-cols-1 gap-2" id="attendeeList"></div>
+
+      <div class="divider my-4"></div>
+
+      <div class="muted small">
+        * 이 팝업에서는 상태를 변경하지 않습니다. 상태는 참석자(MyPage)에서 “확인” 처리되면 수신으로 바뀐다고 가정합니다.
+      </div>
+    </div>
+
+    <div class="modalFooter">
+      <div class="muted small">상태는 브라우저에 저장됩니다. (목업)</div>
+      <div class="flex items-center gap-2">
+        <button class="btn3" id="btnAttendeeCancel">닫기</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 /* ================== 단위 설정 ================== */
 const MONEY_MULTIPLIER = 1000; // 백만원 → 천원
 
-/* ================== ✅ 관리자 회의록 데이터(샘플) ==================
-   - “페이지에 업로드 되는 단어는 너가 적절하게 수정” 요청 반영: 실무형 문구로 구성
-*/
-const MEETING_ITEMS = [
-  { id:"m_20251209_01", date:"2025-12-09", title:"영업 KPI 정의 확정", task:"매출·수검자·활성 거래처 지표 정의서 확정 및 공지" },
-  { id:"m_20251205_02", date:"2025-12-05", title:"EIS 권한(직급별) 설계", task:"대표/부서장/팀장/매니저 열람 범위 표 작성 → 페이지 권한 분리 적용" },
-  { id:"m_20251201_03", date:"2025-12-01", title:"거래처 활성 기준 합의", task:"최근 방문일 기준 2개월 이내=활성, 초과=비활성 정책 반영" },
-  { id:"m_20251127_04", date:"2025-11-27", title:"관리자 페이지 개선안 반영", task:"회의록·부서 KPI·직원 체크 합산 구조 QA 완료" },
-  { id:"m_20251120_05", date:"2025-11-20", title:"데이터 적재/업로드 정책 정리", task:"엑셀 업로드 주기·파일명 규칙·권한자 지정 운영 룰 문서화" }
-];
+/* ================== ✅ 등록된 팀원(요청 반영) ================== */
+const ADMIN_TEAM_MEMBERS = ["이형익","오승석","박동혁","홍유진","이서정","김수진"];
 
-const MEETING_LS_KEY = "omnicare_eis_admin_meeting_state_v1";
+/* ================== ✅ 회의록(저장) ================== */
+const MEETING_LS_KEY = "omnicare_eis_admin_meeting_items_v3";
+const MEETING_DONE_LS_KEY = "omnicare_eis_admin_meeting_done_v1";
+const MEETING_ATT_STATUS_KEY = "omnicare_eis_admin_meeting_attendee_status_v1"; // { [meetingId]: { [name]: "received|unreceived|absent" } }
+const MYPAGE_INBOX_KEY = "omnicare_eis_mypage_meeting_inbox_v1"; // { [name]: [meetingId,...] } (목업)
 
-function loadMeetingState(){
-  try{ return JSON.parse(localStorage.getItem(MEETING_LS_KEY) || "{}"); }
-  catch(e){ return {}; }
+function uid(){ return "m_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2,7); }
+function safeJsonParse(s, fallback){ try{ return JSON.parse(s); } catch(e){ return fallback; } }
+
+function toLocalDateValue(d){
+  const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,"0"), dd=String(d.getDate()).padStart(2,"0");
+  return `${y}-${m}-${dd}`;
 }
-function saveMeetingState(state){
-  localStorage.setItem(MEETING_LS_KEY, JSON.stringify(state || {}));
+function toLocalDatetimeValue(d){
+  const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,"0"), dd=String(d.getDate()).padStart(2,"0");
+  const hh=String(d.getHours()).padStart(2,"0"), mm=String(d.getMinutes()).padStart(2,"0");
+  return `${y}-${m}-${dd}T${hh}:${mm}`;
 }
+function truncate(s,n){ const t=(s||"").trim(); if(!t) return "-"; return t.length>n ? (t.slice(0,n)+"…") : t; }
+
+/* ✅ 참석자 표시: “홍유진 외 3명” */
+function fmtAttendeesCompact(arr){
+  const a=(arr||[]).map(x=>String(x).trim()).filter(Boolean);
+  if (a.length===0) return "-";
+  if (a.length===1) return a[0];
+  return `${a[0]} 외 ${a.length-1}명`;
+}
+
+/* ================== ✅ 참석자 상태(표시용) ================== */
+function statusBadge(status){
+  const s = status || "unreceived";
+  if (s === "received") return `<span class="statusBadge"><span class="dot dotRecv"></span>수신</span>`;
+  if (s === "absent")   return `<span class="statusBadge"><span class="dot dotAbsent"></span>미참석</span>`;
+  return `<span class="statusBadge"><span class="dot dotUnrecv"></span>미수신</span>`;
+}
+function loadAttStatusAll(){ return safeJsonParse(localStorage.getItem(MEETING_ATT_STATUS_KEY), {}) || {}; }
+function saveAttStatusAll(obj){ localStorage.setItem(MEETING_ATT_STATUS_KEY, JSON.stringify(obj||{})); }
+function getAttStatus(meetingId, name){
+  const all=loadAttStatusAll();
+  return (all[meetingId]?.[name]) || "unreceived";
+}
+function setAttStatus(meetingId, name, status){
+  const all=loadAttStatusAll();
+  if(!all[meetingId]) all[meetingId]={};
+  all[meetingId][name]=status;
+  saveAttStatusAll(all);
+}
+
+/* ================== ✅ MyPage inbox (목업) ================== */
+function loadInbox(){ return safeJsonParse(localStorage.getItem(MYPAGE_INBOX_KEY), {}) || {}; }
+function saveInbox(obj){ localStorage.setItem(MYPAGE_INBOX_KEY, JSON.stringify(obj||{})); }
+function ensureInboxForMeeting(meetingId, attendees){
+  const inbox = loadInbox();
+  (attendees||[]).forEach(name=>{
+    if (!name) return;
+    if (!inbox[name]) inbox[name]=[];
+    if (!inbox[name].includes(meetingId)) inbox[name].push(meetingId);
+  });
+  saveInbox(inbox);
+}
+
+/* ================== ✅ 회의록 CRUD ================== */
+function loadMeetingItems(){
+  const saved = safeJsonParse(localStorage.getItem(MEETING_LS_KEY), null);
+  if (Array.isArray(saved)) return saved;
+
+  // ✅ 샘플: 팀원 6명만 사용
+  const seed = [
+    {
+      id:"m_20251209_01",
+      regDate:"2025-12-09",
+      title:"주간 운영회의 · KPI/파이프라인 점검",
+      detail:"[요약]\n- 팀별 YTD 매출/수검자/활성 거래처 리뷰\n- 리드 파이프라인 병목 확인 및 다음 액션 확정\n\n[결정]\n- 주간 KPI 리포트 포맷 확정\n- 1월 핵심 타깃 업종 3개 선정\n\n[액션]\n- 홍유진: 리포트 템플릿 배포(12/10)\n- 이서정: 타깃 업종 리스트업(12/12)\n- 박동혁: 진행 현황 공유(12/13)\n",
+      attendees:["홍유진","이형익","박동혁","이서정"],
+      meetingAt:"2025-12-09T10:30",
+      recurring:true
+    },
+    {
+      id:"m_20251205_02",
+      regDate:"2025-12-05",
+      title:"EIS 권한(직급/부서) 정책 합의",
+      detail:"[결정]\n- 관리자: 전체\n- 팀장: 팀 범위\n- 매니저: 본인 거래처 + 선택 합산\n\n[액션]\n- 권한 분리 반영(오승석) 12/08\n- 민감 데이터 노출 기준 문서화(김수진) 12/07\n",
+      attendees:["오승석","김수진","이형익"],
+      meetingAt:"2025-12-05T16:00",
+      recurring:false
+    }
+  ];
+  localStorage.setItem(MEETING_LS_KEY, JSON.stringify(seed));
+
+  // 초기 상태: 모두 미수신(목업), 인박스 적재
+  seed.forEach(it=>{
+    ensureInboxForMeeting(it.id, it.attendees);
+    (it.attendees||[]).forEach(a=> setAttStatus(it.id, a, "unreceived"));
+  });
+
+  return seed;
+}
+function saveMeetingItems(items){ localStorage.setItem(MEETING_LS_KEY, JSON.stringify(items||[])); }
+
+function loadMeetingDoneState(){ return safeJsonParse(localStorage.getItem(MEETING_DONE_LS_KEY), {}) || {}; }
+function saveMeetingDoneState(state){ localStorage.setItem(MEETING_DONE_LS_KEY, JSON.stringify(state||{})); }
+
+/* ================== ✅ 회의록 선택/상세 ================== */
+let MEETING_ITEMS = [];
+let selectedMeetingId = null;
+let openedDetailMeetingId = null;
+
+function getMeetingById(id){ return (MEETING_ITEMS||[]).find(x=>x.id===id) || null; }
+
+function setMeetingSelection(id){
+  selectedMeetingId = id || null;
+  const label=document.getElementById("meetingSelectedLabel");
+  const btnEdit=document.getElementById("btnMeetingEdit");
+  const btnDel=document.getElementById("btnMeetingDelete");
+  const btnRec=document.getElementById("btnMeetingRecurring");
+
+  if(!selectedMeetingId){
+    label.textContent="없음";
+    btnEdit.disabled=true; btnDel.disabled=true; btnRec.disabled=true;
+    return;
+  }
+  const it=getMeetingById(selectedMeetingId);
+  label.textContent = it ? truncate(it.title, 18) : "선택됨";
+  btnEdit.disabled=false; btnDel.disabled=false; btnRec.disabled=false;
+}
+
+function showMeetingDetail(meetingId){
+  const it=getMeetingById(meetingId);
+  if(!it) return;
+
+  openedDetailMeetingId = meetingId;
+
+  const sec=document.getElementById("meetingDetailSection");
+  sec.style.display="block";
+
+  const badges=[`<span class="chip">DETAIL</span>`];
+  if(it.recurring) badges.push(`<span class="chip">정기</span>`);
+  document.getElementById("meetingDetailBadges").innerHTML = badges.join(" ");
+
+  document.getElementById("meetingDetailMeta").textContent =
+    `등록일 ${it.regDate||"-"} · 회의 일시 ${it.meetingAt ? it.meetingAt.replace("T"," ") : "-"}`;
+
+  document.getElementById("meetingDetailFullTitle").textContent = it.title || "-";
+  document.getElementById("meetingDetailFullText").textContent = (it.detail || "-").trim();
+
+  // 참석자: 이름 + (상태배지) 표시, 클릭 시 팝업만
+  const wrap=document.getElementById("meetingDetailAttendeesPills");
+  wrap.innerHTML="";
+  (it.attendees||[]).forEach(name=>{
+    const st=getAttStatus(it.id, name);
+    const btn=document.createElement("button");
+    btn.type="button";
+    btn.className="pill font-extrabold";
+    btn.innerHTML = `<span>${name}</span><span class="ml-1">${statusBadge(st)}</span>`;
+    btn.addEventListener("click", ()=> openAttendeeModal(it.id));
+    wrap.appendChild(btn);
+  });
+
+  sec.scrollIntoView({ behavior:"smooth", block:"start" });
+}
+function hideMeetingDetail(){
+  openedDetailMeetingId=null;
+  document.getElementById("meetingDetailSection").style.display="none";
+}
+
+/* ================== ✅ 참석자 팝업(표시만) ================== */
+let attendeeModalMeetingId=null;
+
+function openAttendeeModal(meetingId){
+  const it=getMeetingById(meetingId);
+  if(!it){ alert("회의록을 찾을 수 없습니다."); return; }
+  attendeeModalMeetingId=meetingId;
+
+  document.getElementById("attendeeModalSub").textContent =
+    `안건: ${it.title||"-"} · 회의 일시: ${it.meetingAt ? it.meetingAt.replace("T"," ") : "-"}`;
+
+  const attendees = it.attendees || [];
+  const counts = attendees.reduce((m, name)=>{
+    const s = getAttStatus(meetingId, name);
+    m[s] = (m[s]||0) + 1;
+    return m;
+  }, {received:0, unreceived:0, absent:0});
+
+  document.getElementById("attendeeStatusSummary").innerHTML = `
+    <span class="subtag">${statusBadge("received")} ${counts.received||0}</span>
+    <span class="subtag">${statusBadge("unreceived")} ${counts.unreceived||0}</span>
+    <span class="subtag">${statusBadge("absent")} ${counts.absent||0}</span>
+    <span class="subtag"><b>총 ${attendees.length}</b>명</span>
+  `;
+
+  const wrap=document.getElementById("attendeeList");
+  wrap.innerHTML="";
+  if(attendees.length===0){
+    wrap.innerHTML=`<div class="muted">참석자가 없습니다.</div>`;
+  } else {
+    attendees.forEach(name=>{
+      const st=getAttStatus(meetingId, name);
+      const row=document.createElement("div");
+      row.className="attRow";
+      row.innerHTML = `
+        <div class="font-extrabold text-slate-900">${name}</div>
+        <div>${statusBadge(st)}</div>
+      `;
+      wrap.appendChild(row);
+    });
+  }
+
+  document.getElementById("attendeeModalBackdrop").style.display="flex";
+}
+function closeAttendeeModal(){
+  attendeeModalMeetingId=null;
+  document.getElementById("attendeeModalBackdrop").style.display="none";
+}
+
+/* ================== ✅ 회의록 테이블 렌더 ================== */
 function renderMeetings(){
-  const tb = document.getElementById("meetingTbody");
-  if (!tb) return;
-  const state = loadMeetingState();
-  tb.innerHTML = "";
+  MEETING_ITEMS = loadMeetingItems();
+
+  // 정렬: 등록일 desc
+  MEETING_ITEMS.sort((a,b)=>{
+    const ad=(a.regDate||"").localeCompare(b.regDate||"");
+    if(ad!==0) return -ad;
+    return String(b.meetingAt||"").localeCompare(String(a.meetingAt||""));
+  });
+
+  const doneState=loadMeetingDoneState();
+  const tb=document.getElementById("meetingTbody");
+  tb.innerHTML="";
 
   MEETING_ITEMS.forEach(item=>{
-    const done = !!state[item.id];
-    const tr = document.createElement("tr");
-    if (done) tr.classList.add("meetingDone");
+    // 상태/인박스 보장(목업)
+    ensureInboxForMeeting(item.id, item.attendees);
+    (item.attendees||[]).forEach(a=>{
+      const cur=getAttStatus(item.id, a);
+      if(!cur) setAttStatus(item.id, a, "unreceived");
+    });
+
+    const done=!!doneState[item.id];
+    const tr=document.createElement("tr");
+    tr.className="rowClickable";
+    if(done) tr.classList.add("meetingDone");
+    if(item.id===selectedMeetingId) tr.classList.add("rowActive");
+
+    const recurringBadge=item.recurring ? `<span class="chip ml-2">정기</span>` : "";
+    const meetingAtText=item.meetingAt ? item.meetingAt.replace("T"," ") : "-";
 
     tr.innerHTML = `
       <td>
         <label class="inline-flex items-center gap-2 font-bold">
-          <input type="checkbox"
-            class="w-4 h-4 accent-emerald-600"
-            data-meeting="${item.id}"
-            ${done ? "checked" : ""} />
-          <span class="muted small">${done ? "완료" : "진행"}</span>
+          <input type="checkbox" class="w-4 h-4 accent-emerald-600" data-meeting-done="${item.id}" ${done?"checked":""} />
+          <span class="muted small">${done?"완료":"진행"}</span>
         </label>
       </td>
-      <td class="font-bold">${item.date}</td>
-      <td class="font-extrabold meetingTitle">${item.title}</td>
-      <td class="meetingTask">${item.task}</td>
+      <td class="font-bold">${item.regDate||"-"}</td>
+      <td class="font-extrabold meetingTitle">${item.title||"-"} ${recurringBadge}</td>
+      <td class="meetingTask">
+        <div class="linkCell" data-open-detail="${item.id}">${truncate(item.detail, 140)}</div>
+        <div class="muted small mt-1">클릭하면 아래에 회의록 전문이 펼쳐집니다.</div>
+      </td>
+      <td>
+        <div class="linkCell" data-open-attendees="${item.id}">${fmtAttendeesCompact(item.attendees)}</div>
+        <div class="muted small mt-1">클릭하면 수신 현황 팝업이 열립니다.</div>
+      </td>
+      <td class="font-bold">${meetingAtText}</td>
     `;
 
-    tr.querySelector("input[type='checkbox']").addEventListener("change", (e)=>{
-      const id = e.target.getAttribute("data-meeting");
-      const st = loadMeetingState();
-      st[id] = e.target.checked;
-      saveMeetingState(st);
+    // 완료 체크
+    tr.querySelector("[data-meeting-done]").addEventListener("click",(e)=>{
+      e.stopPropagation();
+      const id=e.target.getAttribute("data-meeting-done");
+      const st=loadMeetingDoneState();
+      st[id]=e.target.checked;
+      saveMeetingDoneState(st);
+      renderMeetings();
+      if(openedDetailMeetingId===id) showMeetingDetail(id);
+    });
+
+    // 상세
+    tr.querySelector("[data-open-detail]").addEventListener("click",(e)=>{
+      e.stopPropagation();
+      const id=e.currentTarget.getAttribute("data-open-detail");
+      setMeetingSelection(id);
+      renderMeetings();
+      showMeetingDetail(id);
+    });
+
+    // 참석자 팝업
+    tr.querySelector("[data-open-attendees]").addEventListener("click",(e)=>{
+      e.stopPropagation();
+      const id=e.currentTarget.getAttribute("data-open-attendees");
+      setMeetingSelection(id);
+      renderMeetings();
+      openAttendeeModal(id);
+    });
+
+    // 행 클릭: 선택만
+    tr.addEventListener("click", ()=>{
+      setMeetingSelection(item.id);
       renderMeetings();
     });
 
     tb.appendChild(tr);
   });
 
-  if (MEETING_ITEMS.length === 0){
-    const tr = document.createElement("tr");
-    tr.innerHTML = `<td colspan="4" class="muted">회의록 안건이 없습니다.</td>`;
+  if(MEETING_ITEMS.length===0){
+    const tr=document.createElement("tr");
+    tr.innerHTML=`<td colspan="6" class="muted">회의록 안건이 없습니다.</td>`;
     tb.appendChild(tr);
+  }
+
+  if(selectedMeetingId && !MEETING_ITEMS.some(x=>x.id===selectedMeetingId)){
+    setMeetingSelection(null);
   }
 }
 
-/* ================== 샘플 데이터 ================== */
-const ACCOUNTS = [
-  { staffName:"김영업", name:"KMI 강남",   contractType:"withKMI",
-    salesYTD:1800, salesMix:{ a:900, b:700, c:200 },
-    examBreakdown:{ general:220, nonGeneral:120, national:80 },
-    firstVisit:"2024-02-13", lastVisit:"2025-12-10"
-  },
-  { staffName:"김영업", name:"○○병원",    contractType:"3자",
-    salesYTD:600,  salesMix:{ a:200, b:250, c:150 },
-    examBreakdown:{ general:60, nonGeneral:55, national:25 },
-    firstVisit:"2024-07-01", lastVisit:"2025-10-02"
-  },
-  { staffName:"김영업", name:"△△센터",    contractType:"기타",
-    salesYTD:120,  salesMix:{ a:30,  b:40,  c:50  },
-    examBreakdown:{ general:10, nonGeneral:8, national:7 },
-    firstVisit:"2023-11-20", lastVisit:"2025-03-18"
-  },
+/* ================== ✅ 회의록 등록/수정 모달 ================== */
+function openMeetingModal(mode, item){
+  const bd=document.getElementById("meetingModalBackdrop");
+  document.getElementById("meetingFormMode").value=mode;
+  document.getElementById("meetingFormId").value=item?.id||"";
 
-  { staffName:"박세일", name:"KMI 여의도", contractType:"withKMI",
-    salesYTD:1100, salesMix:{ a:450, b:500, c:150 },
-    examBreakdown:{ general:140, nonGeneral:70, national:50 },
-    firstVisit:"2024-01-08", lastVisit:"2025-12-05"
-  },
-  { staffName:"박세일", name:"□□건강센터", contractType:"기타",
-    salesYTD:420,  salesMix:{ a:120, b:200, c:100 },
-    examBreakdown:{ general:35, nonGeneral:40, national:15 },
-    firstVisit:"2024-05-16", lastVisit:"2025-09-21"
-  },
+  const now=new Date();
+  document.getElementById("meetingFormDate").value=item?.regDate||toLocalDateValue(now);
+  document.getElementById("meetingFormDatetime").value=item?.meetingAt||toLocalDatetimeValue(now);
+  document.getElementById("meetingFormTitle").value=item?.title||"";
+  document.getElementById("meetingFormDetail").value=item?.detail||"";
+  document.getElementById("meetingFormAttendees").value=(item?.attendees||[]).join(", ");
+  document.getElementById("meetingFormRecurring").checked=!!item?.recurring;
 
-  { staffName:"최리드", name:"KMI 광화문", contractType:"withKMI",
-    salesYTD:1500, salesMix:{ a:700, b:650, c:150 },
-    examBreakdown:{ general:190, nonGeneral:110, national:60 },
-    firstVisit:"2024-03-02", lastVisit:"2025-12-12"
-  },
-  { staffName:"최리드", name:"☆☆검진기관", contractType:"3자",
-    salesYTD:980,  salesMix:{ a:300, b:500, c:180 },
-    examBreakdown:{ general:120, nonGeneral:90, national:30 },
-    firstVisit:"2024-09-09", lastVisit:"2025-11-28"
-  },
+  document.getElementById("meetingModalTitle").textContent = (mode==="edit") ? "회의록 수정" : "회의록 등록";
+  document.getElementById("meetingModalSub").textContent = (mode==="edit")
+    ? "선택된 회의록 내용을 수정한 뒤 저장하세요."
+    : "안건/상세/참석자/회의일시를 입력하세요.";
 
-  { staffName:"정컨설", name:"KMI 수원",   contractType:"withKMI",
-    salesYTD:980,  salesMix:{ a:360, b:520, c:100 },
-    examBreakdown:{ general:130, nonGeneral:60, national:40 },
-    firstVisit:"2024-04-10", lastVisit:"2025-12-01"
-  },
-  { staffName:"정컨설", name:"◇◇병원",    contractType:"3자",
-    salesYTD:360,  salesMix:{ a:80,  b:160, c:120 },
-    examBreakdown:{ general:25, nonGeneral:30, national:15 },
-    firstVisit:"2024-08-22", lastVisit:"2025-08-30"
-  },
+  // 빠른 선택 렌더
+  renderMemberQuickPick();
 
-  { staffName:"이세일", name:"△△의료재단", contractType:"기타",
-    salesYTD:520, salesMix:{ a:150, b:250, c:120 },
-    examBreakdown:{ general:55, nonGeneral:35, national:20 },
-    firstVisit:"2024-06-03", lastVisit:"2025-10-14"
-  },
+  bd.style.display="flex";
+  setTimeout(()=>document.getElementById("meetingFormTitle").focus(),0);
+}
+function closeMeetingModal(){ document.getElementById("meetingModalBackdrop").style.display="none"; }
 
-  { staffName:"한파트", name:"KMI 부산",   contractType:"withKMI",
-    salesYTD:1250, salesMix:{ a:520, b:600, c:130 },
-    examBreakdown:{ general:170, nonGeneral:90, national:50 },
-    firstVisit:"2024-02-19", lastVisit:"2025-12-09"
-  },
+function readMeetingForm(){
+  const regDate=(document.getElementById("meetingFormDate").value||"").trim();
+  const meetingAt=(document.getElementById("meetingFormDatetime").value||"").trim();
+  const title=(document.getElementById("meetingFormTitle").value||"").trim();
+  const detail=(document.getElementById("meetingFormDetail").value||"").trim();
+  const attendeesRaw=(document.getElementById("meetingFormAttendees").value||"").trim();
+  const recurring=!!document.getElementById("meetingFormRecurring").checked;
+  const attendees = attendeesRaw
+    ? attendeesRaw.split(",").map(s=>s.trim()).filter(Boolean)
+    : [];
+  return { regDate, meetingAt, title, detail, attendees, recurring };
+}
+function validateMeetingForm(v){
+  if(!v.title) return "안건을 입력해주세요.";
+  if(!v.meetingAt) return "회의 일시를 입력해주세요.";
+  if(!v.regDate) return "등록일을 입력해주세요.";
+  return null;
+}
+function upsertMeetingItem(mode){
+  const v=readMeetingForm();
+  const err=validateMeetingForm(v);
+  if(err){ alert(err); return; }
 
-  { staffName:"오제휴", name:"제휴A",      contractType:"기타",
-    salesYTD:700,  salesMix:{ a:420, b:0,   c:280 },
-    examBreakdown:{ general:80, nonGeneral:70, national:30 },
-    firstVisit:"2024-10-01", lastVisit:"2025-12-03"
-  },
-];
+  const items=loadMeetingItems();
 
-/* ================== 전역 상태 ================== */
-let STAFF = [];
-const checkedStaff = new Set();
-let selectedRowStaffName = null;
+  if(mode==="edit"){
+    const id=document.getElementById("meetingFormId").value;
+    const idx=items.findIndex(x=>x.id===id);
+    if(idx<0){ alert("수정 대상이 없습니다."); return; }
 
-/* ================== 유틸 ================== */
+    const prevAtt=items[idx].attendees||[];
+    const nextAtt=v.attendees||[];
+    const added=nextAtt.filter(a=>!prevAtt.includes(a));
+
+    items[idx]={...items[idx], ...v};
+    saveMeetingItems(items);
+
+    ensureInboxForMeeting(id, nextAtt);
+    // 새 참석자: 미수신으로 시작(목업)
+    added.forEach(a=> setAttStatus(id, a, "unreceived"));
+
+    setMeetingSelection(id);
+  } else {
+    const id=uid();
+    items.unshift({ id, ...v });
+    saveMeetingItems(items);
+
+    ensureInboxForMeeting(id, v.attendees);
+    (v.attendees||[]).forEach(a=> setAttStatus(id, a, "unreceived"));
+
+    setMeetingSelection(id);
+  }
+
+  closeMeetingModal();
+  renderMeetings();
+  if(selectedMeetingId) showMeetingDetail(selectedMeetingId);
+}
+
+function toggleRecurringForSelected(){
+  if(!selectedMeetingId) return;
+  const items=loadMeetingItems();
+  const idx=items.findIndex(x=>x.id===selectedMeetingId);
+  if(idx<0) return;
+  items[idx].recurring=!items[idx].recurring;
+  saveMeetingItems(items);
+  renderMeetings();
+  if(openedDetailMeetingId===selectedMeetingId) showMeetingDetail(selectedMeetingId);
+}
+function deleteSelectedMeeting(){
+  if(!selectedMeetingId) return;
+  const it=getMeetingById(selectedMeetingId);
+  const ok=confirm(`선택한 회의록을 삭제할까요?\n\n- 안건: ${it?.title||"-"}\n- 등록일: ${it?.regDate||"-"}`);
+  if(!ok) return;
+
+  const items=loadMeetingItems().filter(x=>x.id!==selectedMeetingId);
+  saveMeetingItems(items);
+
+  const st=loadMeetingDoneState();
+  delete st[selectedMeetingId];
+  saveMeetingDoneState(st);
+
+  const all=loadAttStatusAll();
+  delete all[selectedMeetingId];
+  saveAttStatusAll(all);
+
+  if(openedDetailMeetingId===selectedMeetingId) hideMeetingDetail();
+  setMeetingSelection(null);
+  renderMeetings();
+}
+
+/* ================== ✅ 빠른 선택(팀원 6명) ================== */
+function getAttendeesInputList(){
+  const raw=(document.getElementById("meetingFormAttendees").value||"").trim();
+  if(!raw) return [];
+  return raw.split(",").map(s=>s.trim()).filter(Boolean);
+}
+function setAttendeesInputList(list){
+  document.getElementById("meetingFormAttendees").value = (list||[]).join(", ");
+}
+function toggleAttendeeInInput(name){
+  const list=getAttendeesInputList();
+  const idx=list.indexOf(name);
+  if(idx>=0) list.splice(idx,1);
+  else list.push(name);
+  setAttendeesInputList(list);
+  renderMemberQuickPick();
+}
+function renderMemberQuickPick(){
+  const wrap=document.getElementById("memberQuickPick");
+  if(!wrap) return;
+  const list=getAttendeesInputList();
+  wrap.innerHTML="";
+  ADMIN_TEAM_MEMBERS.forEach(name=>{
+    const active=list.includes(name);
+    const el=document.createElement("div");
+    el.className="memberChip";
+    el.style.borderColor = active ? "#c7d2fe" : "#e5e7eb";
+    el.style.background = active ? "#eef2ff" : "#fff";
+    el.innerHTML = `
+      <span>${name}</span>
+      <button type="button" title="${active ? "제거" : "추가"}">${active ? "−" : "+"}</button>
+    `;
+    el.addEventListener("click", ()=> toggleAttendeeInInput(name));
+    wrap.appendChild(el);
+  });
+}
+
+/* ================== 키 이벤트 / 바인딩 ================== */
+function bindMeetingControls(){
+  document.getElementById("btnMeetingCreate").addEventListener("click", ()=> openMeetingModal("create", null));
+  document.getElementById("btnMeetingEdit").addEventListener("click", ()=>{
+    if(!selectedMeetingId) return;
+    const it=getMeetingById(selectedMeetingId);
+    if(!it){ alert("수정 대상이 없습니다."); return; }
+    openMeetingModal("edit", it);
+  });
+  document.getElementById("btnMeetingDelete").addEventListener("click", deleteSelectedMeeting);
+  document.getElementById("btnMeetingRecurring").addEventListener("click", ()=>{ if(selectedMeetingId) toggleRecurringForSelected(); });
+
+  document.getElementById("btnMeetingDetailClose").addEventListener("click", hideMeetingDetail);
+
+  document.getElementById("btnMeetingClose").addEventListener("click", closeMeetingModal);
+  document.getElementById("btnMeetingCancel").addEventListener("click", closeMeetingModal);
+  document.getElementById("btnMeetingSave").addEventListener("click", ()=>{
+    const mode=document.getElementById("meetingFormMode").value;
+    upsertMeetingItem(mode);
+  });
+  document.getElementById("meetingModalBackdrop").addEventListener("click",(e)=>{
+    if(e.target.id==="meetingModalBackdrop") closeMeetingModal();
+  });
+
+  document.getElementById("btnAttendeeClose").addEventListener("click", closeAttendeeModal);
+  document.getElementById("btnAttendeeCancel").addEventListener("click", closeAttendeeModal);
+  document.getElementById("attendeeModalBackdrop").addEventListener("click",(e)=>{
+    if(e.target.id==="attendeeModalBackdrop") closeAttendeeModal();
+  });
+
+  window.addEventListener("keydown",(e)=>{
+    if(e.key==="Escape"){
+      if(document.getElementById("meetingModalBackdrop").style.display==="flex") closeMeetingModal();
+      if(document.getElementById("attendeeModalBackdrop").style.display==="flex") closeAttendeeModal();
+    }
+  });
+
+  // 참석자 입력값 바뀌면 quick pick 상태도 즉시 갱신
+  const attInput=document.getElementById("meetingFormAttendees");
+  attInput.addEventListener("input", ()=> renderMemberQuickPick());
+}
+
+/* ================== 이하: 기존 KPI/직원/거래처 로직 (변경 없음) ================== */
 function fmt(n){ return (n ?? 0).toLocaleString(); }
 function moneyThousandWon(x){ return Math.round((x ?? 0) * MONEY_MULTIPLIER); }
 function fmtMoney(x){ return fmt(moneyThousandWon(x)); }
 function pillDot(color){ return `<span class="w-2 h-2 rounded-full ${color}"></span>`; }
 
 function contractPill(type){
-  const t = (type||"-").trim();
-  if (t === "withKMI") return `<span class="pill">${pillDot("bg-emerald-500")}withKMI</span>`;
-  if (t === "3자")     return `<span class="pill">${pillDot("bg-sky-500")}3자</span>`;
-  if (t === "기타")    return `<span class="pill">${pillDot("bg-amber-500")}기타</span>`;
+  const t=(type||"-").trim();
+  if(t==="withKMI") return `<span class="pill">${pillDot("bg-emerald-500")}withKMI</span>`;
+  if(t==="3자")     return `<span class="pill">${pillDot("bg-sky-500")}3자</span>`;
+  if(t==="기타")    return `<span class="pill">${pillDot("bg-amber-500")}기타</span>`;
   return `<span class="pill">${pillDot("bg-slate-400")}${t}</span>`;
 }
-
-function examSum(ex){
-  if (!ex) return 0;
-  return (ex.general||0) + (ex.nonGeneral||0) + (ex.national||0);
-}
-
+function examSum(ex){ if(!ex) return 0; return (ex.general||0)+(ex.nonGeneral||0)+(ex.national||0); }
 function examBreakdownLikeSales(ex){
-  const g = ex?.general || 0;
-  const ng = ex?.nonGeneral || 0;
-  const nat = ex?.national || 0;
-
+  const g=ex?.general||0, ng=ex?.nonGeneral||0, nat=ex?.national||0;
   return `
     <div class="subline">
       <span class="subtag"><span class="legendDot exDot1"></span>종검 ${fmt(g)}</span>
@@ -521,217 +1008,171 @@ function examBreakdownLikeSales(ex){
     </div>
   `;
 }
-
 function parseYmd(ymd){
-  if (!ymd) return null;
-  const [y,m,d] = ymd.split("-").map(Number);
-  if (!y || !m || !d) return null;
-  return new Date(y, m-1, d);
+  if(!ymd) return null;
+  const [y,m,d]=ymd.split("-").map(Number);
+  if(!y||!m||!d) return null;
+  return new Date(y,m-1,d);
 }
-function addMonths(date, months){
-  const d = new Date(date);
-  d.setMonth(d.getMonth() + months);
-  return d;
-}
+function addMonths(date, months){ const d=new Date(date); d.setMonth(d.getMonth()+months); return d; }
 function isActiveByLastVisit(lastVisitYmd){
-  const dt = parseYmd(lastVisitYmd);
-  if (!dt) return false;
-  const today = new Date();
-  const cutoff = addMonths(today, -2);
-  return dt >= cutoff;
+  const dt=parseYmd(lastVisitYmd);
+  if(!dt) return false;
+  const today=new Date();
+  const cutoff=addMonths(today,-2);
+  return dt>=cutoff;
 }
 function visitStatusPill(lastVisitYmd){
-  const active = isActiveByLastVisit(lastVisitYmd);
-  if (active) return `<span class="pill">${pillDot("bg-sky-500")}활성</span>`;
+  const active=isActiveByLastVisit(lastVisitYmd);
+  if(active) return `<span class="pill">${pillDot("bg-sky-500")}활성</span>`;
   return `<span class="pill">${pillDot("bg-slate-500")}비활성</span>`;
 }
 
-/* ================== 직원 집계 ================== */
+/* 샘플 거래처 데이터(기존) */
+const ACCOUNTS = [
+  { staffName:"김영업", name:"KMI 강남", contractType:"withKMI", salesYTD:1800, salesMix:{ a:900, b:700, c:200 }, examBreakdown:{ general:220, nonGeneral:120, national:80 }, firstVisit:"2024-02-13", lastVisit:"2025-12-10" },
+  { staffName:"김영업", name:"○○병원", contractType:"3자", salesYTD:600, salesMix:{ a:200, b:250, c:150 }, examBreakdown:{ general:60, nonGeneral:55, national:25 }, firstVisit:"2024-07-01", lastVisit:"2025-10-02" },
+  { staffName:"김영업", name:"△△센터", contractType:"기타", salesYTD:120, salesMix:{ a:30, b:40, c:50 }, examBreakdown:{ general:10, nonGeneral:8, national:7 }, firstVisit:"2023-11-20", lastVisit:"2025-03-18" },
+
+  { staffName:"박세일", name:"KMI 여의도", contractType:"withKMI", salesYTD:1100, salesMix:{ a:450, b:500, c:150 }, examBreakdown:{ general:140, nonGeneral:70, national:50 }, firstVisit:"2024-01-08", lastVisit:"2025-12-05" },
+  { staffName:"박세일", name:"□□건강센터", contractType:"기타", salesYTD:420, salesMix:{ a:120, b:200, c:100 }, examBreakdown:{ general:35, nonGeneral:40, national:15 }, firstVisit:"2024-05-16", lastVisit:"2025-09-21" },
+
+  { staffName:"최리드", name:"KMI 광화문", contractType:"withKMI", salesYTD:1500, salesMix:{ a:700, b:650, c:150 }, examBreakdown:{ general:190, nonGeneral:110, national:60 }, firstVisit:"2024-03-02", lastVisit:"2025-12-12" },
+  { staffName:"최리드", name:"☆☆검진기관", contractType:"3자", salesYTD:980, salesMix:{ a:300, b:500, c:180 }, examBreakdown:{ general:120, nonGeneral:90, national:30 }, firstVisit:"2024-09-09", lastVisit:"2025-11-28" },
+
+  { staffName:"정컨설", name:"KMI 수원", contractType:"withKMI", salesYTD:980, salesMix:{ a:360, b:520, c:100 }, examBreakdown:{ general:130, nonGeneral:60, national:40 }, firstVisit:"2024-04-10", lastVisit:"2025-12-01" },
+  { staffName:"정컨설", name:"◇◇병원", contractType:"3자", salesYTD:360, salesMix:{ a:80, b:160, c:120 }, examBreakdown:{ general:25, nonGeneral:30, national:15 }, firstVisit:"2024-08-22", lastVisit:"2025-08-30" },
+
+  { staffName:"이세일", name:"△△의료재단", contractType:"기타", salesYTD:520, salesMix:{ a:150, b:250, c:120 }, examBreakdown:{ general:55, nonGeneral:35, national:20 }, firstVisit:"2024-06-03", lastVisit:"2025-10-14" },
+  { staffName:"한파트", name:"KMI 부산", contractType:"withKMI", salesYTD:1250, salesMix:{ a:520, b:600, c:130 }, examBreakdown:{ general:170, nonGeneral:90, national:50 }, firstVisit:"2024-02-19", lastVisit:"2025-12-09" },
+  { staffName:"오제휴", name:"제휴A", contractType:"기타", salesYTD:700, salesMix:{ a:420, b:0, c:280 }, examBreakdown:{ general:80, nonGeneral:70, national:30 }, firstVisit:"2024-10-01", lastVisit:"2025-12-03" },
+];
+
+let STAFF=[];
+const checkedStaff=new Set();
+let selectedRowStaffName=null;
+
 function buildStaffFromAccounts(){
-  const map = new Map();
-  const teamByName = {
-    "김영업":"A팀", "박세일":"A팀", "최리드":"A팀",
-    "정컨설":"B팀", "이세일":"B팀", "한파트":"B팀",
-    "오제휴":"제휴팀", "윤운영":"운영팀"
-  };
+  const map=new Map();
+  const teamByName={ "김영업":"A팀","박세일":"A팀","최리드":"A팀","정컨설":"B팀","이세일":"B팀","한파트":"B팀","오제휴":"제휴팀","윤운영":"운영팀" };
 
   ACCOUNTS.forEach(a=>{
-    if (!map.has(a.staffName)){
-      map.set(a.staffName, {
-        name: a.staffName,
-        team: teamByName[a.staffName] || "미지정",
-        accounts: 0,
-        activeAccounts: 0,
-        examineesYTD: 0,
-        salesYTD: 0,
-        salesMix: { a:0, b:0, c:0 },
-      });
+    if(!map.has(a.staffName)){
+      map.set(a.staffName,{ name:a.staffName, team:teamByName[a.staffName]||"미지정", accounts:0, activeAccounts:0, examineesYTD:0, salesYTD:0, salesMix:{a:0,b:0,c:0} });
     }
-    const s = map.get(a.staffName);
-    s.accounts += 1;
-    if (isActiveByLastVisit(a.lastVisit)) s.activeAccounts += 1;
-
+    const s=map.get(a.staffName);
+    s.accounts+=1;
+    if(isActiveByLastVisit(a.lastVisit)) s.activeAccounts+=1;
     s.examineesYTD += examSum(a.examBreakdown);
-    s.salesYTD += (a.salesYTD || 0);
+    s.salesYTD += (a.salesYTD||0);
     s.salesMix.a += (a.salesMix?.a ?? 0);
     s.salesMix.b += (a.salesMix?.b ?? 0);
     s.salesMix.c += (a.salesMix?.c ?? 0);
   });
 
   Array.from(map.values()).forEach(s=>{
-    const mixSum = s.salesMix.a + s.salesMix.b + s.salesMix.c;
-    if (mixSum !== s.salesYTD) s.salesMix.c += (s.salesYTD - mixSum);
+    const mixSum=s.salesMix.a+s.salesMix.b+s.salesMix.c;
+    if(mixSum!==s.salesYTD) s.salesMix.c += (s.salesYTD - mixSum);
   });
 
   return Array.from(map.values());
 }
 
-/* ================== 필터 초기화 ================== */
 function initDeptSelect(){
-  const sel = document.getElementById("deptSelect");
-  const teams = Array.from(new Set(STAFF.map(s=>s.team))).sort();
-  teams.forEach(t=>{
-    const opt = document.createElement("option");
-    opt.value = t;
-    opt.textContent = t;
-    sel.appendChild(opt);
-  });
-  sel.addEventListener("change", () => renderAll());
+  const sel=document.getElementById("deptSelect");
+  const teams=Array.from(new Set(STAFF.map(s=>s.team))).sort();
+  teams.forEach(t=>{ const opt=document.createElement("option"); opt.value=t; opt.textContent=t; sel.appendChild(opt); });
+  sel.addEventListener("change", ()=> renderAll());
 }
 function initStaffTeamFilter(){
-  const sel = document.getElementById("staffTeamFilter");
-  const teams = Array.from(new Set(STAFF.map(s=>s.team))).sort();
-  teams.forEach(t=>{
-    const opt = document.createElement("option");
-    opt.value = t;
-    opt.textContent = t;
-    sel.appendChild(opt);
-  });
+  const sel=document.getElementById("staffTeamFilter");
+  const teams=Array.from(new Set(STAFF.map(s=>s.team))).sort();
+  teams.forEach(t=>{ const opt=document.createElement("option"); opt.value=t; opt.textContent=t; sel.appendChild(opt); });
   sel.addEventListener("change", renderStaffTable);
 }
 
-/* ================== 부서(팀) KPI/매출구성 ================== */
 function calcDeptAgg(team){
-  const staffRows = (team==="ALL") ? STAFF : STAFF.filter(s=>s.team===team);
-  const headcount = staffRows.length;
+  const staffRows=(team==="ALL") ? STAFF : STAFF.filter(s=>s.team===team);
+  const headcount=staffRows.length;
+  const staffNames=new Set(staffRows.map(s=>s.name));
+  const accRows=ACCOUNTS.filter(a=>staffNames.has(a.staffName));
+  const deptAccounts=accRows.length;
+  const activeAccounts=accRows.filter(a=>isActiveByLastVisit(a.lastVisit)).length;
+  const sumSales=staffRows.reduce((a,b)=>a+(b.salesYTD||0),0);
+  const sumExaminees=accRows.reduce((a,b)=>a+examSum(b.examBreakdown),0);
 
-  const staffNames = new Set(staffRows.map(s=>s.name));
-  const accRows = ACCOUNTS.filter(a => staffNames.has(a.staffName));
-
-  const deptAccounts = accRows.length;
-  const activeAccounts = accRows.filter(a=>isActiveByLastVisit(a.lastVisit)).length;
-
-  const sumSales = staffRows.reduce((a,b)=>a+(b.salesYTD||0),0);
-  const sumExaminees = accRows.reduce((a,b)=>a+examSum(b.examBreakdown),0);
-
-  const mix = accRows.reduce((m, r)=>{
+  const mix=accRows.reduce((m,r)=>{
     m.a += (r.salesMix?.a ?? 0);
     m.b += (r.salesMix?.b ?? 0);
     m.c += (r.salesMix?.c ?? 0);
     return m;
   }, {a:0,b:0,c:0});
 
-  const mixSum = mix.a + mix.b + mix.c;
-  if (mixSum !== sumSales) mix.c += (sumSales - mixSum);
+  const mixSum=mix.a+mix.b+mix.c;
+  if(mixSum!==sumSales) mix.c += (sumSales - mixSum);
 
   return { headcount, deptAccounts, activeAccounts, sumSales, sumExaminees, mix };
 }
-
 function renderDeptKpis(){
-  const team = document.getElementById("deptSelect").value;
-  const a = calcDeptAgg(team);
+  const team=document.getElementById("deptSelect").value;
+  const a=calcDeptAgg(team);
 
   document.getElementById("deptKpis").innerHTML = `
-    <div class="kpi">
-      <div class="muted small font-semibold">인원</div>
-      <div class="text-2xl font-extrabold text-slate-900 mt-1">${fmt(a.headcount)}</div>
-      <div class="muted small mt-1">선택 팀</div>
-    </div>
-
-    <div class="kpi">
-      <div class="muted small font-semibold">부서 거래처</div>
-      <div class="text-2xl font-extrabold text-slate-900 mt-1">${fmt(a.deptAccounts)}</div>
-      <div class="muted small mt-1">전체</div>
-    </div>
-
-    <div class="kpi">
-      <div class="muted small font-semibold">활성 거래처</div>
-      <div class="text-2xl font-extrabold text-slate-900 mt-1">${fmt(a.activeAccounts)}</div>
-      <div class="muted small mt-1">최근 2개월</div>
-    </div>
-
-    <div class="kpi">
-      <div class="muted small font-semibold">누적 매출(천원)</div>
-      <div class="text-2xl font-extrabold text-slate-900 mt-1">${fmtMoney(a.sumSales)}</div>
-      <div class="muted small mt-1">YTD</div>
-    </div>
-
-    <div class="kpi">
-      <div class="muted small font-semibold">누적 수검자</div>
-      <div class="text-2xl font-extrabold text-slate-900 mt-1">${fmt(a.sumExaminees)}</div>
-      <div class="muted small mt-1">합산</div>
-    </div>
+    <div class="kpi"><div class="muted small font-semibold">인원</div><div class="text-2xl font-extrabold text-slate-900 mt-1">${fmt(a.headcount)}</div><div class="muted small mt-1">선택 팀</div></div>
+    <div class="kpi"><div class="muted small font-semibold">부서 거래처</div><div class="text-2xl font-extrabold text-slate-900 mt-1">${fmt(a.deptAccounts)}</div><div class="muted small mt-1">전체</div></div>
+    <div class="kpi"><div class="muted small font-semibold">활성 거래처</div><div class="text-2xl font-extrabold text-slate-900 mt-1">${fmt(a.activeAccounts)}</div><div class="muted small mt-1">최근 2개월</div></div>
+    <div class="kpi"><div class="muted small font-semibold">누적 매출(천원)</div><div class="text-2xl font-extrabold text-slate-900 mt-1">${fmtMoney(a.sumSales)}</div><div class="muted small mt-1">YTD</div></div>
+    <div class="kpi"><div class="muted small font-semibold">누적 수검자</div><div class="text-2xl font-extrabold text-slate-900 mt-1">${fmt(a.sumExaminees)}</div><div class="muted small mt-1">합산</div></div>
   `;
 }
-
 function renderSalesMixBar(){
-  const team = document.getElementById("deptSelect").value;
-  const a = calcDeptAgg(team);
-
-  const total = (a.mix.a + a.mix.b + a.mix.c) || 0;
-  const pa = total ? a.mix.a / total : 0;
-  const pb = total ? a.mix.b / total : 0;
-  const pc = total ? a.mix.c / total : 0;
+  const team=document.getElementById("deptSelect").value;
+  const a=calcDeptAgg(team);
+  const total=(a.mix.a+a.mix.b+a.mix.c) || 0;
+  const pa=total ? a.mix.a/total : 0, pb=total ? a.mix.b/total : 0, pc=total ? a.mix.c/total : 0;
 
   document.getElementById("mixBar").innerHTML = `
     <div class="seg a" style="width:${(pa*100).toFixed(2)}%"></div>
     <div class="seg b" style="width:${(pb*100).toFixed(2)}%"></div>
     <div class="seg c" style="width:${(pc*100).toFixed(2)}%"></div>
   `;
-
   document.getElementById("mixA").textContent = fmtMoney(a.mix.a);
   document.getElementById("mixB").textContent = fmtMoney(a.mix.b);
   document.getElementById("mixC").textContent = fmtMoney(a.mix.c);
-
   document.getElementById("mixAp").textContent = total ? `${Math.round(pa*100)}%` : "0%";
   document.getElementById("mixBp").textContent = total ? `${Math.round(pb*100)}%` : "0%";
   document.getElementById("mixCp").textContent = total ? `${Math.round(pc*100)}%` : "0%";
 }
 
-/* ================== 직원 테이블 ================== */
 function getFilteredStaffRows(){
-  const pageTeam = document.getElementById("deptSelect").value;
-  const teamFilter = document.getElementById("staffTeamFilter").value;
-  const q = (document.getElementById("staffSearch").value || "").trim();
+  const pageTeam=document.getElementById("deptSelect").value;
+  const teamFilter=document.getElementById("staffTeamFilter").value;
+  const q=(document.getElementById("staffSearch").value||"").trim();
 
-  let rows = [...STAFF];
-  if (pageTeam !== "ALL") rows = rows.filter(s=>s.team===pageTeam);
-  if (teamFilter !== "ALL") rows = rows.filter(s=>s.team===teamFilter);
-  if (q) rows = rows.filter(s=>s.name.includes(q));
+  let rows=[...STAFF];
+  if(pageTeam!=="ALL") rows=rows.filter(s=>s.team===pageTeam);
+  if(teamFilter!=="ALL") rows=rows.filter(s=>s.team===teamFilter);
+  if(q) rows=rows.filter(s=>s.name.includes(q));
 
   rows.sort((a,b)=>{
-    if ((b.salesYTD||0) !== (a.salesYTD||0)) return (b.salesYTD||0) - (a.salesYTD||0);
-    return (b.activeAccounts||0) - (a.activeAccounts||0);
+    if((b.salesYTD||0)!==(a.salesYTD||0)) return (b.salesYTD||0)-(a.salesYTD||0);
+    return (b.activeAccounts||0)-(a.activeAccounts||0);
   });
   return rows;
 }
-
 function renderStaffTable(){
-  const rows = getFilteredStaffRows();
-  const tb = document.getElementById("staffTbody");
-  tb.innerHTML = "";
+  const rows=getFilteredStaffRows();
+  const tb=document.getElementById("staffTbody");
+  tb.innerHTML="";
 
   rows.forEach(r=>{
-    const tr = document.createElement("tr");
-    tr.className = "rowClickable";
-    tr.dataset.staffName = r.name;
-
-    const checked = checkedStaff.has(r.name);
+    const tr=document.createElement("tr");
+    tr.className="rowClickable";
+    tr.dataset.staffName=r.name;
+    const checked=checkedStaff.has(r.name);
 
     tr.innerHTML = `
-      <td>
-        <input type="checkbox" class="w-4 h-4 accent-slate-900" data-check="${r.name}" ${checked ? "checked":""} />
-      </td>
+      <td><input type="checkbox" class="w-4 h-4 accent-slate-900" data-check="${r.name}" ${checked?"checked":""} /></td>
       <td class="font-extrabold">${r.name}</td>
       <td><span class="chip">${r.team}</span></td>
       <td class="font-bold">${fmt(r.accounts)}</td>
@@ -747,170 +1188,122 @@ function renderStaffTable(){
       </td>
     `;
 
-    tr.querySelector("input[type='checkbox']").addEventListener("click", (e)=>{
-      e.stopPropagation();
-      toggleCheckStaff(r.name);
-    });
-
-    tr.addEventListener("click", ()=>{
-      selectedRowStaffName = r.name;
-      toggleCheckStaff(r.name);
-      applySelectedRowHighlight();
-    });
+    tr.querySelector("input[type='checkbox']").addEventListener("click",(e)=>{ e.stopPropagation(); toggleCheckStaff(r.name); });
+    tr.addEventListener("click", ()=>{ selectedRowStaffName=r.name; toggleCheckStaff(r.name); applySelectedRowHighlight(); });
 
     tb.appendChild(tr);
   });
 
-  if (rows.length === 0){
-    const tr = document.createElement("tr");
-    tr.innerHTML = `<td colspan="7" class="muted">검색/필터 결과가 없습니다.</td>`;
+  if(rows.length===0){
+    const tr=document.createElement("tr");
+    tr.innerHTML=`<td colspan="7" class="muted">검색/필터 결과가 없습니다.</td>`;
     tb.appendChild(tr);
   }
-
   applySelectedRowHighlight();
 }
-
 function applySelectedRowHighlight(){
-  const tb = document.getElementById("staffTbody");
+  const tb=document.getElementById("staffTbody");
   [...tb.querySelectorAll("tr")].forEach(tr=>{
-    if (tr.dataset.staffName && tr.dataset.staffName === selectedRowStaffName) tr.classList.add("rowActive");
+    if(tr.dataset.staffName && tr.dataset.staffName===selectedRowStaffName) tr.classList.add("rowActive");
     else tr.classList.remove("rowActive");
   });
 }
-
+function syncVisibleCheckboxes(){
+  const tb=document.getElementById("staffTbody");
+  tb.querySelectorAll("input[type='checkbox'][data-check]").forEach(cb=>{
+    const name=cb.getAttribute("data-check");
+    cb.checked=checkedStaff.has(name);
+  });
+}
 function toggleCheckStaff(name){
-  if (checkedStaff.has(name)) checkedStaff.delete(name);
+  if(checkedStaff.has(name)) checkedStaff.delete(name);
   else checkedStaff.add(name);
 
   syncVisibleCheckboxes();
   renderAccountsForCheckedStaff();
   renderCheckedSummaryBadges();
 }
-
-function syncVisibleCheckboxes(){
-  const tb = document.getElementById("staffTbody");
-  tb.querySelectorAll("input[type='checkbox'][data-check]").forEach(cb=>{
-    const name = cb.getAttribute("data-check");
-    cb.checked = checkedStaff.has(name);
-  });
-}
-
 function clearCheckedStaff(){
   checkedStaff.clear();
-  selectedRowStaffName = null;
+  selectedRowStaffName=null;
   syncVisibleCheckboxes();
   applySelectedRowHighlight();
   renderAccountsForCheckedStaff();
   renderCheckedSummaryBadges();
 }
-
-/* ================== 체크 요약 뱃지 ================== */
 function renderCheckedSummaryBadges(){
-  const names = Array.from(checkedStaff);
+  const names=Array.from(checkedStaff);
   document.getElementById("checkedCount").textContent = fmt(names.length);
 
-  if (names.length === 0){
-    document.getElementById("checkedAccountsCount").textContent = "0";
-    document.getElementById("checkedExamCount").textContent = "0";
-    document.getElementById("checkedSalesSum").textContent = "0";
+  if(names.length===0){
+    document.getElementById("checkedAccountsCount").textContent="0";
+    document.getElementById("checkedExamCount").textContent="0";
+    document.getElementById("checkedSalesSum").textContent="0";
     return;
   }
-
-  const rows = ACCOUNTS.filter(a => checkedStaff.has(a.staffName));
-  const accountCount = rows.length;
-  const examTotal = rows.reduce((s,r)=>s+examSum(r.examBreakdown),0);
-  const salesSum = rows.reduce((s,r)=>s+(r.salesYTD||0),0);
-
-  document.getElementById("checkedAccountsCount").textContent = fmt(accountCount);
-  document.getElementById("checkedExamCount").textContent = fmt(examTotal);
-  document.getElementById("checkedSalesSum").textContent = fmtMoney(salesSum);
+  const rows=ACCOUNTS.filter(a=>checkedStaff.has(a.staffName));
+  document.getElementById("checkedAccountsCount").textContent = fmt(rows.length);
+  document.getElementById("checkedExamCount").textContent = fmt(rows.reduce((s,r)=>s+examSum(r.examBreakdown),0));
+  document.getElementById("checkedSalesSum").textContent = fmtMoney(rows.reduce((s,r)=>s+(r.salesYTD||0),0));
 }
-
-/* ================== 체크된 직원들의 거래처(합산) ================== */
 function renderAccountsForCheckedStaff(){
-  const sec = document.getElementById("accountSection");
-  const names = Array.from(checkedStaff);
+  const sec=document.getElementById("accountSection");
+  const names=Array.from(checkedStaff);
 
-  if (names.length === 0){
-    sec.style.display = "none";
-    document.getElementById("accountTbody").innerHTML = "";
-    document.getElementById("accountKpis").innerHTML = "";
+  if(names.length===0){
+    sec.style.display="none";
+    document.getElementById("accountTbody").innerHTML="";
+    document.getElementById("accountKpis").innerHTML="";
     return;
   }
 
-  const rows = ACCOUNTS.filter(a => checkedStaff.has(a.staffName));
-  sec.style.display = "block";
+  const rows=ACCOUNTS.filter(a=>checkedStaff.has(a.staffName));
+  sec.style.display="block";
 
   document.getElementById("accountTitle").textContent = `선택 직원(${names.length}명) · 담당 거래처`;
   document.getElementById("accountSub").textContent = `${names.join(", ")} · 거래처 ${fmt(rows.length)}개 (합산)`;
 
-  const active = rows.filter(r=>isActiveByLastVisit(r.lastVisit)).length;
-  const inactive = rows.length - active;
-  const sumSales = rows.reduce((a,b)=>a+(b.salesYTD||0),0);
+  const active=rows.filter(r=>isActiveByLastVisit(r.lastVisit)).length;
+  const inactive=rows.length-active;
+  const sumSales=rows.reduce((a,b)=>a+(b.salesYTD||0),0);
 
-  const ex = rows.reduce((m,r)=>{
-    m.general += (r.examBreakdown?.general || 0);
-    m.nonGeneral += (r.examBreakdown?.nonGeneral || 0);
-    m.national += (r.examBreakdown?.national || 0);
+  const ex=rows.reduce((m,r)=>{
+    m.general+=(r.examBreakdown?.general||0);
+    m.nonGeneral+=(r.examBreakdown?.nonGeneral||0);
+    m.national+=(r.examBreakdown?.national||0);
     return m;
   }, {general:0, nonGeneral:0, national:0});
 
-  const ct = rows.reduce((m,r)=>{
-    const k = (r.contractType||"기타");
-    m[k] = (m[k]||0) + 1;
-    return m;
-  }, {});
+  const ct=rows.reduce((m,r)=>{ const k=(r.contractType||"기타"); m[k]=(m[k]||0)+1; return m; }, {});
 
   document.getElementById("accountKpis").innerHTML = `
-    <div class="kpi">
-      <div class="muted small font-semibold">거래처 수</div>
-      <div class="text-2xl font-extrabold text-slate-900 mt-1">${fmt(rows.length)}</div>
-      <div class="muted small mt-1">활성 ${fmt(active)} · 비활성 ${fmt(inactive)}</div>
-    </div>
-
-    <div class="kpi">
-      <div class="muted small font-semibold">금년도 누적 매출(천원)</div>
-      <div class="text-2xl font-extrabold text-slate-900 mt-1">${fmtMoney(sumSales)}</div>
-      <div class="muted small mt-1">선택 직원 합산</div>
-    </div>
-
-    <div class="kpi">
-      <div class="muted small font-semibold">누적 수검자(합계)</div>
-      <div class="text-2xl font-extrabold text-slate-900 mt-1">${fmt(ex.general + ex.nonGeneral + ex.national)}</div>
-      <div class="muted small mt-1">종검 ${fmt(ex.general)} · 종검 외 ${fmt(ex.nonGeneral)} · 국가 ${fmt(ex.national)}</div>
-    </div>
-
-    <div class="kpi">
-      <div class="muted small font-semibold">계약 형태 분포</div>
-      <div class="text-2xl font-extrabold text-slate-900 mt-1">${fmt((ct["3자"]||0))} / ${fmt((ct["withKMI"]||0))} / ${fmt((ct["기타"]||0))}</div>
-      <div class="muted small mt-1">3자 / withKMI / 기타 (거래처 수)</div>
-    </div>
+    <div class="kpi"><div class="muted small font-semibold">거래처 수</div><div class="text-2xl font-extrabold text-slate-900 mt-1">${fmt(rows.length)}</div><div class="muted small mt-1">활성 ${fmt(active)} · 비활성 ${fmt(inactive)}</div></div>
+    <div class="kpi"><div class="muted small font-semibold">금년도 누적 매출(천원)</div><div class="text-2xl font-extrabold text-slate-900 mt-1">${fmtMoney(sumSales)}</div><div class="muted small mt-1">선택 직원 합산</div></div>
+    <div class="kpi"><div class="muted small font-semibold">누적 수검자(합계)</div><div class="text-2xl font-extrabold text-slate-900 mt-1">${fmt(ex.general+ex.nonGeneral+ex.national)}</div><div class="muted small mt-1">종검 ${fmt(ex.general)} · 종검 외 ${fmt(ex.nonGeneral)} · 국가 ${fmt(ex.national)}</div></div>
+    <div class="kpi"><div class="muted small font-semibold">계약 형태 분포</div><div class="text-2xl font-extrabold text-slate-900 mt-1">${fmt((ct["3자"]||0))} / ${fmt((ct["withKMI"]||0))} / ${fmt((ct["기타"]||0))}</div><div class="muted small mt-1">3자 / withKMI / 기타 (거래처 수)</div></div>
   `;
 
-  const tb = document.getElementById("accountTbody");
-  tb.innerHTML = "";
+  const tb=document.getElementById("accountTbody");
+  tb.innerHTML="";
 
   rows.sort((a,b)=>{
-    const aa = isActiveByLastVisit(a.lastVisit) ? 0 : 1;
-    const bb = isActiveByLastVisit(b.lastVisit) ? 0 : 1;
-    if (aa !== bb) return aa - bb;
-    return (b.salesYTD||0) - (a.salesYTD||0);
+    const aa=isActiveByLastVisit(a.lastVisit)?0:1;
+    const bb=isActiveByLastVisit(b.lastVisit)?0:1;
+    if(aa!==bb) return aa-bb;
+    return (b.salesYTD||0)-(a.salesYTD||0);
   });
 
   rows.forEach(rw=>{
-    const tr = document.createElement("tr");
+    const tr=document.createElement("tr");
     tr.innerHTML = `
       <td class="font-extrabold">${rw.staffName}</td>
       <td class="font-extrabold">${rw.name}</td>
       <td>${visitStatusPill(rw.lastVisit)}</td>
       <td>${contractPill(rw.contractType)}</td>
       <td class="font-extrabold">${fmtMoney(rw.salesYTD)}</td>
-      <td>
-        <div class="font-extrabold">${fmt(examSum(rw.examBreakdown))}</div>
-        ${examBreakdownLikeSales(rw.examBreakdown)}
-      </td>
-      <td class="font-bold">${rw.firstVisit || "-"}</td>
-      <td class="font-bold">${rw.lastVisit || "-"}</td>
+      <td><div class="font-extrabold">${fmt(examSum(rw.examBreakdown))}</div>${examBreakdownLikeSales(rw.examBreakdown)}</td>
+      <td class="font-bold">${rw.firstVisit||"-"}</td>
+      <td class="font-bold">${rw.lastVisit||"-"}</td>
     `;
     tb.appendChild(tr);
   });
@@ -918,15 +1311,13 @@ function renderAccountsForCheckedStaff(){
   sec.scrollIntoView({ behavior:"smooth", block:"start" });
 }
 
-/* ================== 이벤트 바인딩 ================== */
 function bindStaffControls(){
   document.getElementById("staffSearch").addEventListener("input", renderStaffTable);
   document.getElementById("clearCheckedBtn").addEventListener("click", clearCheckedStaff);
 }
 
-/* ================== 전체 렌더 ================== */
 function renderAll(){
-  STAFF = buildStaffFromAccounts();
+  STAFF=buildStaffFromAccounts();
   renderDeptKpis();
   renderSalesMixBar();
   renderStaffTable();
@@ -935,8 +1326,11 @@ function renderAll(){
 }
 
 /* ================== 초기 실행 ================== */
-renderMeetings();               // ✅ 회의록 먼저 렌더
-STAFF = buildStaffFromAccounts();
+setMeetingSelection(null);
+renderMeetings();
+bindMeetingControls();
+
+STAFF=buildStaffFromAccounts();
 initDeptSelect();
 initStaffTeamFilter();
 bindStaffControls();
